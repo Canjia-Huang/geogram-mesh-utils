@@ -25,6 +25,8 @@ namespace geolio
         const GEO::index_t v
         ) {
         assert(c < M.cells.nb());
+        assert(M.cells.type(c) == GEO::MeshCellType::MESH_HEX);
+
         for (GEO::index_t lv = 0; lv < 8; ++lv) {
             if (M.cells.vertex(c, lv) == v)
                 return lv;
@@ -47,6 +49,7 @@ namespace geolio
         ) {
         assert(lv0 < 8);
         assert(lv1 < 8);
+
         switch ((1<<lv0) | (1<<lv1)) {
             case HEX_ENCODED_LE[0]: return 0;
             case HEX_ENCODED_LE[1]: return 1;
@@ -84,6 +87,8 @@ namespace geolio
         const GEO::index_t v1
         ) {
         assert(c < M.cells.nb());
+        assert(M.cells.type(c) == GEO::MeshCellType::MESH_HEX);
+
         for (GEO::index_t lv = 0; lv < 8; ++lv) {
             if (M.cells.vertex(c, lv) == v0) {
                 for (const auto& adj_lv : HEX_LV_ADJACENT_LV[lv]) {
@@ -114,6 +119,7 @@ namespace geolio
         assert(lv0 < 8);
         assert(lv1 < 8);
         assert(lv2 < 8);
+
         if (lv0 == lv1 || lv1 == lv2 || lv2 == lv0)
             return GEO::NO_INDEX;
         if (const auto& encoded_lf = (1<<lv0) | (1<<lv1) | (1<<lv2);
@@ -153,6 +159,7 @@ namespace geolio
         assert(lv1 < 8);
         assert(lv2 < 8);
         assert(lv3 < 8);
+
         switch ((1<<lv0) | (1<<lv1) | (1<<lv2) | (1<<lv3)) {
             case HEX_ENCODED_LF[0]: return 0;
             case HEX_ENCODED_LF[1]: return 1;
@@ -185,9 +192,11 @@ namespace geolio
         const GEO::index_t v2
         ) {
         assert(c < M.cells.nb());
+        assert(M.cells.type(c) == GEO::MeshCellType::MESH_HEX);
         assert(v0 < M.vertices.nb());
         assert(v1 < M.vertices.nb());
         assert(v2 < M.vertices.nb());
+
         const auto lv0 = find_hex_vertex(M, c, v0);
         const auto lv1 = find_hex_vertex(M, c, v1);
         const auto lv2 = find_hex_vertex(M, c, v2);

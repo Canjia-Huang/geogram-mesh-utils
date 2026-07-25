@@ -7,7 +7,7 @@
 
 #include <geogram/mesh/mesh.h>
 #include <cassert>
-#include "surf_operations.h"
+#include "mesh_operations.h"
 
 namespace geolio
 {

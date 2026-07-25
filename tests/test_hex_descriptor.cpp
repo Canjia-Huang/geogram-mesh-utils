@@ -10,10 +10,8 @@
 
 namespace geolio::test
 {
-    using namespace geolio;
-
     class HexDescriptorTest : public ::testing::Test {
-    public:
+    protected:
         void SetUp() override {
             M.vertices.create_vertices(8);
             M.vertices.point(0) = GEO::vec3(0,0,0);
@@ -27,6 +25,7 @@ namespace geolio::test
             M.cells.create_hex(0,1,2,3,4,5,6,7);
         }
 
+    public:
         GEO::Mesh M;
         const GEO::index_t c = 0;
     };
