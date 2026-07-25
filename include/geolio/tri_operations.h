@@ -83,7 +83,24 @@ namespace geolio
         GEO::Mesh& M,
         GEO::index_t f,
         GEO::index_t lv);
+
+    /**
+     * @brief Check whether swapping a triangle edge is geometrically valid.
+     *
+     * The function inspects the interior edge shared by facet @p f and its adjacent facet across
+     * local edge @p lv. It returns whether the corresponding edge swap can be applied without
+     * producing an inverted configuration.
+     *
+     * @param[in] M Target triangle mesh.
+     * @param[in] f Index of one incident facet of the edge to flip.
+     * @param[in] lv Local edge index (0, 1, or 2) in facet @p f identifying the edge opposite
+     *               local vertex @p lv.
+     * @return true if the edge swap is valid; false otherwise.
+     */
+    bool is_tri_edge_swap_valid(
+        GEO::Mesh& M,
+        GEO::index_t f,
+        GEO::index_t lv);
 }
 
 #endif //GEOGRAM_MESH_UTILS_TRIANGLE_OPERATIONS_H
-
