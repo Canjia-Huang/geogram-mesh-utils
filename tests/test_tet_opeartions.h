@@ -2,8 +2,8 @@
 // Created by huangcanjia <huangcanjia0214@gmail.com> on 2026/4/21.
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
-#ifndef GEOGRAMMESHUTILS_TEST_TET_OPEARTIONS_H
-#define GEOGRAMMESHUTILS_TEST_TET_OPEARTIONS_H
+#ifndef GEOLIO_TEST_TET_OPEARTIONS_H
+#define GEOLIO_TEST_TET_OPEARTIONS_H
 
 #include <geogram/mesh/mesh.h>
 #include <geogram/mesh/mesh_io.h>
@@ -458,4 +458,4 @@ namespace geolio::test
     };
 }
 
-#endif //GEOGRAMMESHUTILS_TEST_TET_OPEARTIONS_H
+#endif //GEOLIO_TEST_TET_OPEARTIONS_H
