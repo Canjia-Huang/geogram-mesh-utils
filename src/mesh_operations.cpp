@@ -10,21 +10,21 @@ namespace geolio
 {
     bool get_vertex_incident_facets(
         const GEO::Mesh& M,
-        const GEO::index_t _f,
-        const GEO::index_t _lv,
+        const GEO::index_t start_f,
+        const GEO::index_t start_lv,
         std::vector<std::pair<GEO::index_t, GEO::index_t>>& ordered_f_and_lv
         ) {
-        assert(_f < M.facets.nb());
-        assert(_lv < M.facets.nb_vertices(_f));
+        assert(start_f < M.facets.nb());
+        assert(start_lv < M.facets.nb_vertices(start_f));
 
-        const GEO::index_t v = M.facets.vertex(_f, _lv);
+        const GEO::index_t v = M.facets.vertex(start_f, start_lv);
         bool is_on_border = false;
 
         std::vector<std::pair<GEO::index_t, GEO::index_t>> next_ordered_f_and_lv;
         std::vector<std::pair<GEO::index_t, GEO::index_t>> prev_ordered_f_and_lv;
         {
-            GEO::index_t f = _f;
-            GEO::index_t lv = _lv;
+            GEO::index_t f = start_f;
+            GEO::index_t lv = start_lv;
             do {
                 next_ordered_f_and_lv.emplace_back(f, lv);
 
@@ -36,12 +36,12 @@ namespace geolio
                 f = next_f;
                 lv = M.facets.find_vertex(f, v);
                 assert(lv != GEO::NO_INDEX);
-            } while (f != _f);
+            } while (f != start_f);
         }
 
         if (is_on_border) { // inverse travel
-            GEO::index_t f = _f;
-            GEO::index_t lv = (_lv+M.facets.nb_vertices(f)-1)%M.facets.nb_vertices(f);
+            GEO::index_t f = start_f;
+            GEO::index_t lv = (start_lv+M.facets.nb_vertices(f)-1)%M.facets.nb_vertices(f);
 
             for (;;) {
                 const GEO::index_t next_f = M.facets.adjacent(f, lv);
@@ -63,5 +63,14 @@ namespace geolio
             ordered_f_and_lv.push_back(f_lv);
 
         return is_on_border;
+    }
+
+    bool get_edge_incident_cells(
+        const GEO::Mesh& M,
+        const GEO::index_t start_c,
+        const GEO::index_t start_le,
+        std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>>& ordered_c_le_lf
+        ) {
+
     }
 }
