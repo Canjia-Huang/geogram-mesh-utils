@@ -132,7 +132,7 @@ namespace geolio::test
             const GEO::index_t new_v = M.vertices.create_vertices(1);
             const GEO::index_t new_f = M.facets.create_triangles(2);
 
-            facet_edge_split(
+            tri_edge_split(
                 M,
                 f, lv,
                 new_v,
@@ -165,7 +165,7 @@ namespace geolio::test
             const GEO::index_t new_v = M.vertices.create_vertices(1);
             const GEO::index_t new_f = M.facets.create_triangles(1);
 
-            facet_edge_split(
+            tri_edge_split(
                 M,
                 f, lv,
                 new_v,
@@ -203,7 +203,7 @@ namespace geolio::test
             ) {
             GEO::index_t disuse_v, disuse_f0, disuse_f1;
 
-            facet_edge_collapse(
+            tri_edge_collapse(
                 M,
                 f, lv,
                 disuse_v,
@@ -241,7 +241,7 @@ namespace geolio::test
             ) {
             GEO::index_t disuse_v, disuse_f0, disuse_f1;
 
-            facet_edge_collapse(
+            tri_edge_collapse(
                 M,
                 f, lv,
                 disuse_v,
@@ -280,7 +280,7 @@ namespace geolio::test
             const GEO::index_t f,
             const GEO::index_t lv
             ) {
-            return facet_edge_swap(M, f, lv);
+            return tri_edge_swap(M, f, lv);
         }
     };
 

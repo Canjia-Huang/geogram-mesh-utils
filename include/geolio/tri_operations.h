@@ -29,7 +29,7 @@ namespace geolio
      * @param[in] new_f1 Index of the pre-allocated new facet produced by splitting the adjacent facet @p af.
      * Ignored when @p af does not exist (NO_FACET).
      */
-    void facet_edge_split(
+    void tri_edge_split(
         GEO::Mesh& M,
         GEO::index_t f,
         GEO::index_t lv,
@@ -55,7 +55,7 @@ namespace geolio
      * @param[out] disuse_f1 Index of the second unused facet across the collapsed edge;
      *                       set to GEO::NO_FACET when the edge is on the border.
      */
-    void facet_edge_collapse(
+    void tri_edge_collapse(
         GEO::Mesh& M,
         GEO::index_t f,
         GEO::index_t lv,
@@ -79,7 +79,7 @@ namespace geolio
      * @return true if the swap is performed successfully; false if the target edge is on the border
      *         or the operation cannot be applied.
      */
-    bool facet_edge_swap(
+    bool tri_edge_swap(
         GEO::Mesh& M,
         GEO::index_t f,
         GEO::index_t lv);

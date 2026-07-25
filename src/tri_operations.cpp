@@ -8,8 +8,8 @@
 
 namespace geolio
 {
-    void facet_edge_split(
-         GEO::Mesh& M,
+    void tri_edge_split(
+        GEO::Mesh& M,
         const GEO::index_t f,
         const GEO::index_t lv,
         const GEO::index_t new_v,
@@ -18,6 +18,7 @@ namespace geolio
         const double r
         ) {
         assert(f < M.facets.nb());
+        assert(M.facets.nb_vertices(f) == 3);
         assert(lv < 3);
         assert(r >= 0 && r <= 1);
         assert(new_v < M.vertices.nb());
@@ -64,6 +65,7 @@ namespace geolio
         /* == Split adjacent facet ================================================================================= */
         if (nf0 != GEO::NO_FACET) {
             assert(new_f1 < M.facets.nb());
+            assert(M.facets.nb_vertices(new_f1) == 3);
 
             /*
              * nv2 ----- nv1       nv2 ----- nv1
@@ -101,7 +103,7 @@ namespace geolio
         }
     }
 
-    void facet_edge_collapse(
+    void tri_edge_collapse(
         GEO::Mesh& M,
         const GEO::index_t f,
         const GEO::index_t lv,
@@ -111,6 +113,7 @@ namespace geolio
         const double r
         ) {
         assert(f < M.facets.nb());
+        assert(M.facets.nb_vertices(f) == 3);
         assert(lv < 3);
         assert(r >= 0 && r <= 1);
 
@@ -156,6 +159,8 @@ namespace geolio
 
         /* == Collapse adjacent facet ============================================================================== */
         if (af0 != GEO::NO_FACET) {
+            assert(M.facets.nb_vertices(af0) == 3);
+
             /*
              *  +-------- nv1                 ++
              *    \ naf1 / |                 / |
@@ -195,12 +200,13 @@ namespace geolio
             M.facets.set_vertex(adj_f, adj_lv, v0);
     }
 
-    bool facet_edge_swap(
+    bool tri_edge_swap(
         GEO::Mesh& M,
         const GEO::index_t f,
         const GEO::index_t lv
         ) {
         assert(f < M.facets.nb());
+        assert(M.facets.nb_vertices(f) == 3);
         assert(lv < 3);
 
         const GEO::index_t af = M.facets.adjacent(f, lv);
