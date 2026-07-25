@@ -3,7 +3,7 @@
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
 
-#include "geolio/surf_operations.h"
+#include "geolio/mesh_operations.h"
 #include <cassert>
 
 namespace geolio

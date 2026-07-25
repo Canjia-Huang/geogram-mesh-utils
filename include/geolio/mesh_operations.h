@@ -2,8 +2,8 @@
 // Created by huangcanjia <huangcanjia0214@gmail.com> on 2026/5/16.
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
-#ifndef GEOGRAMMESHUTILS_SURF_OPERATIONS_H
-#define GEOGRAMMESHUTILS_SURF_OPERATIONS_H
+#ifndef GEOGRAMMESHUTILS_MESH_OPERATIONS_H
+#define GEOGRAMMESHUTILS_MESH_OPERATIONS_H
 
 #include <geogram/mesh/mesh.h>
 
@@ -27,9 +27,9 @@ namespace geolio
      */
     bool get_vertex_incident_facets(
         const GEO::Mesh& M,
-        const GEO::index_t _f,
-        const GEO::index_t _lv,
+        GEO::index_t _f,
+        GEO::index_t _lv,
         std::vector<std::pair<GEO::index_t, GEO::index_t>>& ordered_f_and_lv);
 }
 
-#endif //GEOGRAMMESHUTILS_SURF_OPERATIONS_H
+#endif //GEOGRAMMESHUTILS_MESH_OPERATIONS_H
