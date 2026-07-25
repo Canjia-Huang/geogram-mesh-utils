@@ -204,26 +204,6 @@ namespace geolio
             return GEO::NO_INDEX;
         return find_hex_facet_from_local_vertices(lv0, lv1, lv2);
     }
-
-    /**
-     * Collects hexahedra incident to a mesh edge in traversal order.
-     *
-     * Starting from a cell-local-edge seed, this function traces the edge
-     * ring (or border chain) and outputs an ordered list of
-     * (cell, local-edge, local-facet) tuples, where each local facet contains
-     * the queried edge.
-     *
-     * @param[in]     M                The hexahedral mesh to query
-     * @param[in]     start_c          Index of the seed cell
-     * @param[in]     start_le         Local edge index (0-11) in @p start_c
-     * @param[in,out] ordered_c_le_lf  Output ordered (cell, local-edge, local-facet) list; existing contents are cleared
-     * @return true if the queried edge is on the mesh border; false if it is an interior edge
-     */
-    bool get_edge_incident_hexahedra(
-        const GEO::Mesh& M,
-        GEO::index_t start_c,
-        GEO::index_t start_le,
-        std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>>& ordered_c_le_lf);
 }
 
 #endif //GEOGRAM_MESH_UTILS_HEXAHEDRON_OPERATIONS_H

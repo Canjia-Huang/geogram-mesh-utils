@@ -99,6 +99,24 @@ namespace geolio
     };
 
     /**
+     * Bitmask encoding for each local edge.
+     *
+     * `TET_ENCODED_LE[le]` stores a 2-bit vertex mask of edge `le`:
+     * `(1 << lv_a) | (1 << lv_b)`, where `lv_a` and `lv_b` are its endpoints.
+     * This supports order-independent edge lookup from two local vertices.
+     */
+    constexpr std::array<GEO::index_t, 6> TET_ENCODED_LE = {
+        {
+            (1<<TET_LE_INCIDENT_LV[0][0]) | (1<<TET_LE_INCIDENT_LV[0][1]),
+            (1<<TET_LE_INCIDENT_LV[1][0]) | (1<<TET_LE_INCIDENT_LV[1][1]),
+            (1<<TET_LE_INCIDENT_LV[2][0]) | (1<<TET_LE_INCIDENT_LV[2][1]),
+            (1<<TET_LE_INCIDENT_LV[3][0]) | (1<<TET_LE_INCIDENT_LV[3][1]),
+            (1<<TET_LE_INCIDENT_LV[4][0]) | (1<<TET_LE_INCIDENT_LV[4][1]),
+            (1<<TET_LE_INCIDENT_LV[5][0]) | (1<<TET_LE_INCIDENT_LV[5][1])
+        }
+    };
+
+    /**
      * Local-face to corner-local-vertex table for a tetrahedron.
      *
      * `TET_LF_INCIDENT_LV[lf]` returns the three corner local vertices

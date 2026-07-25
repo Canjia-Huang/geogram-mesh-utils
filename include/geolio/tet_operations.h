@@ -15,6 +15,67 @@
 namespace geolio
 {
     /**
+     * Finds the local edge index in a tetrahedron from two local endpoint vertices.
+     *
+     * Edge direction is ignored.
+     *
+     * @param[in] lv0 Local vertex index (0-3) of one endpoint
+     * @param[in] lv1 Local vertex index (0-3) of the other endpoint
+     * @return Local edge index (0-5) if @p lv0 and @p lv1 form a tetrahedron edge; otherwise GEO::NO_INDEX
+     */
+    inline GEO::index_t find_tet_edge_from_local_vertices(
+        const GEO::index_t lv0,
+        const GEO::index_t lv1
+        ) {
+        assert(lv0 < 4);
+        assert(lv1 < 4);
+
+        switch ((1<<lv0) | (1<<lv1)) {
+            case TET_ENCODED_LE[0]: return 0;
+            case TET_ENCODED_LE[1]: return 1;
+            case TET_ENCODED_LE[2]: return 2;
+            case TET_ENCODED_LE[3]: return 3;
+            case TET_ENCODED_LE[4]: return 4;
+            case TET_ENCODED_LE[5]: return 5;
+            default:
+                return GEO::NO_INDEX;
+        }
+    }
+
+    /**
+     * Finds the local edge index in a tetrahedron from two endpoint vertex.
+     *
+     * The search is performed in cell @p c using global vertex indices @p ev0 and @p ev1.
+     * Edge direction is ignored.
+     *
+     * @param[in] M    The mesh to query
+     * @param[in] c    Index of the hexahedral cell to search
+     * @param[in] v0  Global vertex index of one endpoint
+     * @param[in] v1  Global vertex index of the other endpoint
+     * @return Local edge index (0-5) in @p c if found; otherwise GEO::NO_INDEX
+     */
+    inline GEO::index_t find_tet_edge(
+        const GEO::Mesh& M,
+        const GEO::index_t c,
+        const GEO::index_t v0,
+        const GEO::index_t v1
+        ) {
+        assert(c < M.cells.nb());
+        assert(M.cells.type(c) == GEO::MeshCellType::MESH_TET);
+
+        for (GEO::index_t lv = 0; lv < 4; ++lv) {
+            if (M.cells.vertex(c, lv) == v0) {
+                for (const auto& adj_lv : TET_LV_ADJACENT_LV[lv]) {
+                    if (M.cells.vertex(c, adj_lv) == v1)
+                        return find_tet_edge_from_local_vertices(lv, adj_lv);
+                }
+                break;
+            }
+        }
+        return GEO::NO_INDEX;
+    }
+
+    /**
      * Returns the third vertex of a tetrahedron facet from two known facet vertices.
      *
      * @param[in] M  Input tetrahedral mesh.
@@ -69,8 +130,8 @@ namespace geolio
      */
     bool get_vertex_incident_tetrahedra(
         const GEO::Mesh& M,
-        const GEO::index_t _c,
-        const GEO::index_t _lv,
+        GEO::index_t _c,
+        GEO::index_t _lv,
         std::vector<std::pair<GEO::index_t, GEO::index_t>>& c_and_lv);
 
     /**

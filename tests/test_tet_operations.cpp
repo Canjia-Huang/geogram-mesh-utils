@@ -12,6 +12,46 @@
 
 namespace geolio::test
 {
+    class TetOperationsTest : public ::testing::Test {
+    protected:
+        void SetUp() override {
+            M.vertices.create_vertices(4);
+            M.vertices.point(0) = GEO::vec3(0,0,0);
+            M.vertices.point(1) = GEO::vec3(1,0,0);
+            M.vertices.point(2) = GEO::vec3(0,1,0);
+            M.vertices.point(3) = GEO::vec3(0,0,1);
+            M.cells.create_tet(0,1,2,3);
+
+            ASSERT_GT(GEO::Geom::tetra_signed_volume(
+                M.vertices.point(0),
+                M.vertices.point(1),
+                M.vertices.point(2),
+                M.vertices.point(3)), 0);
+        }
+
+    public:
+        GEO::Mesh M;
+        const GEO::index_t c = 0;
+    };
+
+    TEST_F(TetOperationsTest, find_tet_edge_from_local_vertices) {
+        for (GEO::index_t le = 0; le < M.cells.nb_edges(c); ++le) {
+            const auto& lv0 = TET_LE_INCIDENT_LV[le][0];
+            const auto& lv1 = TET_LE_INCIDENT_LV[le][1];
+            EXPECT_EQ(find_tet_edge_from_local_vertices(lv0, lv1), le);
+            EXPECT_EQ(find_tet_edge_from_local_vertices(lv1, lv0), le);
+        }
+    }
+
+    TEST_F(TetOperationsTest, find_tet_edge) {
+        for (GEO::index_t le = 0; le < M.cells.nb_edges(c); ++le) {
+            const auto& ev0 = M.cells.edge_vertex(c, le, 0);
+            const auto& ev1 = M.cells.edge_vertex(c, le, 1);
+            EXPECT_EQ(find_tet_edge(M, c, ev0, ev1), le);
+            EXPECT_EQ(find_tet_edge(M, c, ev1, ev0), le);
+        }
+    }
+
     class GetVertexIncidentTetrahedraTest : public TetrahedronOperationsTest {
     public:
         bool compute(

@@ -10,7 +10,7 @@
 
 namespace geolio::test
 {
-    class HexOperatorsTest : public ::testing::Test {
+    class HexOperationsTest : public ::testing::Test {
     protected:
         void SetUp() override {
             M.vertices.create_vertices(8);
@@ -30,12 +30,12 @@ namespace geolio::test
         const GEO::index_t c = 0;
     };
 
-    TEST_F(HexOperatorsTest, find_hex_vertex) {
+    TEST_F(HexOperationsTest, find_hex_vertex) {
         for (GEO::index_t lv = 0; lv < M.cells.nb_vertices(c); ++lv)
             EXPECT_EQ(find_hex_vertex(M, c, M.cells.vertex(c, lv)), lv);
     }
 
-    TEST_F(HexOperatorsTest, find_hex_edge_from_local_vertices) {
+    TEST_F(HexOperationsTest, find_hex_edge_from_local_vertices) {
         for (GEO::index_t le = 0; le < M.cells.nb_edges(c); ++le) {
             const auto& lv0 = HEX_LE_INCIDENT_LV[le][0];
             const auto& lv1 = HEX_LE_INCIDENT_LV[le][1];
@@ -44,7 +44,7 @@ namespace geolio::test
         }
     }
 
-    TEST_F(HexOperatorsTest, find_hex_edge) {
+    TEST_F(HexOperationsTest, find_hex_edge) {
         for (GEO::index_t le = 0; le < M.cells.nb_edges(c); ++le) {
             const auto& ev0 = M.cells.edge_vertex(c, le, 0);
             const auto& ev1 = M.cells.edge_vertex(c, le, 1);
@@ -53,7 +53,7 @@ namespace geolio::test
         }
     }
 
-    TEST_F(HexOperatorsTest, find_hex_facet_from_local_vertices) {
+    TEST_F(HexOperationsTest, find_hex_facet_from_local_vertices) {
         for (GEO::index_t i = 0; i < M.cells.nb_vertices(c); ++i) {
             const auto& vi = M.cells.vertex(c, i);
             for (GEO::index_t j = 0; j < M.cells.nb_vertices(c); ++j) {
@@ -116,7 +116,7 @@ namespace geolio::test
         }
     }
 
-    TEST_F(HexOperatorsTest, find_hex_facet) {
+    TEST_F(HexOperationsTest, find_hex_facet) {
         for (GEO::index_t i = 0; i < M.cells.nb_vertices(c); ++i) {
             const auto& vi = M.cells.vertex(c, i);
             for (GEO::index_t j = 0; j < M.cells.nb_vertices(c); ++j) {

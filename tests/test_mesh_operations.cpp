@@ -56,4 +56,8 @@ namespace geolio::test
             }
         }
     }
+
+    TEST(MeshOperationsTest, get_edge_incident_cells) {
+        // TODO
+    }
 }
