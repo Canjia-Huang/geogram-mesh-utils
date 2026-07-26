@@ -8,6 +8,7 @@ if(Geogram_FOUND)
 
     if(WIN32) # this macro should normally be defined when configuring the geogram, but it appears not in some cases...
         add_compile_definitions(GEOGRAM_USE_BUILTIN_DEPS)
+        add_compile_definitions(GEO_DYNAMIC_LIBS) # ref https://github.com/BrunoLevy/geogram/discussions/376
     endif()
 
     if(WIN32) # copy geogram's dlls to the execute file path
