@@ -8,27 +8,37 @@
 #include <geogram/mesh/mesh_io.h>
 #include <gtest/gtest.h>
 #include "geolio/mesh_operations.h"
+#include "geolio/pair_hash.h"
+#include "geolio/tet_descriptor.h"
 
 namespace geolio::test
 {
-    TEST(MeshOperationsTest, get_vertex_incident_facets) {
-        GEO::Mesh M;
-        ASSERT_TRUE(GEO::mesh_load(std::string(TEST_DATA_PATH) + "polygonal_disk.geogram", M));
+    class SurfaceMeshOperationsTest : public ::testing::Test {
+    protected:
+        void SetUp() override {
+            ASSERT_TRUE(GEO::mesh_load(std::string(TEST_DATA_PATH) + "polygonal_disk.geogram", M));
 
-        std::vector<std::unordered_set<GEO::index_t>> M_v_adjacent_f(M.vertices.nb());
-        std::vector<bool> M_v_border(M.vertices.nb(), false);
-        for (const auto& f : M.facets) {
-            for (GEO::index_t lv = 0, lv_end = M.facets.nb_vertices(f); lv < lv_end; ++lv) {
-                const bool FIRST_INSERT = M_v_adjacent_f[M.facets.vertex(f, lv)].insert(f).second;
-                ASSERT_TRUE(FIRST_INSERT);
+            M_v_adjacent_f.resize(M.vertices.nb());
+            M_v_border.assign(M.vertices.nb(), false);
+            for (const auto& f : M.facets) {
+                for (GEO::index_t lv = 0, lv_end = M.facets.nb_vertices(f); lv < lv_end; ++lv) {
+                    const bool FIRST_INSERT = M_v_adjacent_f[M.facets.vertex(f, lv)].insert(f).second;
+                    ASSERT_TRUE(FIRST_INSERT);
 
-                if (M.facets.adjacent(f, lv) == GEO::NO_FACET) {
-                    M_v_border[M.facets.vertex(f, lv)] = true;
-                    M_v_border[M.facets.vertex(f, (lv+1)%lv_end)] = true;
+                    if (M.facets.adjacent(f, lv) == GEO::NO_FACET) {
+                        M_v_border[M.facets.vertex(f, lv)] = true;
+                        M_v_border[M.facets.vertex(f, (lv+1)%lv_end)] = true;
+                    }
                 }
             }
         }
 
+        GEO::Mesh M;
+        std::vector<std::unordered_set<GEO::index_t>> M_v_adjacent_f;
+        std::vector<bool> M_v_border;
+    };
+
+    TEST_F(SurfaceMeshOperationsTest, get_vertex_incident_facets) {
         for (const auto& f : M.facets) {
             for (GEO::index_t lv = 0, lv_end = M.facets.nb_vertices(f); lv < lv_end; ++lv) {
                 const auto& v = M.facets.vertex(f, lv);
@@ -57,242 +67,167 @@ namespace geolio::test
         }
     }
 
-    TEST(MeshOperationsTest, get_edge_incident_cells) {
-        // TODO
+    /* ============================================================================================================= */
+
+    class TetMeshOperationsTest : public ::testing::Test {
+    protected:
+        void SetUp() override {
+            ASSERT_TRUE(GEO::mesh_load(std::string(TEST_DATA_PATH) + "delaunay3d_random_20.geogram", M));
+
+            M_v_adjacent_c.resize(M.vertices.nb());
+            M_v_border.assign(M.vertices.nb(), false);
+            for (const auto& c : M.cells) {
+                for (GEO::index_t lv = 0; lv < 4; ++lv) {
+                    const auto& v = M.cells.vertex(c, lv);
+                    M_v_adjacent_c[v].insert(c);
+                }
+                for (GEO::index_t lf = 0; lf < 4; ++lf) {
+                    if (M.cells.adjacent(c, lf) == GEO::NO_CELL) {
+                        for (GEO::index_t lv = 0; lv < 3; ++lv) {
+                            const auto& v = M.cells.facet_vertex(c, lf, lv);
+                            M_v_border[v] = true;
+                        }
+                    }
+                }
+            }
+
+            for (const auto& c : M.cells) {
+                for (GEO::index_t le = 0; le < 6; ++le) {
+                    const std::pair<GEO::index_t, GEO::index_t> edge = std::minmax(
+                        M.cells.edge_vertex(c, le, 0), M.cells.edge_vertex(c, le, 1));
+                    if (auto it = M_e_adjacent_c.find(edge);
+                        it != M_e_adjacent_c.end())
+                        it->second.insert(c);
+                    else {
+                        std::unordered_set<GEO::index_t> adj_c;
+                        adj_c.insert(c);
+                        M_e_adjacent_c.emplace(edge, adj_c);
+                    }
+                }
+
+                for (GEO::index_t lf = 0; lf < 4; ++lf) {
+                    if (M.cells.adjacent(c, lf) == GEO::NO_CELL) {
+                        for (const auto& le : TET_LF_INCIDENT_LE[lf]) {
+                            const std::pair<GEO::index_t, GEO::index_t> edge = std::minmax(
+                                M.cells.edge_vertex(c, le, 0), M.cells.edge_vertex(c, le, 1));
+                            M_e_border.insert(edge);
+                        }
+                    }
+                }
+            }
+        }
+
+        GEO::Mesh M;
+        std::vector<std::unordered_set<GEO::index_t>> M_v_adjacent_c;
+        std::vector<bool> M_v_border;
+        std::unordered_map<std::pair<GEO::index_t, GEO::index_t>, std::unordered_set<GEO::index_t>, PairHash> M_e_adjacent_c;
+        std::unordered_set<std::pair<GEO::index_t, GEO::index_t>, PairHash> M_e_border;
+    };
+
+    TEST_F(TetMeshOperationsTest, get_vertex_incident_cells) {
+        for (const auto& c : M.cells) {
+            for (GEO::index_t lv = 0; lv < 4; ++lv) {
+                const auto& v = M.cells.vertex(c, lv);
+
+                std::vector<std::pair<GEO::index_t, GEO::index_t>> c_and_lv;
+                const bool ON_BORDER = get_vertex_incident_cells(M, c, lv, c_and_lv);
+
+                EXPECT_EQ(ON_BORDER, M_v_border[v]);
+
+                /* Verify integrity */
+                const auto& adjacent_cells = M_v_adjacent_c[v];
+                EXPECT_EQ(c_and_lv.size(), adjacent_cells.size());
+                for (const auto& nc: c_and_lv | std::views::keys)
+                    EXPECT_TRUE(adjacent_cells.contains(nc));
+
+                /* Check lv */
+                for (const auto& [nc, nlv] : c_and_lv)
+                    EXPECT_EQ(M.cells.vertex(nc, nlv), v);
+            }
+        }
+    }
+
+    TEST_F(TetMeshOperationsTest, get_edge_incident_cells) {
+        for (const auto& c : M.cells) {
+            for (GEO::index_t le = 0; le < 6; ++le) {
+                const auto& ev0 = M.cells.edge_vertex(c, le, 0);
+                const auto& ev1 = M.cells.edge_vertex(c, le, 1);
+                const std::pair<GEO::index_t, GEO::index_t> edge = std::minmax(ev0, ev1);
+
+                std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>> ordered_c_le_lf;
+                const bool ON_BORDER = get_edge_incident_cells(M, c, le, ordered_c_le_lf);
+
+                EXPECT_EQ(ON_BORDER, M_e_border.contains(edge));
+
+                /* Verify integrity */
+                ASSERT_TRUE(M_e_adjacent_c.contains(edge));
+                const auto& adjacent_cells = M_e_adjacent_c.at(edge);
+                EXPECT_EQ(ordered_c_le_lf.size(), adjacent_cells.size());
+                for (const auto& nc: ordered_c_le_lf | std::views::keys)
+                    EXPECT_TRUE(adjacent_cells.contains(nc));
+
+                /* Check le */
+                for (const auto& [nc, nle, _] : ordered_c_le_lf) {
+                    const auto& nev0 = M.cells.edge_vertex(nc, nle, 0);
+                    const auto& nev1 = M.cells.edge_vertex(nc, nle, 1);
+                    const std::pair<GEO::index_t, GEO::index_t> nedge = std::minmax(nev0, nev1);
+                    EXPECT_EQ(edge.first, nedge.first);
+                    EXPECT_EQ(edge.second, nedge.second);
+                }
+
+                /* Check loop */
+                for (GEO::index_t i = 0, i_end = ordered_c_le_lf.size(); i < i_end; ++i) {
+                    const auto& [nc, _, nlf] = ordered_c_le_lf[i];
+                    if (const auto& nnc = M.cells.adjacent(nc, nlf);
+                        nnc == GEO::NO_CELL)
+                        EXPECT_EQ(i, i_end-1);
+                    else
+                        EXPECT_EQ(nnc, get<0>(ordered_c_le_lf[(i+1)%i_end]));
+                }
+            }
+        }
+    }
+
+    TEST_F(TetMeshOperationsTest, get_edge_incident_cells_2) {
+        for (const auto& c : M.cells) {
+            for (GEO::index_t lf = 0; lf < 4; ++lf) {
+                for (GEO::index_t lv = 0; lv < 3; ++lv) {
+                    const auto& ev0 = M.cells.facet_vertex(c, lf, lv);
+                    const auto& ev1 = M.cells.facet_vertex(c, lf, (lv+1)%3);
+                    const std::pair<GEO::index_t, GEO::index_t> edge = std::minmax(ev0, ev1);
+
+                    std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>> ordered_c_le_lf;
+                    const bool ON_BORDER = get_edge_incident_cells(M, c, lf, lv, ordered_c_le_lf);
+
+                    EXPECT_EQ(ON_BORDER, M_e_border.contains(edge));
+
+                    /* Verify integrity */
+                    ASSERT_TRUE(M_e_adjacent_c.contains(edge));
+                    const auto& adjacent_cells = M_e_adjacent_c.at(edge);
+                    EXPECT_EQ(ordered_c_le_lf.size(), adjacent_cells.size());
+                    for (const auto& nc: ordered_c_le_lf | std::views::keys)
+                        EXPECT_TRUE(adjacent_cells.contains(nc));
+
+                    /* Check le */
+                    for (const auto& [nc, nle, _] : ordered_c_le_lf) {
+                        const auto& nev0 = M.cells.edge_vertex(nc, nle, 0);
+                        const auto& nev1 = M.cells.edge_vertex(nc, nle, 1);
+                        const std::pair<GEO::index_t, GEO::index_t> nedge = std::minmax(nev0, nev1);
+                        EXPECT_EQ(edge.first, nedge.first);
+                        EXPECT_EQ(edge.second, nedge.second);
+                    }
+
+                    /* Check loop */
+                    for (GEO::index_t i = 0, i_end = ordered_c_le_lf.size(); i < i_end; ++i) {
+                        const auto& [nc, _, nlf] = ordered_c_le_lf[i];
+                        if (const auto& nnc = M.cells.adjacent(nc, nlf);
+                            nnc == GEO::NO_CELL)
+                            EXPECT_EQ(i, i_end-1);
+                        else
+                            EXPECT_EQ(nnc, get<0>(ordered_c_le_lf[(i+1)%i_end]));
+                    }
+                }
+            }
+        }
     }
 }
-
-
-//     class GetVertexIncidentTetrahedraTest : public TetrahedronOperationsTest {
-//     public:
-//         bool compute(
-//             const GEO::index_t _c,
-//             const GEO::index_t _lv
-//             ) {
-//             // return get_vertex_incident_tetrahedra(M, _c, _lv, c_and_lv);
-//         }
-//
-//         void check_incident(
-//             const GEO::index_t v
-//             ) {
-//             for (const auto& [c, lv] : c_and_lv)
-//                 EXPECT_EQ(M.cells.vertex(c, lv), v);
-//         }
-//
-//         void check_complete(
-//             const GEO::index_t v
-//             ) const {
-//             std::unordered_map<std::pair<GEO::index_t, GEO::index_t>, bool, PairHash> incident_cells; // (c, lv) -> found
-//             for (const auto& c : M.cells) {
-//                 for (GEO::index_t lv = 0; lv < 4; ++lv) {
-//                     if (M.cells.vertex(c, lv) == v) {
-//                         incident_cells.emplace(std::pair(c, lv), false);
-//                         break;
-//                     }
-//                 }
-//             }
-//
-//             for (const auto& c_lv : c_and_lv) {
-//                 auto it = incident_cells.find(c_lv);
-//                 ASSERT_FALSE(it == incident_cells.end());
-//                 EXPECT_FALSE(it->second);
-//                 it->second = true;
-//             }
-//
-//             for (const auto &found: incident_cells | std::views::values)
-//                 EXPECT_TRUE(found);
-//         }
-//
-//         std::vector<std::pair<GEO::index_t, GEO::index_t>> c_and_lv;
-//     };
-//
-//     class GetInteriorVertexIncidentTetrahedraTest : public GetVertexIncidentTetrahedraTest {};
-//
-//     TEST_P(GetInteriorVertexIncidentTetrahedraTest, each_vertex) {
-//         auto [c, lv, _] = GetParam();
-//
-//         EXPECT_FALSE(compute(c, lv));
-//         check_incident(M.cells.vertex(c, lv));
-//         check_complete(M.cells.vertex(c, lv));
-//     }
-//
-//     INSTANTIATE_TEST_SUITE_P(
-//         TetrahedronOperationsTest,
-//         GetInteriorVertexIncidentTetrahedraTest,
-//         ::testing::ValuesIn(TETRAHEDRON_MESH_GET_TEST_PARAMS(INTERIOR_VERTEX_C_LV)));
-//
-//     class GetBorderVertexIncidentTetrahedraTest : public GetVertexIncidentTetrahedraTest {};
-//
-//     TEST_P(GetBorderVertexIncidentTetrahedraTest, each_vertex) {
-//         auto [c, lv, _] = GetParam();
-//
-//         EXPECT_TRUE(compute(c, lv));
-//         check_incident(M.cells.vertex(c, lv));
-//         check_complete(M.cells.vertex(c, lv));
-//     }
-//
-//     INSTANTIATE_TEST_SUITE_P(
-//         TetrahedronOperationsTest,
-//         GetBorderVertexIncidentTetrahedraTest,
-//         ::testing::ValuesIn(TETRAHEDRON_MESH_GET_TEST_PARAMS(BORDER_VERTEX_C_LV)));
-// }
-//
-// /* == GetEdgeIncidentTetrahedraTest ================================================================================ */
-//
-// namespace geolio::test
-// {
-//     class GetEdgeIncidentTetrahedraTest : public TetrahedronOperationsTest {
-//     public:
-//         bool compute(
-//             const GEO::index_t _c,
-//             const GEO::index_t _lf,
-//             const GEO::index_t _lv
-//             ) {
-//             // return get_edge_incident_tetrahedra(M, _c, _lf, _lv, ordered_c_and_lf);
-//         }
-//
-//         bool compute(
-//             const GEO::index_t _c,
-//             const GEO::index_t _le
-//             ) {
-//             // return get_edge_incident_tetrahedra(M, _c, _le, ordered_c_and_lf);
-//         }
-//
-//         void check_incident(
-//             const GEO::index_t ev0,
-//             const GEO::index_t ev1
-//             ) {
-//             for (const auto& [c, lf] : ordered_c_and_lf) {
-//                 bool incident = false;
-//                 for (GEO::index_t lv = 0; lv < 3; ++lv) {
-//                     const GEO::index_t cev0 = M.cells.facet_vertex(c, lf, lv);
-//                     const GEO::index_t cev1 = M.cells.facet_vertex(c, lf, (lv+1)%3);
-//                     if ((cev0 == ev0 && cev1 == ev1) ||
-//                         (cev0 == ev1 && cev1 == ev0)
-//                         ) {
-//                         incident = true;
-//                         break;
-//                         }
-//                 }
-//                 EXPECT_TRUE(incident);
-//             }
-//         }
-//
-//         void check_complete(
-//             const GEO::index_t ev0,
-//             const GEO::index_t ev1
-//             ) {
-//             std::unordered_map<GEO::index_t, bool> incident_cells; // (cell, found)
-//             for (const auto& c : M.cells) {
-//                 for (GEO::index_t le = 0; le < 6; ++le) {
-//                     const GEO::index_t cev0 = M.cells.edge_vertex(c, le, 0);
-//                     const GEO::index_t cev1 = M.cells.edge_vertex(c, le, 1);
-//                     if ((cev0 == ev0 && cev1 == ev1) || (cev0 == ev1 && cev1 == ev0)) {
-//                         incident_cells.emplace(c, false);
-//                         break;
-//                     }
-//                 }
-//             }
-//
-//             for (const auto &c: ordered_c_and_lf | std::views::keys) {
-//                 auto it = incident_cells.find(c);
-//                 EXPECT_FALSE(it == incident_cells.end());
-//                 it->second = true;
-//             }
-//
-//             for (const auto &found: incident_cells | std::views::values)
-//                 EXPECT_TRUE(found);
-//         }
-//
-//         virtual void check_loop() = 0;
-//
-//         std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_c_and_lf;
-//     };
-//
-//     class GetInteriorEdgeIncidentTetrahedraTest : public GetEdgeIncidentTetrahedraTest {
-//     public:
-//         void check_loop() override {
-//             for (GEO::index_t i = 0, i_end = ordered_c_and_lf.size(); i < i_end; ++i) {
-//                 const auto& [c, lf] = ordered_c_and_lf[i];
-//                 EXPECT_EQ(M.cells.adjacent(c, lf), ordered_c_and_lf[(i+1)%i_end].first);
-//             }
-//         }
-//     };
-//
-//     class GetInteriorEdgeIncidentTetrahedraTest_c_lf_lv : public GetInteriorEdgeIncidentTetrahedraTest {};
-//
-//     TEST_P(GetInteriorEdgeIncidentTetrahedraTest_c_lf_lv, each_edge) {
-//         auto [c, lf, lv] = GetParam();
-//
-//         EXPECT_FALSE(compute(c, lf, lv));
-//         check_incident(M.cells.facet_vertex(c, lf, lv), M.cells.facet_vertex(c, lf, (lv+1)%3));
-//         check_complete(M.cells.facet_vertex(c, lf, lv), M.cells.facet_vertex(c, lf, (lv+1)%3));
-//         check_loop();
-//     }
-//
-//     INSTANTIATE_TEST_SUITE_P(
-//         TetrahedronOperationsTest,
-//         GetInteriorEdgeIncidentTetrahedraTest_c_lf_lv,
-//         ::testing::ValuesIn(TETRAHEDRON_MESH_GET_TEST_PARAMS(INTERIOR_EDGE_C_LF_LV)));
-//
-//     class GetInteriorEdgeIncidentTetrahedraTest_c_le : public GetInteriorEdgeIncidentTetrahedraTest {};
-//
-//     TEST_P(GetInteriorEdgeIncidentTetrahedraTest_c_le, each_edge) {
-//         auto [c, le, _] = GetParam();
-//
-//         EXPECT_FALSE(compute(c, le));
-//         check_incident(M.cells.edge_vertex(c, le, 0), M.cells.edge_vertex(c, le, 1));
-//         check_complete(M.cells.edge_vertex(c, le, 0), M.cells.edge_vertex(c, le, 1));
-//         check_loop();
-//     }
-//
-//     INSTANTIATE_TEST_SUITE_P(
-//         TetrahedronOperationsTest,
-//         GetInteriorEdgeIncidentTetrahedraTest_c_le,
-//         ::testing::ValuesIn(TETRAHEDRON_MESH_GET_TEST_PARAMS(INTERIOR_EDGE_C_LE)));
-//
-//     class GetBorderEdgeIncidentTetrahedraTest : public GetEdgeIncidentTetrahedraTest {
-//     public:
-//         void check_loop() override {
-//             for (GEO::index_t i = 0, i_end = ordered_c_and_lf.size(); i < i_end; ++i) {
-//                 const auto& [c, lf] = ordered_c_and_lf[i];
-//                 if (i == i_end-1)
-//                     EXPECT_EQ(M.cells.adjacent(c, lf), GEO::NO_CELL);
-//                 else
-//                     EXPECT_EQ(M.cells.adjacent(c, lf), ordered_c_and_lf[i+1].first);
-//             }
-//         }
-//     };
-//
-//     class GetBorderEdgeIncidentTetrahedraTest_c_lf_lv : public GetBorderEdgeIncidentTetrahedraTest {};
-//
-//     TEST_P(GetBorderEdgeIncidentTetrahedraTest_c_lf_lv, each_c_lf_lv) {
-//         auto [c, lf, lv] = GetParam();
-//
-//         EXPECT_TRUE(compute(c, lf, lv));
-//         check_incident(M.cells.facet_vertex(c, lf, lv), M.cells.facet_vertex(c, lf, (lv+1)%3));
-//         check_complete(M.cells.facet_vertex(c, lf, lv), M.cells.facet_vertex(c, lf, (lv+1)%3));
-//         check_loop();
-//     }
-//
-//     INSTANTIATE_TEST_SUITE_P(
-//         TetrahedronOperationsTest,
-//         GetBorderEdgeIncidentTetrahedraTest_c_lf_lv,
-//         ::testing::ValuesIn(TETRAHEDRON_MESH_GET_TEST_PARAMS(BORDER_EDGE_C_LF_LV)));
-//
-//     class GetBorderEdgeIncidentTetrahedraTest_c_le : public GetBorderEdgeIncidentTetrahedraTest {};
-//
-//     TEST_P(GetBorderEdgeIncidentTetrahedraTest_c_le, each_c_le) {
-//         auto [c, le, _] = GetParam();
-//
-//         EXPECT_TRUE(compute(c, le));
-//         check_incident(M.cells.edge_vertex(c, le, 0), M.cells.edge_vertex(c, le, 1));
-//         check_complete(M.cells.edge_vertex(c, le, 0), M.cells.edge_vertex(c, le, 1));
-//         check_loop();
-//     }
-//
-//     INSTANTIATE_TEST_SUITE_P(
-//         TetrahedronOperationsTest,
-//         GetBorderEdgeIncidentTetrahedraTest_c_le,
-//         ::testing::ValuesIn(TETRAHEDRON_MESH_GET_TEST_PARAMS(BORDER_EDGE_C_LE)));
-// }
