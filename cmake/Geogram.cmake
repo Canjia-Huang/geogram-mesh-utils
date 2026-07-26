@@ -1,3 +1,5 @@
+geolio_begin_file()
+
 find_package(Geogram REQUIRED)
 
 if(Geogram_FOUND)
@@ -21,3 +23,5 @@ if(Geogram_FOUND)
 else()
     message(WARNING "Geogram not found!")
 endif()
+
+geolio_end_file()
