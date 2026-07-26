@@ -3,8 +3,6 @@ macro(geolio_begin_file)
 
     list(APPEND CMAKE_MESSAGE_INDENT "[${CMAKE_CURRENT_LIST_FILE}]: ")
     message(STATUS "")
-
-    set(CURRENT_LIB_NAME ${PROJECT_NAME}_LIB)
 endmacro()
 
 macro(geolio_end_file)
