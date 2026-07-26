@@ -10,6 +10,19 @@
 
 namespace geolio
 {
+    /**
+     * Appends all vertices and tetrahedra from a periodic Delaunay structure to a mesh.
+     *
+     * The function creates new vertices at the end of @p mesh and copies coordinates
+     * from @p delaunay in index order. It then creates one tetrahedron per Delaunay
+     * cell and remaps each local cell vertex to the corresponding newly appended mesh
+     * vertex.
+     *
+     * Existing mesh vertices/cells are preserved; only new elements are appended.
+     *
+     * @param[in] delaunay Source periodic Delaunay triangulation to export.
+     * @param[in,out] mesh Destination mesh receiving appended vertices and tetrahedra.
+     */
     inline void append_delaunay_to_mesh(
         const GEO::PeriodicDelaunay3d& delaunay,
         GEO::Mesh& mesh

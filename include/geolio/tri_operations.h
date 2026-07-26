@@ -38,6 +38,20 @@ namespace geolio
         GEO::index_t new_f1,
         double r = 0.5);
 
+    /**
+     * @brief Check whether collapsing a triangle edge preserves local orientation.
+     *
+     * For facet @p f and local edge (lv -> lv+1), the function evaluates the collapse
+     * that moves vertex v(lv) to `(1-r)*p(lv) + r*p(lv+1)` and merges v(lv+1) into v(lv).
+     * It tests all facets incident to both endpoints and returns false if any affected
+     * triangle would flip orientation.
+     *
+     * @param[in] M Target triangle mesh.
+     * @param[in] f Index of the triangle facet that owns the candidate edge.
+     * @param[in] lv Local vertex index (0, 1, or 2) identifying the edge to collapse.
+     * @param[in] r Interpolation ratio in [0, 1] for the new position of v(lv).
+     * @return true if the collapse is geometrically valid; false otherwise.
+     */
     bool is_tri_edge_collapse_valid(
         const GEO::Mesh& M,
         GEO::index_t f,
