@@ -7,7 +7,7 @@
 
 #include <geogram/mesh/mesh.h>
 #include <cassert>
-#include "surf_operations.h"
+#include "mesh_operations.h"
 
 namespace geolio
 {
@@ -29,7 +29,7 @@ namespace geolio
      * @param[in] new_f1 Index of the pre-allocated new facet produced by splitting the adjacent facet @p af.
      * Ignored when @p af does not exist (NO_FACET).
      */
-    void facet_edge_split(
+    void tri_edge_split(
         GEO::Mesh& M,
         GEO::index_t f,
         GEO::index_t lv,
@@ -37,6 +37,26 @@ namespace geolio
         GEO::index_t new_f0,
         GEO::index_t new_f1,
         double r = 0.5);
+
+    /**
+     * @brief Check whether collapsing a triangle edge preserves local orientation.
+     *
+     * For facet @p f and local edge (lv -> lv+1), the function evaluates the collapse
+     * that moves vertex v(lv) to `(1-r)*p(lv) + r*p(lv+1)` and merges v(lv+1) into v(lv).
+     * It tests all facets incident to both endpoints and returns false if any affected
+     * triangle would flip orientation.
+     *
+     * @param[in] M Target triangle mesh.
+     * @param[in] f Index of the triangle facet that owns the candidate edge.
+     * @param[in] lv Local vertex index (0, 1, or 2) identifying the edge to collapse.
+     * @param[in] r Interpolation ratio in [0, 1] for the new position of v(lv).
+     * @return true if the collapse is geometrically valid; false otherwise.
+     */
+    bool is_tri_edge_collapse_valid(
+        const GEO::Mesh& M,
+        GEO::index_t f,
+        GEO::index_t lv,
+        double r);
 
     /**
      * @brief Collapse an edge of a triangle and update local connectivity.
@@ -55,7 +75,7 @@ namespace geolio
      * @param[out] disuse_f1 Index of the second unused facet across the collapsed edge;
      *                       set to GEO::NO_FACET when the edge is on the border.
      */
-    void facet_edge_collapse(
+    void tri_edge_collapse(
         GEO::Mesh& M,
         GEO::index_t f,
         GEO::index_t lv,
@@ -63,6 +83,24 @@ namespace geolio
         GEO::index_t& disuse_f0,
         GEO::index_t& disuse_f1,
         double r);
+
+    /**
+     * @brief Check whether swapping a triangle edge is geometrically valid.
+     *
+     * The function inspects the interior edge shared by facet @p f and its adjacent facet across
+     * local edge @p lv. It returns whether the corresponding edge swap can be applied without
+     * producing an inverted configuration.
+     *
+     * @param[in] M Target triangle mesh.
+     * @param[in] f Index of one incident facet of the edge to flip.
+     * @param[in] lv Local edge index (0, 1, or 2) in facet @p f identifying the edge opposite
+     *               local vertex @p lv.
+     * @return true if the edge swap is valid; false otherwise.
+     */
+    bool is_tri_edge_swap_valid(
+        GEO::Mesh& M,
+        GEO::index_t f,
+        GEO::index_t lv);
 
     /**
      * @brief Swap an interior edge shared by two triangles.
@@ -79,11 +117,10 @@ namespace geolio
      * @return true if the swap is performed successfully; false if the target edge is on the border
      *         or the operation cannot be applied.
      */
-    bool facet_edge_swap(
+    bool tri_edge_swap(
         GEO::Mesh& M,
         GEO::index_t f,
         GEO::index_t lv);
 }
 
 #endif //GEOGRAM_MESH_UTILS_TRIANGLE_OPERATIONS_H
-

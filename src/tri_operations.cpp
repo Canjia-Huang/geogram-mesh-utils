@@ -5,11 +5,12 @@
 
 #include "geolio/tri_operations.h"
 #include <cassert>
+#include "geolio/vecg.h"
 
 namespace geolio
 {
-    void facet_edge_split(
-         GEO::Mesh& M,
+    void tri_edge_split(
+        GEO::Mesh& M,
         const GEO::index_t f,
         const GEO::index_t lv,
         const GEO::index_t new_v,
@@ -18,6 +19,7 @@ namespace geolio
         const double r
         ) {
         assert(f < M.facets.nb());
+        assert(M.facets.nb_vertices(f) == 3);
         assert(lv < 3);
         assert(r >= 0 && r <= 1);
         assert(new_v < M.vertices.nb());
@@ -41,9 +43,17 @@ namespace geolio
         const GEO::index_t nf1 = M.facets.adjacent(f, lv1);
 
         /* Set new point */
-        const auto& p0 = M.facets.point(f, lv0);
-        const auto& p1 = M.facets.point(f, lv1);
-        M.vertices.point(new_v) = (1-r)*p0 + r*p1;
+        if (M.vertices.dimension() == 2) {
+            const auto& p0 = M.facets.point<2>(f, lv0);
+            const auto& p1 = M.facets.point<2>(f, lv1);
+            M.vertices.point<2>(new_v) = (1-r)*p0 + r*p1;
+        }
+        else {
+            assert(M.vertices.dimension() == 3);
+            const auto& p0 = M.facets.point(f, lv0);
+            const auto& p1 = M.facets.point(f, lv1);
+            M.vertices.point(new_v) = (1-r)*p0 + r*p1;
+        }
 
         /* Set facet vertices  */
         M.facets.set_vertex(f, lv1, new_v);
@@ -64,6 +74,7 @@ namespace geolio
         /* == Split adjacent facet ================================================================================= */
         if (nf0 != GEO::NO_FACET) {
             assert(new_f1 < M.facets.nb());
+            assert(M.facets.nb_vertices(new_f1) == 3);
 
             /*
              * nv2 ----- nv1       nv2 ----- nv1
@@ -101,7 +112,90 @@ namespace geolio
         }
     }
 
-    void facet_edge_collapse(
+    bool is_tri_edge_collapse_valid(
+        const GEO::Mesh& M,
+        const GEO::index_t f,
+        const GEO::index_t lv,
+        const double r
+        ) {
+        assert(f < M.facets.nb());
+        assert(M.facets.nb_vertices(f) == 3);
+        assert(lv < 3);
+        assert(r >= 0 && r <= 1);
+
+        const GEO::index_t lv0 = lv;
+        const GEO::index_t lv1 = (lv+1)%3;
+        const GEO::index_t lv2 = (lv+2)%3;
+
+        /* Find all incident vertices */
+        std::vector<std::pair<GEO::index_t, GEO::index_t>> v1_ordered_f_and_lv;
+        get_vertex_incident_facets(M, f, lv1, v1_ordered_f_and_lv);
+
+        std::vector<std::pair<GEO::index_t, GEO::index_t>> v2_ordered_f_and_lv;
+        get_vertex_incident_facets(M, f, lv2, v2_ordered_f_and_lv);
+
+        if (M.vertices.dimension() == 2) {
+            const auto& p0 = M.facets.point<2>(f, lv0);
+            const auto& p1 = M.facets.point<2>(f, lv1);
+            const auto& p2 = M.facets.point<2>(f, lv2);
+            const auto target_p = (1-r)*p0 + r*p1;
+
+            const auto normal = cross(p1-p0, p2-p0);
+            for (const auto& [nf, nlv] : v1_ordered_f_and_lv) {
+                std::array<GEO::vec2, 3> fps = {
+                    M.facets.point<2>(nf, 0),
+                    M.facets.point<2>(nf, 1),
+                    M.facets.point<2>(nf, 2)
+                };
+                fps[nlv] = target_p;
+                if (cross(fps[1]-fps[0], fps[2]-fps[0]) * normal < 0)
+                    return false;
+            }
+            for (const auto& [nf, nlv] : v2_ordered_f_and_lv) {
+                std::array<GEO::vec2, 3> fps = {
+                    M.facets.point<2>(nf, 0),
+                    M.facets.point<2>(nf, 1),
+                    M.facets.point<2>(nf, 2)
+                };
+                fps[nlv] = target_p;
+                if (cross(fps[1]-fps[0], fps[2]-fps[0]) * normal < 0)
+                    return false;
+            }
+        }
+        else {
+            assert(M.vertices.dimension() == 3);
+            const auto& p0 = M.facets.point(f, lv0);
+            const auto& p1 = M.facets.point(f, lv1);
+            const auto& p2 = M.facets.point(f, lv2);
+            const auto target_p = (1-r)*p0 + r*p1;
+
+            const auto normal = cross(p1-p0, p2-p0);
+            for (const auto& [nf, nlv] : v1_ordered_f_and_lv) {
+                std::array<GEO::vec3, 3> fps = {
+                    M.facets.point(nf, 0),
+                    M.facets.point(nf, 1),
+                    M.facets.point(nf, 2)
+                };
+                fps[nlv] = target_p;
+                if (GEO::dot(GEO::cross(fps[1]-fps[0], fps[2]-fps[0]), normal) < 0)
+                    return false;
+            }
+            for (const auto& [nf, nlv] : v2_ordered_f_and_lv) {
+                std::array<GEO::vec3, 3> fps = {
+                    M.facets.point(nf, 0),
+                    M.facets.point(nf, 1),
+                    M.facets.point(nf, 2)
+                };
+                fps[nlv] = target_p;
+                if (GEO::dot(GEO::cross(fps[1]-fps[0], fps[2]-fps[0]), normal) < 0)
+                    return false;
+            }
+        }
+
+        return true;
+    }
+
+    void tri_edge_collapse(
         GEO::Mesh& M,
         const GEO::index_t f,
         const GEO::index_t lv,
@@ -111,6 +205,7 @@ namespace geolio
         const double r
         ) {
         assert(f < M.facets.nb());
+        assert(M.facets.nb_vertices(f) == 3);
         assert(lv < 3);
         assert(r >= 0 && r <= 1);
 
@@ -134,9 +229,17 @@ namespace geolio
         const GEO::index_t af2 = M.facets.adjacent(f, lv2);
 
         /* Set collapsed point (v0) */
-        const auto& p0 = M.facets.point(f, lv0);
-        const auto& p1 = M.facets.point(f, lv1);
-        M.vertices.point(v0) = (1-r)*p0 + r*p1;
+        if (M.vertices.dimension() == 2) {
+            const auto& p0 = M.facets.point<2>(f, lv0);
+            const auto& p1 = M.facets.point<2>(f, lv1);
+            M.vertices.point<2>(v0) = (1-r)*p0 + r*p1;
+        }
+        else {
+            assert(M.vertices.dimension() == 3);
+            const auto& p0 = M.facets.point(f, lv0);
+            const auto& p1 = M.facets.point(f, lv1);
+            M.vertices.point(v0) = (1-r)*p0 + r*p1;
+        }
         disuse_v = v1;
         disuse_f0 = f;
 
@@ -156,6 +259,8 @@ namespace geolio
 
         /* == Collapse adjacent facet ============================================================================== */
         if (af0 != GEO::NO_FACET) {
+            assert(M.facets.nb_vertices(af0) == 3);
+
             /*
              *  +-------- nv1                 ++
              *    \ naf1 / |                 / |
@@ -195,12 +300,68 @@ namespace geolio
             M.facets.set_vertex(adj_f, adj_lv, v0);
     }
 
-    bool facet_edge_swap(
+    bool is_tri_edge_swap_valid(
         GEO::Mesh& M,
         const GEO::index_t f,
         const GEO::index_t lv
         ) {
         assert(f < M.facets.nb());
+        assert(M.facets.nb_vertices(f) == 3);
+        assert(lv < 3);
+
+        const GEO::index_t af = M.facets.adjacent(f, lv);
+        if (af == GEO::NO_FACET)
+            return false;
+
+        const GEO::index_t lv1 = (lv+1)%3;
+        const GEO::index_t lv2 = (lv+2)%3;
+        const GEO::index_t v0 = M.facets.vertex(f, lv);
+        const GEO::index_t v1 = M.facets.vertex(f, lv1);
+        const GEO::index_t v2 = M.facets.vertex(f, lv2);
+
+        const GEO::index_t nlv0 = M.facets.find_vertex(af, v1);
+        assert(nlv0 != GEO::NO_INDEX);
+        const GEO::index_t nlv2 = (nlv0+2)%3;
+        const GEO::index_t v3 = M.facets.vertex(af, nlv2);
+
+        if (M.vertices.dimension() == 2) {
+            const auto& p0 = M.vertices.point<2>(v0);
+            const auto& p1 = M.vertices.point<2>(v1);
+            const auto& p2 = M.vertices.point<2>(v2);
+            const auto& p3 = M.vertices.point<2>(v3);
+            const auto normal0 = cross(p1-p0, p2-p0);
+            // const auto normal1 = cross(p0-p1, p3-p1);
+            // assert(normal0 * normal1 > 0);
+            const auto normal2 = cross(p3-p0, p2-p0);
+            const auto normal3 = cross(p2-p1, p3-p1);
+            if (normal2 * normal0 < 0 || normal3 * normal0 < 0)
+                return false;
+        }
+        else {
+            assert(M.vertices.dimension() == 3);
+            const auto& p0 = M.vertices.point(v0);
+            const auto& p1 = M.vertices.point(v1);
+            const auto& p2 = M.vertices.point(v2);
+            const auto& p3 = M.vertices.point(v3);
+            const auto normal0 = GEO::cross(p1-p0, p2-p0);
+            const auto normal1 = GEO::cross(p0-p1, p3-p1);
+            const auto ave_normal = normal0+normal1;
+            const auto normal2 = GEO::cross(p3-p0, p2-p0);
+            const auto normal3 = GEO::cross(p2-p1, p3-p1);
+            if (GEO::dot(normal2, ave_normal) < 1e-10 || GEO::dot(normal3, ave_normal) < 1e-10)
+                return false;
+        }
+
+        return true;
+    }
+
+    bool tri_edge_swap(
+        GEO::Mesh& M,
+        const GEO::index_t f,
+        const GEO::index_t lv
+        ) {
+        assert(f < M.facets.nb());
+        assert(M.facets.nb_vertices(f) == 3);
         assert(lv < 3);
 
         const GEO::index_t af = M.facets.adjacent(f, lv);

@@ -2,8 +2,8 @@
 // Created by huangcanjia <huangcanjia0214@gmail.com> on 2026/3/12.
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
-#ifndef ROBUSTLOCALREMESHING_UTILS_H
-#define ROBUSTLOCALREMESHING_UTILS_H
+#ifndef GEOLIO_UTILS_H
+#define GEOLIO_UTILS_H
 
 #include <gtest/gtest.h>
 #include <string>
@@ -21,4 +21,4 @@ namespace geolio::test
 }
 
 
-#endif //ROBUSTLOCALREMESHING_UTILS_H
+#endif //GEOLIO_UTILS_H

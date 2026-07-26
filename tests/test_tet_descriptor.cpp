@@ -168,6 +168,16 @@ namespace geolio::test
         }
     }
 
+    TEST_F(TetDescriptorTest, TET_ENCODED_LE) {
+        ASSERT_EQ(M.cells.nb_edges(c), TET_ENCODED_LE.size());
+
+        for (GEO::index_t le = 0; le < M.cells.nb_edges(c); ++le) {
+            const auto& ev0 = M.cells.edge_vertex(c, le, 0);
+            const auto& ev1 = M.cells.edge_vertex(c, le, 1);
+            EXPECT_EQ((1<<ev0) | (1<<ev1), TET_ENCODED_LE[le]);
+        }
+    }
+
     TEST_F(TetDescriptorTest, TET_LF_INCIDENT_LV) {
         ASSERT_EQ(M.cells.nb_facets(0), TET_LF_INCIDENT_LV.size());
 

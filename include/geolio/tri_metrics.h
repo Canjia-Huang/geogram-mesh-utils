@@ -24,6 +24,8 @@ namespace geolio
         const GEO::index_t f
         ) {
         assert(f < M.facets.nb());
+        assert(M.facets.nb_vertices(f) == 3);
+
         const auto& p0 = M.facets.point(f, 0);
         const auto& p1 = M.facets.point(f, 1);
         const auto& p2 = M.facets.point(f, 2);

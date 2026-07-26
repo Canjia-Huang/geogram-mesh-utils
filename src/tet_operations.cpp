@@ -6,152 +6,11 @@
 #include "geolio/tet_operations.h"
 #include <cassert>
 
+#include "geolio/mesh_operations.h"
+
 namespace geolio
 {
-    bool get_vertex_incident_tetrahedra(
-        const GEO::Mesh& M,
-        const GEO::index_t _c,
-        const GEO::index_t _lv,
-        std::vector<std::pair<GEO::index_t, GEO::index_t>>& c_and_lv
-        ) {
-        assert(_c < M.cells.nb());
-        assert(_lv < 4);
-
-        c_and_lv.clear();
-
-        const auto v = M.cells.vertex(_c, _lv);
-
-        std::unordered_set<GEO::index_t> processed_cells;
-        bool is_on_border = false;
-
-        std::stack<std::pair<GEO::index_t, GEO::index_t>> stack;
-        stack.emplace(_c, _lv);
-        while (!stack.empty()) {
-            const auto [c, lv] = stack.top();
-            stack.pop();
-
-            if (!processed_cells.insert(c).second)
-                continue;
-            c_and_lv.emplace_back(c, lv);
-
-            for (const auto& lf : TET_LV_INCIDENT_LF[lv]) {
-                if (const auto nc = M.cells.adjacent(c, lf);
-                    nc != GEO::NO_CELL
-                    ) {
-                    const auto nlv = M.cells.find_tet_vertex(nc, v);
-                    assert(nlv != GEO::NO_INDEX);
-                    stack.emplace(nc, nlv);
-                    }
-                else
-                    is_on_border = true;
-            }
-        }
-
-        return is_on_border;
-    }
-
-     bool get_edge_incident_tetrahedra(
-        const GEO::Mesh& M,
-        const GEO::index_t _c,
-        const GEO::index_t _le,
-        std::vector<std::pair<GEO::index_t, GEO::index_t>>& ordered_c_and_lf
-        ) {
-        assert(_c < M.cells.nb());
-        assert(_le < 6);
-
-        const auto ev0 = M.cells.edge_vertex(_c, _le, 0);
-        const auto ev1 = M.cells.edge_vertex(_c, _le, 1);
-        bool is_on_border = false;
-
-        std::vector<std::pair<GEO::index_t, GEO::index_t>> next_ordered_c_and_lf;
-        std::vector<std::pair<GEO::index_t, GEO::index_t>> prev_ordered_c_and_lf;
-        {
-            GEO::index_t c = _c;
-            GEO::index_t lf = M.cells.edge_adjacent_facet(_c, _le, 0);
-            for (;;) {
-                next_ordered_c_and_lf.emplace_back(c, lf);
-
-                const GEO::index_t nc = M.cells.adjacent(c, lf);
-                if (nc == GEO::NO_CELL) {
-                    is_on_border = true;
-                    break;
-                }
-                if (nc == _c) // a loop
-                    break;
-
-                /* Get next lf */
-                const GEO::index_t oppo_v = get_cell_facet_another_vertex(M, c, lf, ev0, ev1); // (oppo_v, ev0, ev1) form the cell c's lf
-                assert(oppo_v != GEO::NO_VERTEX);
-
-                lf = M.cells.find_tet_vertex(nc, oppo_v);
-                assert(lf != GEO::NO_INDEX);
-                c = nc;
-            }
-        }
-
-        if (is_on_border) {
-            GEO::index_t c = _c;
-            GEO::index_t lf = M.cells.edge_adjacent_facet(_c, _le, 1);
-            for (;;) {
-                const GEO::index_t nc = M.cells.adjacent(c, lf);
-                if (nc == GEO::NO_CELL)
-                    break;
-
-                const GEO::index_t nlf = M.cells.find_tet_facet(
-                    nc,
-                    M.cells.facet_vertex(c, lf, 2),
-                    M.cells.facet_vertex(c, lf, 1),
-                    M.cells.facet_vertex(c, lf, 0));
-                assert(nlf != GEO::NO_INDEX);
-
-                prev_ordered_c_and_lf.emplace_back(nc, nlf);
-
-                /* Get next lf */
-                const GEO::index_t oppo_v = get_cell_facet_another_vertex(M, nc, nlf, ev0, ev1); // (oppo_v, ev0, ev1) form the cell c's lf
-                assert(oppo_v != GEO::NO_VERTEX);
-
-                lf = M.cells.find_tet_vertex(nc, oppo_v);
-                assert(lf != GEO::NO_INDEX);
-                c = nc;
-            }
-        }
-
-        /* Output */
-        ordered_c_and_lf.clear();
-        ordered_c_and_lf.reserve(next_ordered_c_and_lf.size() + prev_ordered_c_and_lf.size());
-        for (GEO::index_t i = 0, i_end = prev_ordered_c_and_lf.size(); i < i_end; ++i)
-            ordered_c_and_lf.push_back(prev_ordered_c_and_lf[i_end-i-1]);
-        for (const auto& c_lf : next_ordered_c_and_lf)
-            ordered_c_and_lf.push_back(c_lf);
-
-        return is_on_border;
-    }
-
-    bool get_edge_incident_tetrahedra(
-        const GEO::Mesh& M,
-        const GEO::index_t _c,
-        const GEO::index_t _lf,
-        const GEO::index_t _lv,
-        std::vector<std::pair<GEO::index_t, GEO::index_t>>& ordered_c_and_lf
-        ) {
-        assert(_c < M.cells.nb());
-        assert(_lf < 4);
-        assert(_lv < 3);
-
-        const auto ev0 = M.cells.facet_vertex(_c, _lf, _lv);
-        const auto ev1 = M.cells.facet_vertex(_c, _lf, (_lv+1)%3);
-
-        for (const auto& start_le : TET_LF_INCIDENT_LE[_lf]) {
-            const auto cev0 = M.cells.edge_vertex(_c, start_le, 0);
-            const auto cev1 = M.cells.edge_vertex(_c, start_le, 1);
-            if ((cev0 == ev0 && cev1 == ev1) ||
-                (cev0 == ev1 && cev1 == ev0))
-                return get_edge_incident_tetrahedra(M, _c, start_le, ordered_c_and_lf);
-        }
-        assert(0);
-    }
-
-    void cell_split(
+    void tet_split(
         GEO::Mesh& M,
         const GEO::index_t c,
         const GEO::index_t new_v,
@@ -223,7 +82,7 @@ namespace geolio
         }
     }
 
-    void cell_facet_split(
+    void tet_facet_split(
         GEO::Mesh& M,
         const GEO::index_t c,
         const GEO::index_t lf,
@@ -384,28 +243,22 @@ namespace geolio
         }
     }
 
-    void cell_edge_split(
+    void tet_edge_split(
         GEO::Mesh& M,
         const GEO::index_t _c,
         const GEO::index_t le,
         const GEO::index_t new_v,
-        GEO::index_t& _new_c,
+        GEO::index_t* new_cs,
         const double r
         ) {
         assert(_c < M.cells.nb());
         assert(le < 6);
         assert(new_v < M.vertices.nb());
-        assert(_new_c < M.cells.nb());
 
         /* Find all adjacent cells */
-        std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_c_and_lf;
-        get_edge_incident_tetrahedra(M, _c, le, ordered_c_and_lf);
-        const GEO::index_t INCIDENT_CELLS_NB = ordered_c_and_lf.size();
-        if (_new_c+INCIDENT_CELLS_NB > M.cells.nb()) {
-            const GEO::index_t new_cells_nb = INCIDENT_CELLS_NB-(M.cells.nb()-_new_c);
-            M.cells.create_tets(new_cells_nb);
-        }
-        assert(_new_c+INCIDENT_CELLS_NB <= M.cells.nb());
+        std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>> ordered_c_le_lf;
+        get_edge_incident_cells(M, _c, le, ordered_c_le_lf);
+        const GEO::index_t INCIDENT_CELLS_NB = ordered_c_le_lf.size();
 
         const GEO::index_t ev0 = M.cells.edge_vertex(_c, le, 0);
         const GEO::index_t ev1 = M.cells.edge_vertex(_c, le, 1);
@@ -414,8 +267,8 @@ namespace geolio
         M.vertices.point(new_v) = (1-r)*M.vertices.point(ev0) + r*M.vertices.point(ev1);
 
         for (GEO::index_t i = 0; i < INCIDENT_CELLS_NB; ++i) {
-            const auto& [c, lf0] = ordered_c_and_lf[i];
-            const auto& new_c = _new_c+i;
+            const auto& [c, _, lf0] = ordered_c_le_lf[i];
+            const auto& new_c = *(new_cs+i);
 
             const GEO::index_t lv0 = M.cells.find_tet_vertex(c, ev0);
             const GEO::index_t lv1 = M.cells.find_tet_vertex(c, ev1);
@@ -442,9 +295,9 @@ namespace geolio
             M.cells.set_adjacent(new_c, lv0, c);
             M.cells.set_adjacent(new_c, lv1, nc1);
             if (M.cells.adjacent(c, lv2) != GEO::NO_CELL)
-                M.cells.set_adjacent(new_c, lv2, _new_c+(i+INCIDENT_CELLS_NB-1)%INCIDENT_CELLS_NB);
+                M.cells.set_adjacent(new_c, lv2, *(new_cs+(i+INCIDENT_CELLS_NB-1)%INCIDENT_CELLS_NB));
             if (M.cells.adjacent(c, lv3) != GEO::NO_CELL)
-                M.cells.set_adjacent(new_c, lv3, _new_c+(i+1)%INCIDENT_CELLS_NB);
+                M.cells.set_adjacent(new_c, lv3, *(new_cs+(i+1)%INCIDENT_CELLS_NB));
             if (nc1 != GEO::NO_CELL) {
                 const GEO::index_t nlf = M.cells.find_tet_facet(
                     nc1,
@@ -456,10 +309,59 @@ namespace geolio
             }
         }
 
-        _new_c += INCIDENT_CELLS_NB;
+        /* Label */
+        for (GEO::index_t i = 0; i < INCIDENT_CELLS_NB; ++i)
+            *(new_cs+i) = GEO::NO_CELL;
     }
 
-    void cell_edge_collapse(
+    bool is_tet_edge_collapse_valid(
+        const GEO::Mesh& M,
+        const GEO::index_t _c,
+        const GEO::index_t le,
+        const double r
+        ) {
+        assert(_c < M.cells.nb());
+        assert(M.cells.type(_c) == GEO::MeshCellType::MESH_TET);
+        assert(le < 6);
+        assert(r >= 0 && r <= 1);
+
+        const auto& ev0 = M.cells.edge_vertex(_c, le, 0);
+        const auto& ev1 = M.cells.edge_vertex(_c, le, 1);
+
+        /* Move vertex */
+        const auto& ep0 = M.vertices.point(ev0);
+        const auto& ep1 = M.vertices.point(ev1);
+        const auto target_ep = (1-r)*ep0 + r*ep1;
+
+        /* Find all adjacent tets */
+        std::vector<std::pair<GEO::index_t, GEO::index_t>> ev0_incident_c_and_lv;
+        get_vertex_incident_cells(M, _c, TET_LE_INCIDENT_LV[le][0], ev0_incident_c_and_lv);
+        for (const auto& [c, lv] : ev0_incident_c_and_lv) {
+            std::array<GEO::vec3, 4> cell_points = {
+                M.cells.point(c, 0), M.cells.point(c, 1), M.cells.point(c, 2), M.cells.point(c, 3)
+            };
+            cell_points[lv] = target_ep;
+
+            if (GEO::Geom::tetra_signed_volume(cell_points[0], cell_points[1], cell_points[2], cell_points[3]) < 0)
+                return false;
+        }
+
+        std::vector<std::pair<GEO::index_t, GEO::index_t>> ev1_incident_c_and_lv;
+        get_vertex_incident_cells(M, _c, TET_LE_INCIDENT_LV[le][1], ev1_incident_c_and_lv);
+        for (const auto& [c, lv] : ev1_incident_c_and_lv) {
+            std::array<GEO::vec3, 4> cell_points = {
+                M.cells.point(c, 0), M.cells.point(c, 1), M.cells.point(c, 2), M.cells.point(c, 3)
+            };
+            cell_points[lv] = target_ep;
+
+            if (GEO::Geom::tetra_signed_volume(cell_points[0], cell_points[1], cell_points[2], cell_points[3]) < 0)
+                return false;
+        }
+
+        return true;
+    }
+
+    void tet_edge_collapse(
         GEO::Mesh& M,
         const GEO::index_t _c,
         const GEO::index_t _le,
@@ -468,6 +370,7 @@ namespace geolio
         const double r
         ) {
         assert(_c < M.cells.nb());
+        assert(M.cells.type(_c) == GEO::MeshCellType::MESH_TET);
         assert(_le < 6);
         assert(r >= 0 && r <= 1);
 
@@ -481,14 +384,14 @@ namespace geolio
         disuse_v = ev1;
 
         /* Find all adjacent tets */
-        std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_c_and_lf;
-        get_edge_incident_tetrahedra(M, _c, _le, ordered_c_and_lf);
+        std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>> ordered_c_le_lf;
+        get_edge_incident_cells(M, _c, _le, ordered_c_le_lf);
 
         std::vector<std::pair<GEO::index_t, GEO::index_t>> ev1_incident_c_and_lv;
-        get_vertex_incident_tetrahedra(M, _c, TET_LE_INCIDENT_LV[_le][1], ev1_incident_c_and_lv);
+        get_vertex_incident_cells(M, _c, TET_LE_INCIDENT_LV[_le][1], ev1_incident_c_and_lv);
 
         /* Collapse */
-        for (const auto& c: ordered_c_and_lf | std::views::keys) {
+        for (const auto& c: ordered_c_le_lf | std::views::keys) {
             const auto lf0 = M.cells.find_tet_vertex(c, ev0);
             const auto lf1 = M.cells.find_tet_vertex(c, ev1);
             const auto nc0 = M.cells.adjacent(c, lf0);
@@ -523,13 +426,49 @@ namespace geolio
             M.cells.set_vertex(c, lv, ev0);
     }
 
-    bool cell_edge_swap_2_3(
+    bool is_tet_edge_swap_2_3_valid(
+        const GEO::Mesh& M,
+        const GEO::index_t c,
+        const GEO::index_t lf
+        ) {
+        assert(c < M.cells.nb());
+        assert(M.cells.type(c) == GEO::MeshCellType::MESH_TET);
+        assert(lf < 4);
+
+        const GEO::index_t nc = M.cells.adjacent(c, lf);
+        if (nc == GEO::NO_CELL)
+            return false;
+
+        const GEO::index_t v = M.cells.vertex(c, lf);
+        const GEO::index_t v0 = M.cells.facet_vertex(c, lf, 0);
+        const GEO::index_t v1 = M.cells.facet_vertex(c, lf, 1);
+        const GEO::index_t v2 = M.cells.facet_vertex(c, lf, 2);
+
+        const GEO::index_t nlf = M.cells.find_tet_facet(nc, v2, v1, v0);
+        assert(nlf != GEO::NO_INDEX);
+        const GEO::index_t nv = M.cells.vertex(nc, nlf);
+
+        const auto& p = M.vertices.point(v);
+        const auto& p0 = M.vertices.point(v0);
+        const auto& p1 = M.vertices.point(v1);
+        const auto& p2 = M.vertices.point(v2);
+        const auto& np = M.vertices.point(nv);
+
+        if (GEO::Geom::tetra_signed_volume(p, np, p1, p0) < 0 ||
+            GEO::Geom::tetra_signed_volume(p, np, p2, p1) < 0 ||
+            GEO::Geom::tetra_signed_volume(p, np, p0, p2) < 0)
+            return false;
+        return true;
+    }
+
+    bool tet_edge_swap_2_3(
         GEO::Mesh& M,
         const GEO::index_t c,
         const GEO::index_t lf,
         const GEO::index_t new_c
         ) {
         assert(c < M.cells.nb());
+        assert(M.cells.type(c) == GEO::MeshCellType::MESH_TET);
         assert(lf < 4);
 
         const GEO::index_t nc = M.cells.adjacent(c, lf);
@@ -627,31 +566,32 @@ namespace geolio
         return true;
     }
 
-    bool cell_edge_swap_3_2(
+    bool tet_edge_swap_3_2(
         GEO::Mesh& M,
         const GEO::index_t _c,
         const GEO::index_t _le,
         GEO::index_t& disuse_c
         ) {
         assert(_c < M.cells.nb());
+        assert(M.cells.type(_c) == GEO::MeshCellType::MESH_TET);
         assert(_le < 6);
 
-        std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_c_and_lf;
-        if(const bool is_on_border = get_edge_incident_tetrahedra(M, _c, _le, ordered_c_and_lf);
+        std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>> ordered_c_le_lf;
+        if(const bool is_on_border = get_edge_incident_cells(M, _c, _le, ordered_c_le_lf);
             is_on_border ||
-            ordered_c_and_lf.size() != 3)
+            ordered_c_le_lf.size() != 3)
             return false;
 
         const GEO::index_t v0 = M.cells.edge_vertex(_c, _le, 0);
         const GEO::index_t v1 = M.cells.edge_vertex(_c, _le, 1);
 
-        const GEO::index_t c0 = ordered_c_and_lf[0].first;
-        const GEO::index_t c1 = ordered_c_and_lf[1].first;
-        const GEO::index_t c2 = ordered_c_and_lf[2].first;
+        const GEO::index_t c0 = get<0>(ordered_c_le_lf[0]);
+        const GEO::index_t c1 = get<0>(ordered_c_le_lf[1]);
+        const GEO::index_t c2 = get<0>(ordered_c_le_lf[2]);
         disuse_c = c2;
 
-        const GEO::index_t v2 = get_cell_facet_another_vertex(M, c0, ordered_c_and_lf[0].second, v0, v1);
-        const GEO::index_t v4 = get_cell_facet_another_vertex(M, c1, ordered_c_and_lf[1].second, v0, v1);
+        const GEO::index_t v2 = get_tet_facet_another_vertex(M, c0, get<2>(ordered_c_le_lf[0]), v0, v1);
+        const GEO::index_t v4 = get_tet_facet_another_vertex(M, c1, get<2>(ordered_c_le_lf[1]), v0, v1);
 
         const GEO::index_t c0_lv0 = M.cells.find_tet_vertex(c0, v0);
         const GEO::index_t c0_lv1 = M.cells.find_tet_vertex(c0, v1);
