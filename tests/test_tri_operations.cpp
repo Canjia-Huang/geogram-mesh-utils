@@ -70,7 +70,6 @@ namespace geolio::test
             }
         }
 
-    public:
         GEO::Mesh mesh;
         GEO::Mesh original_mesh;
     };
