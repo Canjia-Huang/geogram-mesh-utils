@@ -24,7 +24,8 @@ target_sources(${CURRENT_LIB_NAME}
 )
 
 target_link_libraries(${CURRENT_LIB_NAME}
-        PUBLIC
+        PRIVATE
+        ${PROJECT_NAME}_THIRD_PARTY
         Geogram::geogram
 )
 

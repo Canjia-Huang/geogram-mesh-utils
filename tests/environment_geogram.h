@@ -2,8 +2,8 @@
 // Created by huangcanjia <huangcanjia0214@gmail.com> on 2026/3/12.
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
-#ifndef GEOGRAM_MESH_UTILS_ENVIRONMENT_GEOGRAM_H
-#define GEOGRAM_MESH_UTILS_ENVIRONMENT_GEOGRAM_H
+#ifndef GEOLIO_ENVIRONMENT_GEOGRAM_H
+#define GEOLIO_ENVIRONMENT_GEOGRAM_H
 
 #include <geogram/basic/command_line_args.h>
 #include <geogram/basic/common.h>
@@ -19,4 +19,4 @@ public:
     }
 };
 
-#endif //GEOGRAM_MESH_UTILS_ENVIRONMENT_GEOGRAM_H
+#endif //GEOLIO_ENVIRONMENT_GEOGRAM_H
