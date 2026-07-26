@@ -303,7 +303,7 @@ namespace geolio::test
             M_c_affected[new_c+1] = 1;
             M_c_affected[new_c+2] = 1;
 
-            cell_split(
+            tet_split(
                 M,
                 c,
                 new_v,
@@ -365,7 +365,7 @@ namespace geolio::test
             M_c_affected[new_c+2] = 1;
             M_c_affected[new_c+3] = 1;
 
-            cell_facet_split(M, c, lf, new_v, new_c, new_c+1, new_c+2, new_c+3);
+            tet_facet_split(M, c, lf, new_v, new_c, new_c+1, new_c+2, new_c+3);
         }
     };
 
@@ -396,7 +396,7 @@ namespace geolio::test
             M_c_affected[new_c] = 1;
             M_c_affected[new_c+1] = 1;
 
-            cell_facet_split(M, c, lf, new_v, new_c, new_c+1);
+            tet_facet_split(M, c, lf, new_v, new_c, new_c+1);
         }
     };
 
@@ -440,7 +440,7 @@ namespace geolio::test
             const GEO::index_t new_v = M.vertices.create_vertices(1);
             GEO::index_t new_c = M.cells.create_tets(std::ceil(10.0*GEO::Numeric::random_float32()));
 
-            cell_edge_split(M, c, le, new_v, new_c, GEO::Numeric::random_float32());
+            tet_edge_split(M, c, le, new_v, new_c, GEO::Numeric::random_float32());
 
             /* Delete unuse cells */
             GEO::vector<GEO::index_t> cells_to_delete(M.cells.nb(), 0);
@@ -497,7 +497,7 @@ namespace geolio::test
 
             const GEO::index_t ev0 = M.cells.edge_vertex(c, le, 0);
 
-            cell_edge_collapse(
+            tet_edge_collapse(
                 M,
                 c,
                 le,
@@ -572,7 +572,7 @@ namespace geolio::test
             M_c_affected[M.cells.adjacent(c, lf)] = 1;
             M_c_affected[new_c] = 1;
 
-            return cell_edge_swap_2_3(
+            return tet_edge_swap_2_3(
                 M,
                 c, lf,
                 new_c);
@@ -600,7 +600,7 @@ namespace geolio::test
             ) {
             M_c_affected[c] = 1;
 
-            return cell_edge_swap_2_3(
+            return tet_edge_swap_2_3(
                 M,
                 c, lf,
                 GEO::NO_CELL);
@@ -638,7 +638,7 @@ namespace geolio::test
 
             GEO::index_t disuse_c = GEO::NO_CELL;
 
-            processed = cell_edge_swap_3_2(
+            processed = tet_edge_swap_3_2(
                 M,
                 c,
                 le,

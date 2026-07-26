@@ -88,7 +88,7 @@ namespace geolio
      * @note Preconditions (debug-checked with assertions): @p c and @p lf are valid,
      *       and both @p v0 and @p v1 belong to facet (@p c, @p lf).
      */
-    inline GEO::index_t get_cell_facet_another_vertex(
+    inline GEO::index_t get_tet_facet_another_vertex(
         const GEO::Mesh& M,
         const GEO::index_t c,
         const GEO::index_t lf,
@@ -96,6 +96,7 @@ namespace geolio
         const GEO::index_t v1
         ) {
         assert(c < M.cells.nb());
+        assert(M.cells.type(c) == GEO::MeshCellType::MESH_TET);
         assert(lf < 4);
         assert(M.cells.facet_vertex(c, lf, 0) == v0 || M.cells.facet_vertex(c, lf, 1) == v0 || M.cells.facet_vertex(c, lf, 2) == v0);
         assert(M.cells.facet_vertex(c, lf, 0) == v1 || M.cells.facet_vertex(c, lf, 1) == v1 || M.cells.facet_vertex(c, lf, 2) == v1);
@@ -116,66 +117,6 @@ namespace geolio
     }
 
     /**
-     * Collects tetrahedra incident to a mesh vertex in traversal order.
-     *
-     * Starting from a cell-local-vertex seed, this function traces the
-     * incident tetrahedra around the queried vertex and outputs an ordered
-     * list of (cell, local-vertex) pairs.
-     *
-     * @param[in]     M              The tetrahedral mesh to query.
-     * @param[in]     _c        Index of the seed cell.
-     * @param[in]     _lv       Local vertex index (0-3) in @p start_c.
-     * @param[in,out] c_and_lv       Output ordered (cell, local-vertex) list; existing contents are cleared.
-     * @return true if the queried vertex is on the mesh border; false if it is an interior vertex.
-     */
-    bool get_vertex_incident_tetrahedra(
-        const GEO::Mesh& M,
-        GEO::index_t _c,
-        GEO::index_t _lv,
-        std::vector<std::pair<GEO::index_t, GEO::index_t>>& c_and_lv);
-
-    /**
-     * Collects tetrahedra incident to a mesh edge in traversal order.
-     *
-     * Starting from a cell-local-edge seed, this function traces the edge
-     * ring (or border chain) and outputs an ordered list of (cell, local-facet)
-     * pairs, where each local facet contains the queried edge.
-     *
-     * @param[in]     M                 The tetrahedral mesh to query
-     * @param[in]     _c           Index of the seed cell
-     * @param[in]     _le          Local edge index (0-5) in @p start_c
-     * @param[in,out] ordered_c_and_lf  Output ordered (cell, local-facet) list; existing contents are cleared
-     * @return true if the queried edge is on the mesh border; false if it is an interior edge
-     */
-    bool get_edge_incident_tetrahedra(
-        const GEO::Mesh& M,
-        GEO::index_t _c,
-        GEO::index_t _le,
-        std::vector<std::pair<GEO::index_t, GEO::index_t>>& ordered_c_and_lf);
-
-    /**
-     * Collects tetrahedra incident to a mesh edge in traversal order.
-     *
-     * Starting from a cell-facet-local-vertex seed, this function traces the edge
-     * ring (or border chain) and outputs an ordered list of (cell, local-facet)
-     * pairs, where each local facet contains the queried edge.
-     *
-     * @param[in]     M                 The tetrahedral mesh to query
-     * @param[in]     _c           Index of the seed cell
-     * @param[in]     _lf          Local facet index (0-3) in @p start_c
-     * @param[in]     _lv          Local vertex index (0-2) in facet @p start_lf; with
-     *                                  `(start_lv + 1) % 3` it defines the queried edge
-     * @param[in,out] ordered_c_and_lf  Output ordered (cell, local-facet) list; existing contents are cleared
-     * @return true if the queried edge is on the mesh border; false if it is an interior edge
-     */
-    bool get_edge_incident_tetrahedra(
-        const GEO::Mesh& M,
-        GEO::index_t _c,
-        GEO::index_t _lf,
-        GEO::index_t _lv,
-        std::vector<std::pair<GEO::index_t, GEO::index_t>>& ordered_c_and_lf);
-
-    /**
      * Splits one tetrahedron into four tetrahedra by inserting an interior vertex.
      *
      * The vertex index @p new_v is expected to be pre-allocated. Its position will be set
@@ -190,7 +131,7 @@ namespace geolio
      * @param[in]     new_c1 Index of the second pre-allocated tetrahedron created by the split
      * @param[in]     new_c2 Index of the third pre-allocated tetrahedron created by the split
      */
-    void cell_split(
+    void tet_split(
         GEO::Mesh& M,
         GEO::index_t c,
         GEO::index_t new_v,
@@ -216,7 +157,7 @@ namespace geolio
      * @param[in]     new_c2 Optional; index of the third pre-allocated tetrahedron used for interior facets.
      * @param[in]     new_c3 Optional; index of the fourth pre-allocated tetrahedron used for interior facets.
      */
-    void cell_facet_split(
+    void tet_facet_split(
         GEO::Mesh& M,
         GEO::index_t c,
         GEO::index_t lf,
@@ -247,7 +188,7 @@ namespace geolio
      * @param[in]     r      Interpolation ratio for placing @p new_v on the edge
      *                       (`0` at the first endpoint, `1` at the second).
      */
-    void cell_edge_split(
+    void tet_edge_split(
         GEO::Mesh& M,
         GEO::index_t _c,
         GEO::index_t le,
@@ -271,7 +212,7 @@ namespace geolio
      * @param[out]    disuse_v  Receives the removed vertex index.
      * @param[out]    disuse_cs Receives indices of cells removed by the collapse.
      */
-    void cell_edge_collapse(
+    void tet_edge_collapse(
         GEO::Mesh& M,
         GEO::index_t _c,
         GEO::index_t _le,
@@ -293,7 +234,7 @@ namespace geolio
      * @param[in,out] new_c  Index of the pre-allocated cell used to store the newly created tetrahedron.
      * @return true if the swap is performed successfully; false if the target facet is on the border or the operation cannot be applied.
      */
-    bool cell_edge_swap_2_3(
+    bool tet_edge_swap_2_3(
         GEO::Mesh& M,
         GEO::index_t c,
         GEO::index_t lf,
@@ -313,7 +254,7 @@ namespace geolio
      * @param[out]    disuse_c Reference to receive the index of the removed cell.
      * @return true if the swap was performed successfully; false if preconditions are not met.
      */
-    bool cell_edge_swap_3_2(
+    bool tet_edge_swap_3_2(
         GEO::Mesh& M,
         GEO::index_t _c,
         GEO::index_t _le,

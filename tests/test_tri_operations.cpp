@@ -3,9 +3,10 @@
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
 
-#include "test_tri_operations.h"
 #include <random>
 #include <ranges>
+#include <geogram/mesh/mesh_io.h>
+#include <gtest/gtest.h>
 #include "geolio/tri_operations.h"
 
 namespace geolio::test

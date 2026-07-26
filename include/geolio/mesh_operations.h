@@ -36,10 +36,23 @@ namespace geolio
         GEO::index_t start_lv,
         std::vector<std::pair<GEO::index_t, GEO::index_t>>& ordered_f_and_lv);
 
+    bool get_vertex_incident_cells(
+        const GEO::Mesh& M,
+        GEO::index_t start_c,
+        GEO::index_t start_lv,
+        std::vector<std::pair<GEO::index_t, GEO::index_t>>& c_and_lv);
+
     bool get_edge_incident_cells(
         const GEO::Mesh& M,
         GEO::index_t start_c,
         GEO::index_t start_le,
+        std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>>& ordered_c_le_lf);
+
+    bool get_edge_incident_cells(
+        const GEO::Mesh& M,
+        GEO::index_t start_c,
+        GEO::index_t start_lf,
+        GEO::index_t start_lv,
         std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>>& ordered_c_le_lf);
 }
 

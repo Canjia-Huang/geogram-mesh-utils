@@ -8,150 +8,7 @@
 
 namespace geolio
 {
-    bool get_vertex_incident_tetrahedra(
-        const GEO::Mesh& M,
-        const GEO::index_t _c,
-        const GEO::index_t _lv,
-        std::vector<std::pair<GEO::index_t, GEO::index_t>>& c_and_lv
-        ) {
-        assert(_c < M.cells.nb());
-        assert(_lv < 4);
-
-        c_and_lv.clear();
-
-        const auto v = M.cells.vertex(_c, _lv);
-
-        std::unordered_set<GEO::index_t> processed_cells;
-        bool is_on_border = false;
-
-        std::stack<std::pair<GEO::index_t, GEO::index_t>> stack;
-        stack.emplace(_c, _lv);
-        while (!stack.empty()) {
-            const auto [c, lv] = stack.top();
-            stack.pop();
-
-            if (!processed_cells.insert(c).second)
-                continue;
-            c_and_lv.emplace_back(c, lv);
-
-            for (const auto& lf : TET_LV_INCIDENT_LF[lv]) {
-                if (const auto nc = M.cells.adjacent(c, lf);
-                    nc != GEO::NO_CELL
-                    ) {
-                    const auto nlv = M.cells.find_tet_vertex(nc, v);
-                    assert(nlv != GEO::NO_INDEX);
-                    stack.emplace(nc, nlv);
-                    }
-                else
-                    is_on_border = true;
-            }
-        }
-
-        return is_on_border;
-    }
-
-     bool get_edge_incident_tetrahedra(
-        const GEO::Mesh& M,
-        const GEO::index_t _c,
-        const GEO::index_t _le,
-        std::vector<std::pair<GEO::index_t, GEO::index_t>>& ordered_c_and_lf
-        ) {
-        assert(_c < M.cells.nb());
-        assert(_le < 6);
-
-        const auto ev0 = M.cells.edge_vertex(_c, _le, 0);
-        const auto ev1 = M.cells.edge_vertex(_c, _le, 1);
-        bool is_on_border = false;
-
-        std::vector<std::pair<GEO::index_t, GEO::index_t>> next_ordered_c_and_lf;
-        std::vector<std::pair<GEO::index_t, GEO::index_t>> prev_ordered_c_and_lf;
-        {
-            GEO::index_t c = _c;
-            GEO::index_t lf = M.cells.edge_adjacent_facet(_c, _le, 0);
-            for (;;) {
-                next_ordered_c_and_lf.emplace_back(c, lf);
-
-                const GEO::index_t nc = M.cells.adjacent(c, lf);
-                if (nc == GEO::NO_CELL) {
-                    is_on_border = true;
-                    break;
-                }
-                if (nc == _c) // a loop
-                    break;
-
-                /* Get next lf */
-                const GEO::index_t oppo_v = get_cell_facet_another_vertex(M, c, lf, ev0, ev1); // (oppo_v, ev0, ev1) form the cell c's lf
-                assert(oppo_v != GEO::NO_VERTEX);
-
-                lf = M.cells.find_tet_vertex(nc, oppo_v);
-                assert(lf != GEO::NO_INDEX);
-                c = nc;
-            }
-        }
-
-        if (is_on_border) {
-            GEO::index_t c = _c;
-            GEO::index_t lf = M.cells.edge_adjacent_facet(_c, _le, 1);
-            for (;;) {
-                const GEO::index_t nc = M.cells.adjacent(c, lf);
-                if (nc == GEO::NO_CELL)
-                    break;
-
-                const GEO::index_t nlf = M.cells.find_tet_facet(
-                    nc,
-                    M.cells.facet_vertex(c, lf, 2),
-                    M.cells.facet_vertex(c, lf, 1),
-                    M.cells.facet_vertex(c, lf, 0));
-                assert(nlf != GEO::NO_INDEX);
-
-                prev_ordered_c_and_lf.emplace_back(nc, nlf);
-
-                /* Get next lf */
-                const GEO::index_t oppo_v = get_cell_facet_another_vertex(M, nc, nlf, ev0, ev1); // (oppo_v, ev0, ev1) form the cell c's lf
-                assert(oppo_v != GEO::NO_VERTEX);
-
-                lf = M.cells.find_tet_vertex(nc, oppo_v);
-                assert(lf != GEO::NO_INDEX);
-                c = nc;
-            }
-        }
-
-        /* Output */
-        ordered_c_and_lf.clear();
-        ordered_c_and_lf.reserve(next_ordered_c_and_lf.size() + prev_ordered_c_and_lf.size());
-        for (GEO::index_t i = 0, i_end = prev_ordered_c_and_lf.size(); i < i_end; ++i)
-            ordered_c_and_lf.push_back(prev_ordered_c_and_lf[i_end-i-1]);
-        for (const auto& c_lf : next_ordered_c_and_lf)
-            ordered_c_and_lf.push_back(c_lf);
-
-        return is_on_border;
-    }
-
-    bool get_edge_incident_tetrahedra(
-        const GEO::Mesh& M,
-        const GEO::index_t _c,
-        const GEO::index_t _lf,
-        const GEO::index_t _lv,
-        std::vector<std::pair<GEO::index_t, GEO::index_t>>& ordered_c_and_lf
-        ) {
-        assert(_c < M.cells.nb());
-        assert(_lf < 4);
-        assert(_lv < 3);
-
-        const auto ev0 = M.cells.facet_vertex(_c, _lf, _lv);
-        const auto ev1 = M.cells.facet_vertex(_c, _lf, (_lv+1)%3);
-
-        for (const auto& start_le : TET_LF_INCIDENT_LE[_lf]) {
-            const auto cev0 = M.cells.edge_vertex(_c, start_le, 0);
-            const auto cev1 = M.cells.edge_vertex(_c, start_le, 1);
-            if ((cev0 == ev0 && cev1 == ev1) ||
-                (cev0 == ev1 && cev1 == ev0))
-                return get_edge_incident_tetrahedra(M, _c, start_le, ordered_c_and_lf);
-        }
-        assert(0);
-    }
-
-    void cell_split(
+    void tet_split(
         GEO::Mesh& M,
         const GEO::index_t c,
         const GEO::index_t new_v,
@@ -223,7 +80,7 @@ namespace geolio
         }
     }
 
-    void cell_facet_split(
+    void tet_facet_split(
         GEO::Mesh& M,
         const GEO::index_t c,
         const GEO::index_t lf,
@@ -384,7 +241,7 @@ namespace geolio
         }
     }
 
-    void cell_edge_split(
+    void tet_edge_split(
         GEO::Mesh& M,
         const GEO::index_t _c,
         const GEO::index_t le,
@@ -459,7 +316,7 @@ namespace geolio
         _new_c += INCIDENT_CELLS_NB;
     }
 
-    void cell_edge_collapse(
+    void tet_edge_collapse(
         GEO::Mesh& M,
         const GEO::index_t _c,
         const GEO::index_t _le,
@@ -523,7 +380,7 @@ namespace geolio
             M.cells.set_vertex(c, lv, ev0);
     }
 
-    bool cell_edge_swap_2_3(
+    bool tet_edge_swap_2_3(
         GEO::Mesh& M,
         const GEO::index_t c,
         const GEO::index_t lf,
@@ -627,7 +484,7 @@ namespace geolio
         return true;
     }
 
-    bool cell_edge_swap_3_2(
+    bool tet_edge_swap_3_2(
         GEO::Mesh& M,
         const GEO::index_t _c,
         const GEO::index_t _le,
@@ -650,8 +507,8 @@ namespace geolio
         const GEO::index_t c2 = ordered_c_and_lf[2].first;
         disuse_c = c2;
 
-        const GEO::index_t v2 = get_cell_facet_another_vertex(M, c0, ordered_c_and_lf[0].second, v0, v1);
-        const GEO::index_t v4 = get_cell_facet_another_vertex(M, c1, ordered_c_and_lf[1].second, v0, v1);
+        const GEO::index_t v2 = get_tet_facet_another_vertex(M, c0, ordered_c_and_lf[0].second, v0, v1);
+        const GEO::index_t v4 = get_tet_facet_another_vertex(M, c1, ordered_c_and_lf[1].second, v0, v1);
 
         const GEO::index_t c0_lv0 = M.cells.find_tet_vertex(c0, v0);
         const GEO::index_t c0_lv1 = M.cells.find_tet_vertex(c0, v1);

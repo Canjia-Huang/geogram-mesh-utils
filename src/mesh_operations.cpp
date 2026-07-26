@@ -68,6 +68,86 @@ namespace geolio
         return is_on_border;
     }
 
+    bool get_vertex_incident_cells(
+        const GEO::Mesh& M,
+        const GEO::index_t start_c,
+        const GEO::index_t start_lv,
+        std::vector<std::pair<GEO::index_t, GEO::index_t>>& c_and_lv
+        ) {
+        assert(start_c < M.cells.nb());
+        assert([&]() {
+            switch (M.cells.type(start_c)) {
+                case GEO::MeshCellType::MESH_TET:
+                    if (start_lv >= 4)
+                        return false;
+                    break;
+                case GEO::MeshCellType::MESH_HEX:
+                    if (start_lv >= 8)
+                        return false;
+                    break;
+                case GEO::MeshCellType::MESH_PRISM:
+                    return false; // TODO: support
+                    break;
+                case GEO::MeshCellType::MESH_PYRAMID:
+                    return false; // TODO: support
+                    break;
+                default: break;
+            }
+            return true;
+        }());
+
+        c_and_lv.clear();
+
+        const auto v = M.cells.vertex(start_c, start_lv);
+
+        std::unordered_set<GEO::index_t> processed_cells;
+        bool is_on_border = false;
+
+        std::stack<std::pair<GEO::index_t, GEO::index_t>> stack;
+        stack.emplace(start_c, start_lv);
+        while (!stack.empty()) {
+            const auto [c, lv] = stack.top();
+            stack.pop();
+
+            if (!processed_cells.insert(c).second)
+                continue;
+            c_and_lv.emplace_back(c, lv);
+
+            if (const auto& CELL_TYPE = M.cells.type(c);
+                CELL_TYPE == GEO::MeshCellType::MESH_TET
+                ) {
+                for (const auto& lf : TET_LV_INCIDENT_LF[lv]) {
+                    if (const auto nc = M.cells.adjacent(c, lf);
+                        nc != GEO::NO_CELL
+                        ) {
+                        const auto nlv = M.cells.find_tet_vertex(nc, v);
+                        assert(nlv != GEO::NO_INDEX);
+                        stack.emplace(nc, nlv);
+                    }
+                    else
+                        is_on_border = true;
+                }
+            }
+            else {
+                assert(CELL_TYPE == GEO::MeshCellType::MESH_HEX);
+
+                for (const auto& lf : HEX_LV_INCIDENT_LF[lv]) {
+                    if (const auto nc = M.cells.adjacent(c, lf);
+                        nc != GEO::NO_CELL
+                        ) {
+                        const auto nlv = find_hex_vertex(M, nc, v);
+                        assert(nlv != GEO::NO_INDEX);
+                        stack.emplace(nc, nlv);
+                    }
+                    else
+                        is_on_border = true;
+                }
+            }
+        }
+
+        return is_on_border;
+    }
+
     bool get_edge_incident_cells(
         const GEO::Mesh& M,
         const GEO::index_t start_c,
@@ -170,5 +250,49 @@ namespace geolio
             ordered_c_le_lf.push_back(c_lf);
 
         return is_on_border;
+    }
+
+    bool get_edge_incident_cells(
+        const GEO::Mesh& M,
+        const GEO::index_t start_c,
+        const GEO::index_t start_lf,
+        const GEO::index_t start_lv,
+        std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>>& ordered_c_le_lf
+        ) {
+        assert(start_c < M.cells.nb());
+
+        if (M.cells.type(start_c) == GEO::MeshCellType::MESH_TET) {
+            assert(start_lf < 4);
+            assert(start_lv < 3);
+
+            const auto ev0 = M.cells.facet_vertex(start_c, start_lf, start_lv);
+            const auto ev1 = M.cells.facet_vertex(start_c, start_lf, (start_lv+1)%3);
+
+            for (const auto& start_le : TET_LF_INCIDENT_LE[start_lf]) {
+                const auto cev0 = M.cells.edge_vertex(start_c, start_le, 0);
+                const auto cev1 = M.cells.edge_vertex(start_c, start_le, 1);
+                if ((cev0 == ev0 && cev1 == ev1) ||
+                    (cev0 == ev1 && cev1 == ev0))
+                    return get_edge_incident_cells(M, start_c, start_le, ordered_c_le_lf);
+            }
+            assert(0);
+        }
+        else {
+            assert(M.cells.type(start_c) == GEO::MeshCellType::MESH_HEX);
+            assert(start_lf < 6);
+            assert(start_lv < 4);
+
+            const auto ev0 = M.cells.facet_vertex(start_c, start_lf, start_lv);
+            const auto ev1 = M.cells.facet_vertex(start_c, start_lf, (start_lv+1)%4);
+
+            for (const auto& start_le : HEX_LF_INCIDENT_LE[start_lf]) {
+                const auto cev0 = M.cells.edge_vertex(start_c, start_le, 0);
+                const auto cev1 = M.cells.edge_vertex(start_c, start_le, 1);
+                if ((cev0 == ev0 && cev1 == ev1) ||
+                    (cev0 == ev1 && cev1 == ev0))
+                    return get_edge_incident_cells(M, start_c, start_le, ordered_c_le_lf);
+            }
+            assert(0);
+        }
     }
 }
