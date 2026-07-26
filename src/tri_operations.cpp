@@ -112,6 +112,89 @@ namespace geolio
         }
     }
 
+    bool is_tri_edge_collapse_valid(
+        const GEO::Mesh& M,
+        const GEO::index_t f,
+        const GEO::index_t lv,
+        const double r
+        ) {
+        assert(f < M.facets.nb());
+        assert(M.facets.nb_vertices(f) == 3);
+        assert(lv < 3);
+        assert(r >= 0 && r <= 1);
+
+        const GEO::index_t lv0 = lv;
+        const GEO::index_t lv1 = (lv+1)%3;
+        const GEO::index_t lv2 = (lv+2)%3;
+
+        /* Find all incident vertices */
+        std::vector<std::pair<GEO::index_t, GEO::index_t>> v1_ordered_f_and_lv;
+        get_vertex_incident_facets(M, f, lv1, v1_ordered_f_and_lv);
+
+        std::vector<std::pair<GEO::index_t, GEO::index_t>> v2_ordered_f_and_lv;
+        get_vertex_incident_facets(M, f, lv2, v2_ordered_f_and_lv);
+
+        if (M.vertices.dimension() == 2) {
+            const auto& p0 = M.facets.point<2>(f, lv0);
+            const auto& p1 = M.facets.point<2>(f, lv1);
+            const auto& p2 = M.facets.point<2>(f, lv2);
+            const auto target_p = (1-r)*p0 + r*p1;
+
+            const auto normal = cross(p1-p0, p2-p0);
+            for (const auto& [nf, nlv] : v1_ordered_f_and_lv) {
+                std::array<GEO::vec2, 3> fps = {
+                    M.facets.point<2>(nf, 0),
+                    M.facets.point<2>(nf, 1),
+                    M.facets.point<2>(nf, 2)
+                };
+                fps[nlv] = target_p;
+                if (cross(fps[1]-fps[0], fps[2]-fps[0]) * normal < 0)
+                    return false;
+            }
+            for (const auto& [nf, nlv] : v2_ordered_f_and_lv) {
+                std::array<GEO::vec2, 3> fps = {
+                    M.facets.point<2>(nf, 0),
+                    M.facets.point<2>(nf, 1),
+                    M.facets.point<2>(nf, 2)
+                };
+                fps[nlv] = target_p;
+                if (cross(fps[1]-fps[0], fps[2]-fps[0]) * normal < 0)
+                    return false;
+            }
+        }
+        else {
+            assert(M.vertices.dimension() == 3);
+            const auto& p0 = M.facets.point(f, lv0);
+            const auto& p1 = M.facets.point(f, lv1);
+            const auto& p2 = M.facets.point(f, lv2);
+            const auto target_p = (1-r)*p0 + r*p1;
+
+            const auto normal = cross(p1-p0, p2-p0);
+            for (const auto& [nf, nlv] : v1_ordered_f_and_lv) {
+                std::array<GEO::vec3, 3> fps = {
+                    M.facets.point(nf, 0),
+                    M.facets.point(nf, 1),
+                    M.facets.point(nf, 2)
+                };
+                fps[nlv] = target_p;
+                if (GEO::dot(GEO::cross(fps[1]-fps[0], fps[2]-fps[0]), normal) < 0)
+                    return false;
+            }
+            for (const auto& [nf, nlv] : v2_ordered_f_and_lv) {
+                std::array<GEO::vec3, 3> fps = {
+                    M.facets.point(nf, 0),
+                    M.facets.point(nf, 1),
+                    M.facets.point(nf, 2)
+                };
+                fps[nlv] = target_p;
+                if (GEO::dot(GEO::cross(fps[1]-fps[0], fps[2]-fps[0]), normal) < 0)
+                    return false;
+            }
+        }
+
+        return true;
+    }
+
     void tri_edge_collapse(
         GEO::Mesh& M,
         const GEO::index_t f,

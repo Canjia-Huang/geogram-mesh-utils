@@ -38,6 +38,12 @@ namespace geolio
         GEO::index_t new_f1,
         double r = 0.5);
 
+    bool is_tri_edge_collapse_valid(
+        const GEO::Mesh& M,
+        GEO::index_t f,
+        GEO::index_t lv,
+        double r);
+
     /**
      * @brief Collapse an edge of a triangle and update local connectivity.
      *

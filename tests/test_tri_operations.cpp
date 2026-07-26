@@ -109,10 +109,15 @@ namespace geolio::test
             const GEO::index_t f,
             const GEO::index_t lv
             ) override {
+            const double r = GEO::Numeric::random_float32();
+
+            if (!is_tri_edge_collapse_valid(mesh, f, lv, r))
+                return;
+
             const bool EDGE_ON_BORDER = original_mesh.facets.adjacent(f, lv) == GEO::NO_FACET;
 
             GEO::index_t disuse_v, disuse_f0, disuse_f1;
-            tri_edge_collapse(mesh, f, lv, disuse_v, disuse_f0, disuse_f1, GEO::Numeric::random_float32());
+            tri_edge_collapse(mesh, f, lv, disuse_v, disuse_f0, disuse_f1, r);
 
             /* Clean disuse vertices and facets */
             GEO::vector<GEO::index_t> facets_to_delete(mesh.facets.nb(), 0);

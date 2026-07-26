@@ -3,10 +3,11 @@
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
 
+#include <gtest/gtest.h>
 #include <numeric>
 #include <ranges>
 #include <unordered_set>
-#include "test_tet_opeartions.h"
+#include <geogram/mesh/mesh_io.h>
 #include "geolio/mesh_operations.h"
 #include "geolio/tet_operations.h"
 
