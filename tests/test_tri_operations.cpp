@@ -20,7 +20,7 @@ namespace geolio::test
             original_mesh.copy(mesh);
         }
 
-        void compute() {
+        void for_each_f_lv() {
             for (const auto& f : original_mesh.facets) {
                 for (GEO::index_t lv = 0, lv_end = original_mesh.facets.nb_vertices(f); lv < lv_end; ++lv) {
                     mesh.copy(original_mesh);
@@ -98,7 +98,7 @@ namespace geolio::test
     };
 
     TEST_F(TriEdgeSplitTest, tri_edge_split) {
-        compute();
+        for_each_f_lv();
     }
 
     /* ============================================================================================================= */
@@ -127,7 +127,7 @@ namespace geolio::test
     };
 
     TEST_F(TriEdgeCollapseTest, tri_edge_collapse) {
-        compute();
+        for_each_f_lv();
     }
 
     /* ============================================================================================================= */
@@ -144,6 +144,6 @@ namespace geolio::test
     };
 
     TEST_F(TriEdgeSwapTest, tri_edge_swap) {
-        compute();
+        for_each_f_lv();
     }
 }

@@ -217,6 +217,61 @@ namespace geolio
             M.facets.set_vertex(adj_f, adj_lv, v0);
     }
 
+    bool is_tri_edge_swap_valid(
+        GEO::Mesh& M,
+        const GEO::index_t f,
+        const GEO::index_t lv
+        ) {
+        assert(f < M.facets.nb());
+        assert(M.facets.nb_vertices(f) == 3);
+        assert(lv < 3);
+
+        const GEO::index_t af = M.facets.adjacent(f, lv);
+        if (af == GEO::NO_FACET)
+            return false;
+
+        const GEO::index_t lv1 = (lv+1)%3;
+        const GEO::index_t lv2 = (lv+2)%3;
+        const GEO::index_t v0 = M.facets.vertex(f, lv);
+        const GEO::index_t v1 = M.facets.vertex(f, lv1);
+        const GEO::index_t v2 = M.facets.vertex(f, lv2);
+
+        const GEO::index_t nlv0 = M.facets.find_vertex(af, v1);
+        assert(nlv0 != GEO::NO_INDEX);
+        const GEO::index_t nlv2 = (nlv0+2)%3;
+        const GEO::index_t v3 = M.facets.vertex(af, nlv2);
+
+        if (M.vertices.dimension() == 2) {
+            const auto& p0 = M.vertices.point<2>(v0);
+            const auto& p1 = M.vertices.point<2>(v1);
+            const auto& p2 = M.vertices.point<2>(v2);
+            const auto& p3 = M.vertices.point<2>(v3);
+            const auto normal0 = cross(p1-p0, p2-p0);
+            // const auto normal1 = cross(p0-p1, p3-p1);
+            // assert(normal0 * normal1 > 0);
+            const auto normal2 = cross(p3-p0, p2-p0);
+            const auto normal3 = cross(p2-p1, p3-p1);
+            if (normal2 * normal0 < 0 || normal3 * normal0 < 0)
+                return false;
+        }
+        else {
+            assert(M.vertices.dimension() == 3);
+            const auto& p0 = M.vertices.point(v0);
+            const auto& p1 = M.vertices.point(v1);
+            const auto& p2 = M.vertices.point(v2);
+            const auto& p3 = M.vertices.point(v3);
+            const auto normal0 = GEO::cross(p1-p0, p2-p0);
+            const auto normal1 = GEO::cross(p0-p1, p3-p1);
+            const auto ave_normal = normal0+normal1;
+            const auto normal2 = GEO::cross(p3-p0, p2-p0);
+            const auto normal3 = GEO::cross(p2-p1, p3-p1);
+            if (GEO::dot(normal2, ave_normal) < 1e-10 || GEO::dot(normal3, ave_normal) < 1e-10)
+                return false;
+        }
+
+        return true;
+    }
+
     bool tri_edge_swap(
         GEO::Mesh& M,
         const GEO::index_t f,
@@ -274,61 +329,6 @@ namespace geolio
         if (af1 != GEO::NO_FACET) {
             assert(M.facets.find_vertex(af1, v2) != GEO::NO_INDEX);
             M.facets.set_adjacent(af1, M.facets.find_vertex(af1, v2), af);
-        }
-
-        return true;
-    }
-
-    bool is_tri_edge_swap_valid(
-        GEO::Mesh& M,
-        const GEO::index_t f,
-        const GEO::index_t lv
-        ) {
-        assert(f < M.facets.nb());
-        assert(M.facets.nb_vertices(f) == 3);
-        assert(lv < 3);
-
-        const GEO::index_t af = M.facets.adjacent(f, lv);
-        if (af == GEO::NO_FACET)
-            return false;
-
-        const GEO::index_t lv1 = (lv+1)%3;
-        const GEO::index_t lv2 = (lv+2)%3;
-        const GEO::index_t v0 = M.facets.vertex(f, lv);
-        const GEO::index_t v1 = M.facets.vertex(f, lv1);
-        const GEO::index_t v2 = M.facets.vertex(f, lv2);
-
-        const GEO::index_t nlv0 = M.facets.find_vertex(af, v1);
-        assert(nlv0 != GEO::NO_INDEX);
-        const GEO::index_t nlv2 = (nlv0+2)%3;
-        const GEO::index_t v3 = M.facets.vertex(af, nlv2);
-
-        if (M.vertices.dimension() == 2) {
-            const auto& p0 = M.vertices.point<2>(v0);
-            const auto& p1 = M.vertices.point<2>(v1);
-            const auto& p2 = M.vertices.point<2>(v2);
-            const auto& p3 = M.vertices.point<2>(v3);
-            const auto normal0 = cross(p1-p0, p2-p0);
-            // const auto normal1 = cross(p0-p1, p3-p1);
-            // assert(normal0 * normal1 > 0);
-            const auto normal2 = cross(p3-p0, p2-p0);
-            const auto normal3 = cross(p2-p1, p3-p1);
-            if (normal2 * normal0 < 0 || normal3 * normal0 < 0)
-                return false;
-        }
-        else {
-            assert(M.vertices.dimension() == 3);
-            const auto& p0 = M.vertices.point(v0);
-            const auto& p1 = M.vertices.point(v1);
-            const auto& p2 = M.vertices.point(v2);
-            const auto& p3 = M.vertices.point(v3);
-            const auto normal0 = GEO::cross(p1-p0, p2-p0);
-            const auto normal1 = GEO::cross(p0-p1, p3-p1);
-            const auto ave_normal = normal0+normal1;
-            const auto normal2 = GEO::cross(p3-p0, p2-p0);
-            const auto normal3 = GEO::cross(p2-p1, p3-p1);
-            if (GEO::dot(normal2, ave_normal) < 1e-10 || GEO::dot(normal3, ave_normal) < 1e-10)
-                return false;
         }
 
         return true;

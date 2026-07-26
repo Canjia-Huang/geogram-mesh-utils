@@ -175,25 +175,32 @@ namespace geolio
      * on the edge using interpolation ratio @p r, and splits each incident tetrahedron
      * into two tetrahedra while updating adjacency relations.
      *
-     * New tetrahedra are written starting at cell index @p _new_c. If the available
-     * range `[_new_c, M.cells.nb())` is not large enough, additional cells are created.
-     * On return, @p _new_c is advanced by the number of incident tetrahedra consumed.
+     * The newly created tetrahedra are provided through @p new_cs, which must point to
+     * an array large enough to store one cell index per tetrahedron incident to the edge.
+     * Each entry in that array must reference a pre-allocated tetrahedron slot; on return
+     * the function clears the entries by writing GEO::NO_CELL after they have been consumed.
      *
      * @param[in,out] M      The tetrahedral mesh to modify.
-     * @param[in]     _c     Index of a seed cell containing the target edge.
+     * @param[in]     _c     Seed cell that contains the edge to split.
      * @param[in]     le     Local edge index (0-5) in cell @p _c.
-     * @param[in]     new_v  Index of a pre-allocated vertex used as the split vertex.
-     * @param[in,out] _new_c Input: first cell index available for writing new tetrahedra;
-     *                       output: advanced to the next free cell index.
-     * @param[in]     r      Interpolation ratio for placing @p new_v on the edge
-     *                       (`0` at the first endpoint, `1` at the second).
+     * @param[in]     new_v   Index of the pre-allocated vertex to place on the edge.
+     * @param[in,out] new_cs  Array of pre-allocated tetrahedron indices, one per incident
+     *                        cell. The array is consumed in order and reset to GEO::NO_CELL.
+     * @param[in]     r       Interpolation ratio used to position @p new_v on the edge
+     *                        (`0` at the first endpoint, `1` at the second).
      */
     void tet_edge_split(
         GEO::Mesh& M,
         GEO::index_t _c,
         GEO::index_t le,
         GEO::index_t new_v,
-        GEO::index_t& _new_c,
+        GEO::index_t* new_cs,
+        double r = 0.5);
+
+    bool is_tet_edge_collapse_valid(
+        const GEO::Mesh& M,
+        GEO::index_t _c,
+        GEO::index_t le,
         double r = 0.5);
 
     /**
@@ -219,6 +226,11 @@ namespace geolio
         GEO::index_t& disuse_v,
         std::vector<GEO::index_t>& disuse_cs,
         double r = 0.5);
+
+    bool is_tet_edge_swap_2_3_valid(
+        const GEO::Mesh& M,
+        GEO::index_t c,
+        GEO::index_t lf);
 
     /**
      * Performs a 2-3 facet swap operation on a tetrahedral mesh.
@@ -262,4 +274,3 @@ namespace geolio
 }
 
 #endif //GEOGRAM_MESH_UTILS_TETRAHEDRON_OPERATIONS_H
-

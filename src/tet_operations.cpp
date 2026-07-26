@@ -248,23 +248,17 @@ namespace geolio
         const GEO::index_t _c,
         const GEO::index_t le,
         const GEO::index_t new_v,
-        GEO::index_t& _new_c,
+        GEO::index_t* new_cs,
         const double r
         ) {
         assert(_c < M.cells.nb());
         assert(le < 6);
         assert(new_v < M.vertices.nb());
-        assert(_new_c < M.cells.nb());
 
         /* Find all adjacent cells */
         std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>> ordered_c_le_lf;
         get_edge_incident_cells(M, _c, le, ordered_c_le_lf);
         const GEO::index_t INCIDENT_CELLS_NB = ordered_c_le_lf.size();
-        if (_new_c+INCIDENT_CELLS_NB > M.cells.nb()) {
-            const GEO::index_t new_cells_nb = INCIDENT_CELLS_NB-(M.cells.nb()-_new_c);
-            M.cells.create_tets(new_cells_nb);
-        }
-        assert(_new_c+INCIDENT_CELLS_NB <= M.cells.nb());
 
         const GEO::index_t ev0 = M.cells.edge_vertex(_c, le, 0);
         const GEO::index_t ev1 = M.cells.edge_vertex(_c, le, 1);
@@ -274,7 +268,7 @@ namespace geolio
 
         for (GEO::index_t i = 0; i < INCIDENT_CELLS_NB; ++i) {
             const auto& [c, _, lf0] = ordered_c_le_lf[i];
-            const auto& new_c = _new_c+i;
+            const auto& new_c = *(new_cs+i);
 
             const GEO::index_t lv0 = M.cells.find_tet_vertex(c, ev0);
             const GEO::index_t lv1 = M.cells.find_tet_vertex(c, ev1);
@@ -301,9 +295,9 @@ namespace geolio
             M.cells.set_adjacent(new_c, lv0, c);
             M.cells.set_adjacent(new_c, lv1, nc1);
             if (M.cells.adjacent(c, lv2) != GEO::NO_CELL)
-                M.cells.set_adjacent(new_c, lv2, _new_c+(i+INCIDENT_CELLS_NB-1)%INCIDENT_CELLS_NB);
+                M.cells.set_adjacent(new_c, lv2, *(new_cs+(i+INCIDENT_CELLS_NB-1)%INCIDENT_CELLS_NB));
             if (M.cells.adjacent(c, lv3) != GEO::NO_CELL)
-                M.cells.set_adjacent(new_c, lv3, _new_c+(i+1)%INCIDENT_CELLS_NB);
+                M.cells.set_adjacent(new_c, lv3, *(new_cs+(i+1)%INCIDENT_CELLS_NB));
             if (nc1 != GEO::NO_CELL) {
                 const GEO::index_t nlf = M.cells.find_tet_facet(
                     nc1,
@@ -315,7 +309,56 @@ namespace geolio
             }
         }
 
-        _new_c += INCIDENT_CELLS_NB;
+        /* Label */
+        for (GEO::index_t i = 0; i < INCIDENT_CELLS_NB; ++i)
+            *(new_cs+i) = GEO::NO_CELL;
+    }
+
+    bool is_tet_edge_collapse_valid(
+        const GEO::Mesh& M,
+        const GEO::index_t _c,
+        const GEO::index_t le,
+        const double r
+        ) {
+        assert(_c < M.cells.nb());
+        assert(M.cells.type(_c) == GEO::MeshCellType::MESH_TET);
+        assert(le < 6);
+        assert(r >= 0 && r <= 1);
+
+        const auto& ev0 = M.cells.edge_vertex(_c, le, 0);
+        const auto& ev1 = M.cells.edge_vertex(_c, le, 1);
+
+        /* Move vertex */
+        const auto& ep0 = M.vertices.point(ev0);
+        const auto& ep1 = M.vertices.point(ev1);
+        const auto target_ep = (1-r)*ep0 + r*ep1;
+
+        /* Find all adjacent tets */
+        std::vector<std::pair<GEO::index_t, GEO::index_t>> ev0_incident_c_and_lv;
+        get_vertex_incident_cells(M, _c, TET_LE_INCIDENT_LV[le][0], ev0_incident_c_and_lv);
+        for (const auto& [c, lv] : ev0_incident_c_and_lv) {
+            std::array<GEO::vec3, 4> cell_points = {
+                M.cells.point(c, 0), M.cells.point(c, 1), M.cells.point(c, 2), M.cells.point(c, 3)
+            };
+            cell_points[lv] = target_ep;
+
+            if (GEO::Geom::tetra_signed_volume(cell_points[0], cell_points[1], cell_points[2], cell_points[3]) < 0)
+                return false;
+        }
+
+        std::vector<std::pair<GEO::index_t, GEO::index_t>> ev1_incident_c_and_lv;
+        get_vertex_incident_cells(M, _c, TET_LE_INCIDENT_LV[le][1], ev1_incident_c_and_lv);
+        for (const auto& [c, lv] : ev1_incident_c_and_lv) {
+            std::array<GEO::vec3, 4> cell_points = {
+                M.cells.point(c, 0), M.cells.point(c, 1), M.cells.point(c, 2), M.cells.point(c, 3)
+            };
+            cell_points[lv] = target_ep;
+
+            if (GEO::Geom::tetra_signed_volume(cell_points[0], cell_points[1], cell_points[2], cell_points[3]) < 0)
+                return false;
+        }
+
+        return true;
     }
 
     void tet_edge_collapse(
@@ -327,6 +370,7 @@ namespace geolio
         const double r
         ) {
         assert(_c < M.cells.nb());
+        assert(M.cells.type(_c) == GEO::MeshCellType::MESH_TET);
         assert(_le < 6);
         assert(r >= 0 && r <= 1);
 
@@ -382,6 +426,41 @@ namespace geolio
             M.cells.set_vertex(c, lv, ev0);
     }
 
+    bool is_tet_edge_swap_2_3_valid(
+        const GEO::Mesh& M,
+        const GEO::index_t c,
+        const GEO::index_t lf
+        ) {
+        assert(c < M.cells.nb());
+        assert(M.cells.type(c) == GEO::MeshCellType::MESH_TET);
+        assert(lf < 4);
+
+        const GEO::index_t nc = M.cells.adjacent(c, lf);
+        if (nc == GEO::NO_CELL)
+            return false;
+
+        const GEO::index_t v = M.cells.vertex(c, lf);
+        const GEO::index_t v0 = M.cells.facet_vertex(c, lf, 0);
+        const GEO::index_t v1 = M.cells.facet_vertex(c, lf, 1);
+        const GEO::index_t v2 = M.cells.facet_vertex(c, lf, 2);
+
+        const GEO::index_t nlf = M.cells.find_tet_facet(nc, v2, v1, v0);
+        assert(nlf != GEO::NO_INDEX);
+        const GEO::index_t nv = M.cells.vertex(nc, nlf);
+
+        const auto& p = M.vertices.point(v);
+        const auto& p0 = M.vertices.point(v0);
+        const auto& p1 = M.vertices.point(v1);
+        const auto& p2 = M.vertices.point(v2);
+        const auto& np = M.vertices.point(nv);
+
+        if (GEO::Geom::tetra_signed_volume(p, np, p1, p0) < 0 ||
+            GEO::Geom::tetra_signed_volume(p, np, p2, p1) < 0 ||
+            GEO::Geom::tetra_signed_volume(p, np, p0, p2) < 0)
+            return false;
+        return true;
+    }
+
     bool tet_edge_swap_2_3(
         GEO::Mesh& M,
         const GEO::index_t c,
@@ -389,6 +468,7 @@ namespace geolio
         const GEO::index_t new_c
         ) {
         assert(c < M.cells.nb());
+        assert(M.cells.type(c) == GEO::MeshCellType::MESH_TET);
         assert(lf < 4);
 
         const GEO::index_t nc = M.cells.adjacent(c, lf);
@@ -493,6 +573,7 @@ namespace geolio
         GEO::index_t& disuse_c
         ) {
         assert(_c < M.cells.nb());
+        assert(M.cells.type(_c) == GEO::MeshCellType::MESH_TET);
         assert(_le < 6);
 
         std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>> ordered_c_le_lf;
@@ -509,8 +590,8 @@ namespace geolio
         const GEO::index_t c2 = get<0>(ordered_c_le_lf[2]);
         disuse_c = c2;
 
-        const GEO::index_t v2 = get_tet_facet_another_vertex(M, c0, get<1>(ordered_c_le_lf[0]), v0, v1);
-        const GEO::index_t v4 = get_tet_facet_another_vertex(M, c1, get<1>(ordered_c_le_lf[1]), v0, v1);
+        const GEO::index_t v2 = get_tet_facet_another_vertex(M, c0, get<2>(ordered_c_le_lf[0]), v0, v1);
+        const GEO::index_t v4 = get_tet_facet_another_vertex(M, c1, get<2>(ordered_c_le_lf[1]), v0, v1);
 
         const GEO::index_t c0_lv0 = M.cells.find_tet_vertex(c0, v0);
         const GEO::index_t c0_lv1 = M.cells.find_tet_vertex(c0, v1);
