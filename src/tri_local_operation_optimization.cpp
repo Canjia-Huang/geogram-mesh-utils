@@ -23,8 +23,10 @@ namespace geolio
     {
         assert(mesh.facets.are_simplices());
 
-        original_mesh_.copy(mesh_);
-        AABB_.initialize(original_mesh_);
+        if (mesh.vertices.dimension() == 3) {
+            original_mesh_.copy(mesh_);
+            original_mesh_facet_AABB_.initialize(original_mesh_);
+        }
     }
 
     void TriLocalOperationOptimization::optimize(
@@ -58,6 +60,8 @@ namespace geolio
 
     void TriLocalOperationOptimization::bind_attributes(
         ) {
+        LOG::TRACE(__FUNCTION__);
+
         mesh_v_used_.bind(mesh_.vertices.attributes(), MESH_VERTICES_USED_ATTRIBUTE_NAME);
         mesh_v_used_.fill(true);
         mesh_f_used_.bind(mesh_.facets.attributes(), MESH_FACETS_USED_ATTRIBUTE_NAME);
@@ -66,6 +70,8 @@ namespace geolio
 
     void TriLocalOperationOptimization::unbind_attributes(
         ) {
+        LOG::TRACE(__FUNCTION__);
+
         assert(mesh_v_used_.is_bound());
         mesh_v_used_.destroy();
         assert(mesh_f_used_.is_bound());
@@ -323,28 +329,70 @@ namespace geolio
             }
         }
 
-        std::vector<GEO::vec3> mesh_v_new_pos(mesh_.vertices.nb()); // pre-allocated
-        for (GEO::index_t iter = 0; iter < iterations_nb; ++iter) {
-            // LOG::TRACE("iter: {}", iter);
+        if (mesh_.vertices.dimension() == 2) {
+            std::vector<GEO::vec2> mesh_v_new_pos(mesh_.vertices.nb()); // pre-allocated
+            for (GEO::index_t iter = 0; iter < iterations_nb; ++iter) {
+                // LOG::TRACE("iter: {}", iter);
 
-            /* Compute average position */
-            for (const auto& v : mesh_.vertices) {
-                if (!mesh_v_used_[v])
-                    continue;
+                /* Compute average position */
+                for (const auto& v : mesh_.vertices) {
+                    if (!mesh_v_used_[v])
+                        continue;
 
-                mesh_v_new_pos[v] = GEO::vec3(0, 0, 0);
-                for (const auto& nv : mesh_v_adjacent_v[v])
-                    mesh_v_new_pos[v] += mesh_.vertices.point(nv);
-                assert(!mesh_v_adjacent_v[v].empty());
-                mesh_v_new_pos[v] /= mesh_v_adjacent_v[v].size();
+                    mesh_v_new_pos[v] = GEO::vec2(0, 0);
+                    for (const auto& nv : mesh_v_adjacent_v[v])
+                        mesh_v_new_pos[v] += mesh_.vertices.point<2>(nv);
+                    assert(!mesh_v_adjacent_v[v].empty());
+                    mesh_v_new_pos[v] /= mesh_v_adjacent_v[v].size();
+                }
+
+                /* Update */
+                for (const auto& v : mesh_.vertices) {
+                    if (!mesh_v_used_[v])
+                        continue;
+
+                    mesh_.vertices.point<2>(v) = mesh_v_new_pos[v];
+                }
             }
+        }
+        else {
+            assert(mesh_.vertices.dimension() == 3);
 
-            /* Update */
-            for (const auto& v : mesh_.vertices) {
-                if (!mesh_v_used_[v])
-                    continue;
+            std::vector<GEO::vec3> mesh_v_new_pos(mesh_.vertices.nb()); // pre-allocated
+            for (GEO::index_t iter = 0; iter < iterations_nb; ++iter) {
+                // LOG::TRACE("iter: {}", iter);
 
-                mesh_.vertices.point(v) = mesh_v_new_pos[v];
+                /* Compute average position */
+                for (const auto& v : mesh_.vertices) {
+                    if (!mesh_v_used_[v])
+                        continue;
+
+                    mesh_v_new_pos[v] = GEO::vec3(0, 0, 0);
+                    for (const auto& nv : mesh_v_adjacent_v[v])
+                        mesh_v_new_pos[v] += mesh_.vertices.point(nv);
+                    assert(!mesh_v_adjacent_v[v].empty());
+                    mesh_v_new_pos[v] /= mesh_v_adjacent_v[v].size();
+                }
+
+                /* Project to original mesh */
+                for (const auto& v : mesh_.vertices) {
+                    if (!mesh_v_used_[v])
+                        continue;
+
+                    GEO::vec3 nearest_pos;
+                    double sq_dist;
+                    original_mesh_facet_AABB_.nearest_facet(mesh_v_new_pos[v], nearest_pos, sq_dist);
+
+                    mesh_v_new_pos[v] = nearest_pos;
+                }
+
+                /* Update */
+                for (const auto& v : mesh_.vertices) {
+                    if (!mesh_v_used_[v])
+                        continue;
+
+                    mesh_.vertices.point(v) = mesh_v_new_pos[v];
+                }
             }
         }
     }

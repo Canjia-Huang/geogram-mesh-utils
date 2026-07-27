@@ -48,11 +48,12 @@ namespace geolio
         void clean_unused_elements() const;
 
         GEO::Mesh& mesh_;
-        GEO::Mesh original_mesh_;
-        GEO::MeshFacetsAABB AABB_;
-
         GEO::Attribute<bool> mesh_v_used_;
         GEO::Attribute<bool> mesh_f_used_;
+
+        GEO::Mesh original_mesh_;
+        GEO::MeshFacetsAABB original_mesh_facet_AABB_;
+
         std::vector<GEO::index_t> free_vertices_;
         std::vector<GEO::index_t> free_facets_;
     };
