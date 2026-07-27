@@ -6,24 +6,31 @@
 #define GEOLIO_TRI_LOCAL_OPERATION_OPTIMIZATION_H
 
 #include <geogram/mesh/mesh.h>
+#include <geogram/mesh/mesh_AABB.h>
 
 namespace geolio
 {
     class TriLocalOperationOptimization {
     public:
-        explicit TriLocalOperationOptimization(
-            GEO::Mesh& mesh,
-            double target_length = -1);
+        explicit TriLocalOperationOptimization(GEO::Mesh& mesh);
 
-        void split_edges(double limit_length);
+        void optimize(
+            GEO::index_t rounds_nb = 5,
+            double target_edge_length = -1);
 
-        void collapse_edges(double limit_length);
+        void split_edges(double limit_edge_length);
+
+        void collapse_edges(double limit_edge_length);
 
         void swap_edges() const;
 
         void smooth_vertices(GEO::index_t iterations_nb) const;
 
     private:
+        void bind_attributes();
+
+        void unbind_attributes();
+
         [[nodiscard]] double compute_average_mesh_edge_length() const;
 
         [[nodiscard]] GEO::index_t require_a_new_vertex();
@@ -41,10 +48,13 @@ namespace geolio
         void clean_unused_elements() const;
 
         GEO::Mesh& mesh_;
-        double target_length_;
+        GEO::Mesh original_mesh_;
+        GEO::MeshFacetsAABB AABB_;
 
-        std::vector<char> mesh_v_used_;
-        std::vector<char> mesh_f_used_;
+        GEO::Attribute<bool> mesh_v_used_;
+        GEO::Attribute<bool> mesh_f_used_;
+        // std::vector<char> mesh_v_used_;
+        // std::vector<char> mesh_f_used_;
         std::vector<GEO::index_t> free_vertices_;
         std::vector<GEO::index_t> free_facets_;
     };

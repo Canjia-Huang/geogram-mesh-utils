@@ -9,40 +9,57 @@
 #include "geolio/log.h"
 #include "geolio/tri_operations.h"
 
+namespace
+{
+    const std::string MESH_VERTICES_USED_ATTRIBUTE_NAME = "TriLocalOperationOptimization_used";
+    const std::string MESH_FACETS_USED_ATTRIBUTE_NAME = "TriLocalOperationOptimization_used";
+}
+
 namespace geolio
 {
     TriLocalOperationOptimization::TriLocalOperationOptimization(
-        GEO::Mesh& mesh,
-        const double target_length
-        ) : mesh_(mesh),
-            target_length_(target_length)
+        GEO::Mesh& mesh
+        ) : mesh_(mesh)
     {
         assert(mesh.facets.are_simplices());
 
-        if (target_length_ < 0) {
-            target_length_ = compute_average_mesh_edge_length();
-            LOG::DEBUG("Automatically set the target edge length to the average edge length {}.", target_length_);
+        original_mesh_.copy(mesh_);
+        AABB_.initialize(original_mesh_);
+    }
+
+    void TriLocalOperationOptimization::optimize(
+        GEO::index_t rounds_nb,
+        double target_edge_length
+        ) {
+        LOG::TRACE(__FUNCTION__);
+
+        if (target_edge_length < 0) {
+            target_edge_length = compute_average_mesh_edge_length();
+            LOG::DEBUG("Automatically set the target edge length to the average edge length {}.", target_edge_length);
         }
+        const double SPLIT_EDGE_LENGTH = 4.0/3.0 * target_edge_length;
+        const double COLLAPSE_EDGE_LENGTH = 4.0/5.0 * target_edge_length;
 
-        mesh_v_used_.assign(mesh_.vertices.nb(), true);
-        mesh_f_used_.assign(mesh_.facets.nb(), true);
+        bind_attributes();
 
-        // DEBUG
-        for (GEO::index_t i = 0; i < 10; ++i) {
-            split_edges(4.0/3.0 * target_length_);
-            collapse_edges(4.0/5.0 * target_length_);
+        for (GEO::index_t round = 0; round < rounds_nb; ++round) {
+            LOG::TRACE("round: {}/{}", round, rounds_nb);
+
+            split_edges(SPLIT_EDGE_LENGTH);
+            collapse_edges(COLLAPSE_EDGE_LENGTH);
             swap_edges();
             smooth_vertices(1);
-
         }
+
+        unbind_attributes();
 
         clean_unused_elements();
     }
 
     void TriLocalOperationOptimization::split_edges(
-        const double limit_length
+        const double limit_edge_length
         ) {
-        LOG::TRACE("{}({})", __FUNCTION__, limit_length);
+        LOG::TRACE("{}({})", __FUNCTION__, limit_edge_length);
 
         std::vector<bool> facet_processed(mesh_.facets.nb(), false);
         for (GEO::index_t f = 0, f_end = mesh_.facets.nb(); f < f_end; ++f) {
@@ -52,7 +69,7 @@ namespace geolio
 
             for (GEO::index_t lv = 0; lv < 3; ++lv) {
                 if (const auto edge_length = GEO::distance(mesh_.facets.point(f, lv), mesh_.facets.point(f, (lv+1)%3));
-                    edge_length > limit_length
+                    edge_length > limit_edge_length
                     ) {
                     const auto& nf = mesh_.facets.adjacent(f, lv);
 
@@ -78,7 +95,7 @@ namespace geolio
     }
 
     void TriLocalOperationOptimization::collapse_edges(
-        const double limit_length
+        const double limit_edge_length
         ) {
         LOG::TRACE(__FUNCTION__);
 
@@ -90,7 +107,7 @@ namespace geolio
 
             for (GEO::index_t lv = 0; lv < 3; ++lv) {
                 if (const auto edge_length = GEO::distance(mesh_.facets.point(f, lv), mesh_.facets.point(f, (lv+1)%3));
-                    edge_length < limit_length
+                    edge_length < limit_edge_length
                     ) {
                     constexpr double R = 0.5;
                     if (!is_tri_edge_collapse_valid(mesh_, f, lv, R))
@@ -225,6 +242,22 @@ namespace geolio
         }
     }
 
+    void TriLocalOperationOptimization::bind_attributes(
+        ) {
+        mesh_v_used_.bind(mesh_.vertices.attributes(), MESH_VERTICES_USED_ATTRIBUTE_NAME);
+        mesh_v_used_.fill(true);
+        mesh_f_used_.bind(mesh_.facets.attributes(), MESH_FACETS_USED_ATTRIBUTE_NAME);
+        mesh_f_used_.fill(true);
+    }
+
+    void TriLocalOperationOptimization::unbind_attributes(
+        ) {
+        assert(mesh_v_used_.is_bound());
+        mesh_v_used_.destroy();
+        assert(mesh_f_used_.is_bound());
+        mesh_f_used_.destroy();
+    }
+
     double TriLocalOperationOptimization::compute_average_mesh_edge_length(
         ) const {
         LOG::TRACE(__FUNCTION__);
@@ -297,11 +330,8 @@ namespace geolio
 
         mesh_.vertices.create_vertices(ALLOCATE_MESH_VERTICES_NB);
         free_vertices_.reserve(free_vertices_.size() + ALLOCATE_MESH_VERTICES_NB);
-        mesh_v_used_.reserve(mesh_v_used_.size() + ALLOCATE_MESH_VERTICES_NB);
-        for (GEO::index_t v = PREV_MESH_VERTICES_NB, v_end = mesh_.vertices.nb(); v < v_end; ++v) {
+        for (GEO::index_t v = PREV_MESH_VERTICES_NB, v_end = mesh_.vertices.nb(); v < v_end; ++v)
             free_vertices_.push_back(v);
-            mesh_v_used_.push_back(false);
-        }
     }
 
     void TriLocalOperationOptimization::allocate_new_facets(
@@ -314,11 +344,8 @@ namespace geolio
 
         mesh_.facets.create_triangles(ALLOCATE_MESH_FACETS_NB);
         free_facets_.reserve(free_facets_.size() + ALLOCATE_MESH_FACETS_NB);
-        mesh_f_used_.reserve(mesh_f_used_.size() + ALLOCATE_MESH_FACETS_NB);
-        for (GEO::index_t f = PREV_MESH_FACETS_NB, f_end = mesh_.facets.nb(); f < f_end; ++f) {
+        for (GEO::index_t f = PREV_MESH_FACETS_NB, f_end = mesh_.facets.nb(); f < f_end; ++f)
             free_facets_.push_back(f);
-            mesh_f_used_.push_back(false);
-        }
     }
 
     void TriLocalOperationOptimization::clean_unused_elements(
