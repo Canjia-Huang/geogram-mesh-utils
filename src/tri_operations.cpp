@@ -5,6 +5,8 @@
 
 #include "geolio/tri_operations.h"
 #include <cassert>
+#include <ranges>
+
 #include "geolio/vecg.h"
 
 namespace geolio
@@ -50,6 +52,7 @@ namespace geolio
         }
         else {
             assert(M.vertices.dimension() == 3);
+
             const auto& p0 = M.facets.point(f, lv0);
             const auto& p1 = M.facets.point(f, lv1);
             M.vertices.point(new_v) = (1-r)*p0 + r*p1;
@@ -63,7 +66,6 @@ namespace geolio
 
         /* Set facet adjacency */
         M.facets.set_adjacent(f, lv1, new_f0);
-        assert(M.facets.adjacent(new_f0, lv0) == GEO::NO_FACET); // will set later
         M.facets.set_adjacent(new_f0, lv1, nf1);
         M.facets.set_adjacent(new_f0, lv2, f);
         if (nf1 != GEO::NO_FACET) {
@@ -128,11 +130,11 @@ namespace geolio
         const GEO::index_t lv2 = (lv+2)%3;
 
         /* Find all incident vertices */
+        std::vector<std::pair<GEO::index_t, GEO::index_t>> v0_ordered_f_and_lv;
+        get_vertex_incident_facets(M, f, lv0, v0_ordered_f_and_lv);
+
         std::vector<std::pair<GEO::index_t, GEO::index_t>> v1_ordered_f_and_lv;
         get_vertex_incident_facets(M, f, lv1, v1_ordered_f_and_lv);
-
-        std::vector<std::pair<GEO::index_t, GEO::index_t>> v2_ordered_f_and_lv;
-        get_vertex_incident_facets(M, f, lv2, v2_ordered_f_and_lv);
 
         if (M.vertices.dimension() == 2) {
             const auto& p0 = M.facets.point<2>(f, lv0);
@@ -141,7 +143,7 @@ namespace geolio
             const auto target_p = (1-r)*p0 + r*p1;
 
             const auto normal = cross(p1-p0, p2-p0);
-            for (const auto& [nf, nlv] : v1_ordered_f_and_lv) {
+            for (const auto& [nf, nlv] : v0_ordered_f_and_lv) {
                 std::array<GEO::vec2, 3> fps = {
                     M.facets.point<2>(nf, 0),
                     M.facets.point<2>(nf, 1),
@@ -151,7 +153,7 @@ namespace geolio
                 if (cross(fps[1]-fps[0], fps[2]-fps[0]) * normal < 0)
                     return false;
             }
-            for (const auto& [nf, nlv] : v2_ordered_f_and_lv) {
+            for (const auto& [nf, nlv] : v1_ordered_f_and_lv) {
                 std::array<GEO::vec2, 3> fps = {
                     M.facets.point<2>(nf, 0),
                     M.facets.point<2>(nf, 1),
@@ -164,12 +166,23 @@ namespace geolio
         }
         else {
             assert(M.vertices.dimension() == 3);
+
             const auto& p0 = M.facets.point(f, lv0);
             const auto& p1 = M.facets.point(f, lv1);
             const auto& p2 = M.facets.point(f, lv2);
             const auto target_p = (1-r)*p0 + r*p1;
 
             const auto normal = cross(p1-p0, p2-p0);
+            for (const auto& [nf, nlv] : v0_ordered_f_and_lv) {
+                std::array<GEO::vec3, 3> fps = {
+                    M.facets.point(nf, 0),
+                    M.facets.point(nf, 1),
+                    M.facets.point(nf, 2)
+                };
+                fps[nlv] = target_p;
+                if (GEO::dot(GEO::cross(fps[1]-fps[0], fps[2]-fps[0]), normal) < 0)
+                    return false;
+            }
             for (const auto& [nf, nlv] : v1_ordered_f_and_lv) {
                 std::array<GEO::vec3, 3> fps = {
                     M.facets.point(nf, 0),
@@ -180,15 +193,15 @@ namespace geolio
                 if (GEO::dot(GEO::cross(fps[1]-fps[0], fps[2]-fps[0]), normal) < 0)
                     return false;
             }
-            for (const auto& [nf, nlv] : v2_ordered_f_and_lv) {
-                std::array<GEO::vec3, 3> fps = {
-                    M.facets.point(nf, 0),
-                    M.facets.point(nf, 1),
-                    M.facets.point(nf, 2)
-                };
-                fps[nlv] = target_p;
-                if (GEO::dot(GEO::cross(fps[1]-fps[0], fps[2]-fps[0]), normal) < 0)
-                    return false;
+
+            /* Check whether there are any co-edge facets other than f and nf */
+            const GEO::index_t nf = M.facets.adjacent(f, lv);
+            for (const auto& nf0: v0_ordered_f_and_lv | std::views::keys) {
+                for (const auto& nf1: v1_ordered_f_and_lv | std::views::keys) {
+                    if (nf0 == nf1 &&
+                        nf0 != f && nf0 != nf)
+                        return false;
+                }
             }
         }
 
@@ -230,14 +243,14 @@ namespace geolio
 
         /* Set collapsed point (v0) */
         if (M.vertices.dimension() == 2) {
-            const auto& p0 = M.facets.point<2>(f, lv0);
-            const auto& p1 = M.facets.point<2>(f, lv1);
+            const auto& p0 = M.vertices.point<2>(v0);
+            const auto& p1 = M.vertices.point<2>(v1);
             M.vertices.point<2>(v0) = (1-r)*p0 + r*p1;
         }
         else {
             assert(M.vertices.dimension() == 3);
-            const auto& p0 = M.facets.point(f, lv0);
-            const auto& p1 = M.facets.point(f, lv1);
+            const auto& p0 = M.vertices.point(v0);
+            const auto& p1 = M.vertices.point(v1);
             M.vertices.point(v0) = (1-r)*p0 + r*p1;
         }
         disuse_v = v1;

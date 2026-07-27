@@ -17,8 +17,22 @@ namespace geolio
 
         void split_edges(double limit_length);
 
+        void collapse_edges(double limit_length);
+
+        void swap_edges() const;
+
+        void smooth_vertices(GEO::index_t iterations_nb) const;
+
     private:
-        double compute_average_mesh_edge_length() const;
+        [[nodiscard]] double compute_average_mesh_edge_length() const;
+
+        [[nodiscard]] GEO::index_t require_a_new_vertex();
+
+        void disuse_a_vertex(GEO::index_t v);
+
+        [[nodiscard]] GEO::index_t require_a_new_facet();
+
+        void disuse_a_facet(GEO::index_t f);
 
         void allocate_new_vertices();
 
@@ -29,6 +43,8 @@ namespace geolio
         GEO::Mesh& mesh_;
         double target_length_;
 
+        std::vector<char> mesh_v_used_;
+        std::vector<char> mesh_f_used_;
         std::vector<GEO::index_t> free_vertices_;
         std::vector<GEO::index_t> free_facets_;
     };

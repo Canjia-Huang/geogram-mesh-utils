@@ -56,7 +56,7 @@ namespace geolio
         const GEO::Mesh& M,
         GEO::index_t f,
         GEO::index_t lv,
-        double r);
+        double r = 0.5);
 
     /**
      * @brief Collapse an edge of a triangle and update local connectivity.
@@ -82,7 +82,7 @@ namespace geolio
         GEO::index_t& disuse_v,
         GEO::index_t& disuse_f0,
         GEO::index_t& disuse_f1,
-        double r);
+        double r = 0.5);
 
     /**
      * @brief Check whether swapping a triangle edge is geometrically valid.
