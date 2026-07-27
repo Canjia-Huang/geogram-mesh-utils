@@ -28,8 +28,8 @@ namespace geolio
     }
 
     void TriLocalOperationOptimization::optimize(
-        GEO::index_t rounds_nb,
-        double target_edge_length
+        double target_edge_length,
+        GEO::index_t rounds_nb
         ) {
         LOG::TRACE(__FUNCTION__);
 
@@ -55,6 +55,113 @@ namespace geolio
 
         clean_unused_elements();
     }
+
+    void TriLocalOperationOptimization::bind_attributes(
+        ) {
+        mesh_v_used_.bind(mesh_.vertices.attributes(), MESH_VERTICES_USED_ATTRIBUTE_NAME);
+        mesh_v_used_.fill(true);
+        mesh_f_used_.bind(mesh_.facets.attributes(), MESH_FACETS_USED_ATTRIBUTE_NAME);
+        mesh_f_used_.fill(true);
+    }
+
+    void TriLocalOperationOptimization::unbind_attributes(
+        ) {
+        assert(mesh_v_used_.is_bound());
+        mesh_v_used_.destroy();
+        assert(mesh_f_used_.is_bound());
+        mesh_f_used_.destroy();
+    }
+
+    double TriLocalOperationOptimization::compute_average_mesh_edge_length(
+        ) const {
+        LOG::TRACE(__FUNCTION__);
+
+        double l = 0;
+        GEO::index_t edges_nb = 0;
+        for (const auto& f : mesh_.facets) {
+            for (GEO::index_t lv = 0; lv < 3; ++lv) {
+                l += GEO::distance(mesh_.facets.point(f, lv), mesh_.facets.point(f, (lv+1)%3));
+                ++edges_nb;
+            }
+        }
+
+        return l / edges_nb;
+    }
+
+    GEO::index_t TriLocalOperationOptimization::require_a_new_vertex(
+        ) {
+        if (free_vertices_.empty())
+            allocate_new_vertices();
+        assert(!free_vertices_.empty());
+
+        const GEO::index_t new_v = free_vertices_.back();
+        free_vertices_.pop_back();
+        assert(new_v < mesh_.vertices.nb());
+        mesh_v_used_[new_v] = true;
+
+        return new_v;
+    }
+
+    void TriLocalOperationOptimization::disuse_a_vertex(
+        const GEO::index_t v
+        ) {
+        if (v == GEO::NO_VERTEX)
+            return;
+        free_vertices_.push_back(v);
+        mesh_v_used_[v] = false;
+    }
+
+    GEO::index_t TriLocalOperationOptimization::require_a_new_facet(
+        ) {
+        if (free_facets_.empty())
+            allocate_new_facets();
+        assert(!free_facets_.empty());
+
+        const GEO::index_t new_f = free_facets_.back();
+        free_facets_.pop_back();
+        assert(new_f < mesh_.facets.nb());
+        mesh_f_used_[new_f] = true;
+
+        return new_f;
+    }
+
+    void TriLocalOperationOptimization::disuse_a_facet(
+        const GEO::index_t f
+        ) {
+        if (f == GEO::NO_FACET)
+            return;
+        free_facets_.push_back(f);
+        mesh_f_used_[f] = false;
+    }
+
+    void TriLocalOperationOptimization::allocate_new_vertices(
+        ) {
+        LOG::TRACE(__FUNCTION__);
+        assert(mesh_.vertices.nb() > 0);
+
+        const GEO::index_t PREV_MESH_VERTICES_NB = mesh_.vertices.nb();
+        const GEO::index_t ALLOCATE_MESH_VERTICES_NB = PREV_MESH_VERTICES_NB;
+
+        mesh_.vertices.create_vertices(ALLOCATE_MESH_VERTICES_NB);
+        free_vertices_.reserve(free_vertices_.size() + ALLOCATE_MESH_VERTICES_NB);
+        for (GEO::index_t v = PREV_MESH_VERTICES_NB, v_end = mesh_.vertices.nb(); v < v_end; ++v)
+            free_vertices_.push_back(v);
+    }
+
+    void TriLocalOperationOptimization::allocate_new_facets(
+        ) {
+        LOG::TRACE(__FUNCTION__);
+        assert(mesh_.facets.nb() > 0);
+
+        const GEO::index_t PREV_MESH_FACETS_NB = mesh_.facets.nb();
+        const GEO::index_t ALLOCATE_MESH_FACETS_NB = PREV_MESH_FACETS_NB;
+
+        mesh_.facets.create_triangles(ALLOCATE_MESH_FACETS_NB);
+        free_facets_.reserve(free_facets_.size() + ALLOCATE_MESH_FACETS_NB);
+        for (GEO::index_t f = PREV_MESH_FACETS_NB, f_end = mesh_.facets.nb(); f < f_end; ++f)
+            free_facets_.push_back(f);
+    }
+
 
     void TriLocalOperationOptimization::split_edges(
         const double limit_edge_length
@@ -240,112 +347,6 @@ namespace geolio
                 mesh_.vertices.point(v) = mesh_v_new_pos[v];
             }
         }
-    }
-
-    void TriLocalOperationOptimization::bind_attributes(
-        ) {
-        mesh_v_used_.bind(mesh_.vertices.attributes(), MESH_VERTICES_USED_ATTRIBUTE_NAME);
-        mesh_v_used_.fill(true);
-        mesh_f_used_.bind(mesh_.facets.attributes(), MESH_FACETS_USED_ATTRIBUTE_NAME);
-        mesh_f_used_.fill(true);
-    }
-
-    void TriLocalOperationOptimization::unbind_attributes(
-        ) {
-        assert(mesh_v_used_.is_bound());
-        mesh_v_used_.destroy();
-        assert(mesh_f_used_.is_bound());
-        mesh_f_used_.destroy();
-    }
-
-    double TriLocalOperationOptimization::compute_average_mesh_edge_length(
-        ) const {
-        LOG::TRACE(__FUNCTION__);
-
-        double l = 0;
-        GEO::index_t edges_nb = 0;
-        for (const auto& f : mesh_.facets) {
-            for (GEO::index_t lv = 0; lv < 3; ++lv) {
-                l += GEO::distance(mesh_.facets.point(f, lv), mesh_.facets.point(f, (lv+1)%3));
-                ++edges_nb;
-            }
-        }
-
-        return l / edges_nb;
-    }
-
-    GEO::index_t TriLocalOperationOptimization::require_a_new_vertex(
-        ) {
-        if (free_vertices_.empty())
-            allocate_new_vertices();
-        assert(!free_vertices_.empty());
-
-        const GEO::index_t new_v = free_vertices_.back();
-        free_vertices_.pop_back();
-        assert(new_v < mesh_.vertices.nb());
-        mesh_v_used_[new_v] = true;
-
-        return new_v;
-    }
-
-    void TriLocalOperationOptimization::disuse_a_vertex(
-        const GEO::index_t v
-        ) {
-        if (v == GEO::NO_VERTEX)
-            return;
-        free_vertices_.push_back(v);
-        mesh_v_used_[v] = false;
-    }
-
-    GEO::index_t TriLocalOperationOptimization::require_a_new_facet(
-        ) {
-        if (free_facets_.empty())
-            allocate_new_facets();
-        assert(!free_facets_.empty());
-
-        const GEO::index_t new_f = free_facets_.back();
-        free_facets_.pop_back();
-        assert(new_f < mesh_.facets.nb());
-        mesh_f_used_[new_f] = true;
-
-        return new_f;
-    }
-
-    void TriLocalOperationOptimization::disuse_a_facet(
-        const GEO::index_t f
-        ) {
-        if (f == GEO::NO_FACET)
-            return;
-        free_facets_.push_back(f);
-        mesh_f_used_[f] = false;
-    }
-
-    void TriLocalOperationOptimization::allocate_new_vertices(
-        ) {
-        LOG::TRACE(__FUNCTION__);
-        assert(mesh_.vertices.nb() > 0);
-
-        const GEO::index_t PREV_MESH_VERTICES_NB = mesh_.vertices.nb();
-        const GEO::index_t ALLOCATE_MESH_VERTICES_NB = PREV_MESH_VERTICES_NB;
-
-        mesh_.vertices.create_vertices(ALLOCATE_MESH_VERTICES_NB);
-        free_vertices_.reserve(free_vertices_.size() + ALLOCATE_MESH_VERTICES_NB);
-        for (GEO::index_t v = PREV_MESH_VERTICES_NB, v_end = mesh_.vertices.nb(); v < v_end; ++v)
-            free_vertices_.push_back(v);
-    }
-
-    void TriLocalOperationOptimization::allocate_new_facets(
-        ) {
-        LOG::TRACE(__FUNCTION__);
-        assert(mesh_.facets.nb() > 0);
-
-        const GEO::index_t PREV_MESH_FACETS_NB = mesh_.facets.nb();
-        const GEO::index_t ALLOCATE_MESH_FACETS_NB = PREV_MESH_FACETS_NB;
-
-        mesh_.facets.create_triangles(ALLOCATE_MESH_FACETS_NB);
-        free_facets_.reserve(free_facets_.size() + ALLOCATE_MESH_FACETS_NB);
-        for (GEO::index_t f = PREV_MESH_FACETS_NB, f_end = mesh_.facets.nb(); f < f_end; ++f)
-            free_facets_.push_back(f);
     }
 
     void TriLocalOperationOptimization::clean_unused_elements(

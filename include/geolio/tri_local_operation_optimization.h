@@ -15,16 +15,8 @@ namespace geolio
         explicit TriLocalOperationOptimization(GEO::Mesh& mesh);
 
         void optimize(
-            GEO::index_t rounds_nb = 5,
-            double target_edge_length = -1);
-
-        void split_edges(double limit_edge_length);
-
-        void collapse_edges(double limit_edge_length);
-
-        void swap_edges() const;
-
-        void smooth_vertices(GEO::index_t iterations_nb) const;
+            double target_edge_length = -1,
+            GEO::index_t rounds_nb = 5);
 
     private:
         void bind_attributes();
@@ -45,6 +37,14 @@ namespace geolio
 
         void allocate_new_facets();
 
+        void split_edges(double limit_edge_length);
+
+        void collapse_edges(double limit_edge_length);
+
+        void swap_edges() const;
+
+        void smooth_vertices(GEO::index_t iterations_nb) const;
+
         void clean_unused_elements() const;
 
         GEO::Mesh& mesh_;
@@ -53,8 +53,6 @@ namespace geolio
 
         GEO::Attribute<bool> mesh_v_used_;
         GEO::Attribute<bool> mesh_f_used_;
-        // std::vector<char> mesh_v_used_;
-        // std::vector<char> mesh_f_used_;
         std::vector<GEO::index_t> free_vertices_;
         std::vector<GEO::index_t> free_facets_;
     };

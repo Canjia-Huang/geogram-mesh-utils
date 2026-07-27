@@ -6,8 +6,8 @@
 #include <geogram/mesh/mesh_io.h>
 #include <gtest/gtest.h>
 #include <mach/task_info.h>
-
 #include "geolio/tri_local_operation_optimization.h"
+#include "utils.h"
 
 namespace geolio::test
 {
@@ -17,6 +17,6 @@ namespace geolio::test
 
         TriLocalOperationOptimization TLO_opt(mesh);
         TLO_opt.optimize();
-        GEO::mesh_save(mesh, "debug.geogram");
+        GEO::mesh_save(mesh, get_current_test_name()+".geogram");
     }
 }
