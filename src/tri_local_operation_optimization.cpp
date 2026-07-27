@@ -13,17 +13,19 @@ namespace
 {
     const std::string MESH_VERTICES_USED_ATTRIBUTE_NAME = "TriLocalOperationOptimization_used";
     const std::string MESH_FACETS_USED_ATTRIBUTE_NAME = "TriLocalOperationOptimization_used";
+    const std::string MESH_VERTICES_FIXED_ATTRIBUTE_NAME = "TriLocalOperationOptimization_fixed";
 }
 
 namespace geolio
 {
     TriLocalOperationOptimization::TriLocalOperationOptimization(
         GEO::Mesh& mesh
-        ) : mesh_(mesh)
+        ) : mesh_(mesh),
+            mesh_2d_(mesh.vertices.dimension() == 2)
     {
         assert(mesh.facets.are_simplices());
 
-        if (mesh.vertices.dimension() == 3) {
+        if (!mesh_2d_) {
             original_mesh_.copy(mesh_);
             original_mesh_facet_AABB_.initialize(original_mesh_);
         }
@@ -44,6 +46,8 @@ namespace geolio
 
         bind_attributes();
 
+        fix_boundary_vertices();
+
         for (GEO::index_t round = 0; round < rounds_nb; ++round) {
             LOG::TRACE("round: {}/{}", round, rounds_nb);
 
@@ -53,7 +57,7 @@ namespace geolio
             smooth_vertices(1);
         }
 
-        unbind_attributes();
+        // unbind_attributes();
 
         clean_unused_elements();
     }
@@ -66,6 +70,8 @@ namespace geolio
         mesh_v_used_.fill(true);
         mesh_f_used_.bind(mesh_.facets.attributes(), MESH_FACETS_USED_ATTRIBUTE_NAME);
         mesh_f_used_.fill(true);
+        mesh_v_fixed_.bind(mesh_.vertices.attributes(), MESH_VERTICES_FIXED_ATTRIBUTE_NAME);
+        mesh_v_fixed_.fill(false);
     }
 
     void TriLocalOperationOptimization::unbind_attributes(
@@ -76,6 +82,33 @@ namespace geolio
         mesh_v_used_.destroy();
         assert(mesh_f_used_.is_bound());
         mesh_f_used_.destroy();
+        assert(mesh_v_fixed_.is_bound());
+        mesh_v_fixed_.destroy();
+    }
+
+    void TriLocalOperationOptimization::fix_boundary_vertices(
+        ) {
+        LOG::TRACE(__FUNCTION__);
+
+        for (const auto& f : mesh_.facets) {
+            for (GEO::index_t lv = 0; lv < 3; ++lv) {
+                if (mesh_.facets.adjacent(f, lv) == GEO::NO_FACET) {
+                    mesh_v_fixed_[mesh_.facets.vertex(f, lv)] = true;
+                    mesh_v_fixed_[mesh_.facets.vertex(f, (lv+1)%3)] = true;
+                }
+            }
+        }
+    }
+
+    double TriLocalOperationOptimization::get_edge_length(
+        const GEO::index_t f,
+        const GEO::index_t lv
+        ) const {
+        assert(f < mesh_.facets.nb());
+        assert(lv < 3);
+        if (mesh_2d_)
+            return GEO::distance(mesh_.facets.point<2>(f, lv), mesh_.facets.point<2>(f, (lv+1)%3));
+        return GEO::distance(mesh_.facets.point(f, lv), mesh_.facets.point(f, (lv+1)%3));
     }
 
     double TriLocalOperationOptimization::compute_average_mesh_edge_length(
@@ -86,7 +119,7 @@ namespace geolio
         GEO::index_t edges_nb = 0;
         for (const auto& f : mesh_.facets) {
             for (GEO::index_t lv = 0; lv < 3; ++lv) {
-                l += GEO::distance(mesh_.facets.point(f, lv), mesh_.facets.point(f, (lv+1)%3));
+                l += get_edge_length(f, lv);
                 ++edges_nb;
             }
         }
@@ -168,7 +201,6 @@ namespace geolio
             free_facets_.push_back(f);
     }
 
-
     void TriLocalOperationOptimization::split_edges(
         const double limit_edge_length
         ) {
@@ -181,7 +213,7 @@ namespace geolio
                 continue;
 
             for (GEO::index_t lv = 0; lv < 3; ++lv) {
-                if (const auto edge_length = GEO::distance(mesh_.facets.point(f, lv), mesh_.facets.point(f, (lv+1)%3));
+                if (const auto edge_length = get_edge_length(f, lv);
                     edge_length > limit_edge_length
                     ) {
                     const auto& nf = mesh_.facets.adjacent(f, lv);
@@ -201,6 +233,10 @@ namespace geolio
                         facet_processed[new_f1] = true;
                     }
 
+                    /* Label boundary vertex */
+                    if (nf == GEO::NO_FACET)
+                        mesh_v_fixed_[new_v] = true;
+
                     break;
                 }
             }
@@ -219,10 +255,23 @@ namespace geolio
                 continue;
 
             for (GEO::index_t lv = 0; lv < 3; ++lv) {
-                if (const auto edge_length = GEO::distance(mesh_.facets.point(f, lv), mesh_.facets.point(f, (lv+1)%3));
+                if (const auto edge_length = get_edge_length(f, lv);
                     edge_length < limit_edge_length
                     ) {
-                    constexpr double R = 0.5;
+                    const auto& ev0 = mesh_.facets.vertex(f, lv);
+                    const auto& ev1 = mesh_.facets.vertex(f, (lv+1)%3);
+
+                    if (mesh_v_fixed_[ev0] && mesh_v_fixed_[ev1]) // do not collapse fixed edge
+                        continue;
+
+                    double R = 0.5;
+                    if (mesh_v_fixed_[ev0])
+                        R = 0;
+                    else if (mesh_v_fixed_[ev1]) {
+                        R = 1;
+                        mesh_v_fixed_[ev0] = true; // ev1 -> ev0
+                    }
+
                     if (!is_tri_edge_collapse_valid(mesh_, f, lv, R))
                         continue;
 
@@ -257,6 +306,10 @@ namespace geolio
                     continue;
 
             for (GEO::index_t lv = 0; lv < 3; ++lv) {
+                if (mesh_v_fixed_[mesh_.facets.vertex(f, lv)] &&
+                    mesh_v_fixed_[mesh_.facets.vertex(f, (lv+1)%3)]) // do not swap fixed edge
+                    continue;
+
                 if (!is_tri_edge_swap_valid(mesh_, f, lv))
                     continue;
 
@@ -329,7 +382,7 @@ namespace geolio
             }
         }
 
-        if (mesh_.vertices.dimension() == 2) {
+        if (mesh_2d_) {
             std::vector<GEO::vec2> mesh_v_new_pos(mesh_.vertices.nb()); // pre-allocated
             for (GEO::index_t iter = 0; iter < iterations_nb; ++iter) {
                 // LOG::TRACE("iter: {}", iter);
@@ -348,7 +401,7 @@ namespace geolio
 
                 /* Update */
                 for (const auto& v : mesh_.vertices) {
-                    if (!mesh_v_used_[v])
+                    if (!mesh_v_used_[v] || mesh_v_fixed_[v])
                         continue;
 
                     mesh_.vertices.point<2>(v) = mesh_v_new_pos[v];
@@ -388,7 +441,7 @@ namespace geolio
 
                 /* Update */
                 for (const auto& v : mesh_.vertices) {
-                    if (!mesh_v_used_[v])
+                    if (!mesh_v_used_[v] || mesh_v_fixed_[v])
                         continue;
 
                     mesh_.vertices.point(v) = mesh_v_new_pos[v];

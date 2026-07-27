@@ -57,6 +57,12 @@ namespace geolio
          */
         void unbind_attributes();
 
+        void fix_boundary_vertices();
+
+        double get_edge_length(
+            GEO::index_t f,
+            GEO::index_t lv) const;
+
         /**
          * @brief Computes the average edge length of the current mesh.
          *
@@ -155,8 +161,10 @@ namespace geolio
         void clean_unused_elements() const;
 
         GEO::Mesh& mesh_;
+        const bool mesh_2d_;
         GEO::Attribute<bool> mesh_v_used_;
         GEO::Attribute<bool> mesh_f_used_;
+        GEO::Attribute<bool> mesh_v_fixed_;
 
         GEO::Mesh original_mesh_;
         GEO::MeshFacetsAABB original_mesh_facet_AABB_;
