@@ -8,6 +8,8 @@
 #include <ranges>
 #include <unordered_set>
 #include <geogram/mesh/mesh_io.h>
+
+#include "utils.h"
 #include "geolio/mesh_operations.h"
 #include "geolio/tet_operations.h"
 
@@ -69,8 +71,7 @@ namespace geolio::test
     class TetOperationsTest : public ::testing::Test {
     protected:
         void SetUp() override {
-            ASSERT_TRUE(GEO::mesh_load(std::string(TEST_DATA_PATH) + "delaunay3d_random_20.geogram", mesh));
-            mesh.cells.connect();
+            generate_random_delaunay3d_mesh(mesh, 20, 10);
 
             original_mesh.copy(mesh);
         }

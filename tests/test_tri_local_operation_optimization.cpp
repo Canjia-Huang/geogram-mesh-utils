@@ -14,15 +14,8 @@
 namespace geolio::test
 {
     TEST(TriLocalOperationOptimizationTest, two_d_model) {
-        GEO::CDT2d CDT;
-        constexpr double w = 10;
-        CDT.create_enclosing_quad(GEO::vec2(-w, -w), GEO::vec2(w, -w), GEO::vec2(w, w), GEO::vec2(-w, w));
-        for (GEO::index_t i = 0; i < 20; ++i)
-            CDT.insert(GEO::vec2(-w+1.8*w*GEO::Numeric::random_float32(), -w+1.8*w*GEO::Numeric::random_float32()));
-
         GEO::Mesh mesh(2);
-        append_CDT2d_to_mesh(CDT, mesh);
-        mesh.facets.connect();
+        generate_random_CDT2d_mesh(mesh, 20, 10);
         GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
 
         TriLocalOperationOptimization TLO_opt(mesh);

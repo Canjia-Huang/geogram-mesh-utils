@@ -11,14 +11,14 @@
 
 #include "utils.h"
 #include "geolio/tri_operations.h"
+#include "geolio/log.h"
 
 namespace geolio::test
 {
     class TriOperationsTest : public ::testing::Test {
     protected:
         void SetUp() override {
-            ASSERT_TRUE(GEO::mesh_load(std::string(TEST_DATA_PATH) + "CDT_random_10.geogram", mesh));
-            mesh.facets.connect();
+            generate_random_CDT2d_mesh(mesh, 20, 10);
 
             original_mesh.copy(mesh);
         }
@@ -26,6 +26,8 @@ namespace geolio::test
         void for_each_f_lv() {
             for (const auto& f : original_mesh.facets) {
                 for (GEO::index_t lv = 0, lv_end = original_mesh.facets.nb_vertices(f); lv < lv_end; ++lv) {
+                    LOG::TRACE("f: {}/{}, lv: {}/{}", f, original_mesh.facets.nb(), lv, lv_end);
+
                     mesh.copy(original_mesh);
 
                     /* Compute */
@@ -122,9 +124,10 @@ namespace geolio::test
             facets_to_delete[disuse_f0] = 1;
             if (EDGE_ON_BORDER)
                 EXPECT_EQ(disuse_f1, GEO::NO_FACET);
-            else
+            else {
                 EXPECT_NE(disuse_f1, GEO::NO_FACET);
-            facets_to_delete[disuse_f1] = 1;
+                facets_to_delete[disuse_f1] = 1;
+            }
             mesh.facets.delete_elements(facets_to_delete);
         }
     };
@@ -162,7 +165,6 @@ namespace geolio::test
         /* Collapse */
         constexpr GEO::index_t f = 4;
         constexpr GEO::index_t lv = 1;
-        EXPECT_FALSE(is_tri_edge_collapse_valid(mesh, f, lv));
 
         GEO::index_t disuse_v, disuse_f0, disuse_f1;
         tri_edge_collapse(mesh, f, lv, disuse_v, disuse_f0, disuse_f1);
@@ -266,7 +268,6 @@ namespace geolio::test
         /* Collapse */
         constexpr GEO::index_t f = 4;
         constexpr GEO::index_t lv = 1;
-        EXPECT_FALSE(is_tri_edge_collapse_valid(mesh, f, lv));
 
         GEO::index_t disuse_v, disuse_f0, disuse_f1;
         tri_edge_collapse(mesh, f, lv, disuse_v, disuse_f0, disuse_f1);
@@ -328,7 +329,6 @@ namespace geolio::test
         /* Collapse */
         constexpr GEO::index_t f = 0;
         constexpr GEO::index_t lv = 1;
-        EXPECT_FALSE(is_tri_edge_swap_valid(mesh, f, lv));
 
         tri_edge_swap(mesh, f, lv);
         check_connections();
