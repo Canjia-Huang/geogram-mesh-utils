@@ -140,7 +140,7 @@ namespace geolio
          * The method evaluates each valid swap and performs it only when the
          * valence score after swapping is no worse than before.
          */
-        void swap_edges() const;
+        void swap_edges();
 
         /**
          * @brief Smooths vertex positions by repeated neighborhood averaging.
@@ -162,13 +162,17 @@ namespace geolio
 
         GEO::Mesh& mesh_;
         const bool mesh_2d_;
-        GEO::Attribute<bool> mesh_v_used_;
-        GEO::Attribute<bool> mesh_f_used_;
+
+        GEO::Attribute<bool> mesh_f_processed_;
+
+        bool strictly_fixed_ = false;
         GEO::Attribute<bool> mesh_v_fixed_;
 
         GEO::Mesh original_mesh_;
         GEO::MeshFacetsAABB original_mesh_facet_AABB_;
 
+        GEO::Attribute<bool> mesh_v_used_;
+        GEO::Attribute<bool> mesh_f_used_;
         std::vector<GEO::index_t> free_vertices_;
         std::vector<GEO::index_t> free_facets_;
     };

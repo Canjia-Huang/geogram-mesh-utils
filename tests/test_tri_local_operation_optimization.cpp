@@ -26,7 +26,7 @@ namespace geolio::test
         GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
 
         TriLocalOperationOptimization TLO_opt(mesh);
-        TLO_opt.optimize();
+        TLO_opt.optimize(1);
         GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
     }
 

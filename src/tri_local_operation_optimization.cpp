@@ -9,13 +9,6 @@
 #include "geolio/log.h"
 #include "geolio/tri_operations.h"
 
-namespace
-{
-    const std::string MESH_VERTICES_USED_ATTRIBUTE_NAME = "TriLocalOperationOptimization_used";
-    const std::string MESH_FACETS_USED_ATTRIBUTE_NAME = "TriLocalOperationOptimization_used";
-    const std::string MESH_VERTICES_FIXED_ATTRIBUTE_NAME = "TriLocalOperationOptimization_fixed";
-}
-
 namespace geolio
 {
     TriLocalOperationOptimization::TriLocalOperationOptimization(
@@ -49,7 +42,7 @@ namespace geolio
         fix_boundary_vertices();
 
         for (GEO::index_t round = 0; round < rounds_nb; ++round) {
-            LOG::TRACE("round: {}/{}", round, rounds_nb);
+            LOG::TRACE("round: {}/{}", round+1, rounds_nb);
 
             const auto PREV_VERTICES_NB = mesh_.vertices.nb();
             const auto PREV_FACETS_NB = mesh_.facets.nb();
@@ -64,18 +57,21 @@ namespace geolio
 
         clean_unused_elements();
 
-        unbind_attributes(); // end
+        // unbind_attributes(); // end
     }
 
     void TriLocalOperationOptimization::bind_attributes(
         ) {
         LOG::TRACE(__FUNCTION__);
 
-        mesh_v_used_.bind(mesh_.vertices.attributes(), MESH_VERTICES_USED_ATTRIBUTE_NAME);
+        mesh_f_processed_.bind(mesh_.facets.attributes(), "TriLocalOperationOptimization_processed");
+
+        mesh_v_used_.bind(mesh_.vertices.attributes(), "TriLocalOperationOptimization_used");
         mesh_v_used_.fill(true);
-        mesh_f_used_.bind(mesh_.facets.attributes(), MESH_FACETS_USED_ATTRIBUTE_NAME);
+        mesh_f_used_.bind(mesh_.facets.attributes(), "TriLocalOperationOptimization_used");
         mesh_f_used_.fill(true);
-        mesh_v_fixed_.bind(mesh_.vertices.attributes(), MESH_VERTICES_FIXED_ATTRIBUTE_NAME);
+
+        mesh_v_fixed_.bind(mesh_.vertices.attributes(), "TriLocalOperationOptimization_fixed");
         mesh_v_fixed_.fill(false);
     }
 
@@ -83,10 +79,14 @@ namespace geolio
         ) {
         LOG::TRACE(__FUNCTION__);
 
+        assert(mesh_f_processed_.is_bound());
+        mesh_f_processed_.destroy();
+
         assert(mesh_v_used_.is_bound());
         mesh_v_used_.destroy();
         assert(mesh_f_used_.is_bound());
         mesh_f_used_.destroy();
+
         assert(mesh_v_fixed_.is_bound());
         mesh_v_fixed_.destroy();
     }
@@ -213,9 +213,9 @@ namespace geolio
         ) {
         LOG::TRACE("{}({})", __FUNCTION__, limit_edge_length);
 
-        std::vector<bool> facet_processed(mesh_.facets.nb(), false);
+        mesh_f_processed_.fill(false);
         for (GEO::index_t f = 0, f_end = mesh_.facets.nb(); f < f_end; ++f) {
-            if (facet_processed[f]
+            if (mesh_f_processed_[f]
                 || !mesh_f_used_[f]) // free facet
                 continue;
 
@@ -223,6 +223,13 @@ namespace geolio
                 if (const auto edge_length = get_edge_length(f, lv);
                     edge_length > limit_edge_length
                     ) {
+                    const auto& ev0 = mesh_.facets.vertex(f, lv);
+                    const auto& ev1 = mesh_.facets.vertex(f, (lv+1)%3);
+                    if (strictly_fixed_) {
+                        if (mesh_v_fixed_[ev0] && mesh_v_fixed_[ev1])
+                            continue;
+                    }
+
                     const auto& nf = mesh_.facets.adjacent(f, lv);
 
                     /* Split */
@@ -232,16 +239,16 @@ namespace geolio
                     tri_edge_split(mesh_, f, lv, new_v, new_f0, new_f1);
 
                     /* Label processed facets */
-                    facet_processed[f] = true;
-                    facet_processed[new_f0] = true;
+                    mesh_f_processed_[f] = true;
+                    mesh_f_processed_[new_f0] = true;
                     if (nf != GEO::NO_FACET) {
-                        facet_processed[nf] = true;
-                        assert(new_f1 < mesh_.facets.nb());
-                        facet_processed[new_f1] = true;
+                        mesh_f_processed_[nf] = true;
+                        assert(new_f1 != GEO::NO_FACET);
+                        mesh_f_processed_[new_f1] = true;
                     }
 
-                    /* Label boundary vertex */
-                    if (nf == GEO::NO_FACET)
+                    /* Label new feature vertex */
+                    if (mesh_v_fixed_[ev0] && mesh_v_fixed_[ev1])
                         mesh_v_fixed_[new_v] = true;
 
                     break;
@@ -255,11 +262,9 @@ namespace geolio
         ) {
         LOG::TRACE("{}({})", __FUNCTION__, limit_edge_length);
 
-        GEO::index_t cnt = 0;
-
-        std::vector<bool> facet_processed(mesh_.facets.nb(), false);
+        mesh_f_processed_.fill(false);
         for (GEO::index_t f = 0, f_end = mesh_.facets.nb(); f < f_end; ++f) {
-            if (facet_processed[f]
+            if (mesh_f_processed_[f]
                 || !mesh_f_used_[f]) // free facet
                 continue;
 
@@ -292,25 +297,23 @@ namespace geolio
                     disuse_a_facet(disuse_f1);
 
                     /* Label processed facets */
-                    facet_processed[disuse_f0] = true;
+                    mesh_f_processed_[disuse_f0] = true;
                     if (disuse_f1 != GEO::NO_FACET)
-                        facet_processed[disuse_f1] = true;
+                        mesh_f_processed_[disuse_f1] = true;
 
                     break;
                 }
             }
-
-            ++cnt;
         }
     }
 
     void TriLocalOperationOptimization::swap_edges(
-        ) const {
+        ) {
         LOG::TRACE(__FUNCTION__);
 
-        std::vector<bool> facet_processed(mesh_.facets.nb(), false);
+        mesh_f_processed_.fill(false);
         for (GEO::index_t f = 0, f_end = mesh_.facets.nb(); f < f_end; ++f) {
-            if (facet_processed[f]
+            if (mesh_f_processed_[f]
                 || !mesh_f_used_[f]) // free facet
                     continue;
 
@@ -363,8 +366,8 @@ namespace geolio
                 tri_edge_swap(mesh_, f, lv);
 
                 /* Label processed facets */
-                facet_processed[f] = true;
-                facet_processed[nf] = true;
+                mesh_f_processed_[f] = true;
+                mesh_f_processed_[nf] = true;
             }
         }
     }
