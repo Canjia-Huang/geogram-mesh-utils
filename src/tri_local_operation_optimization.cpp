@@ -57,7 +57,7 @@ namespace geolio
             smooth_vertices(1);
         }
 
-        // unbind_attributes();
+        unbind_attributes();
 
         clean_unused_elements();
     }
@@ -246,7 +246,7 @@ namespace geolio
     void TriLocalOperationOptimization::collapse_edges(
         const double limit_edge_length
         ) {
-        LOG::TRACE(__FUNCTION__);
+        LOG::TRACE("{}({})", __FUNCTION__, limit_edge_length);
 
         std::vector<bool> facet_processed(mesh_.facets.nb(), false);
         for (GEO::index_t f = 0, f_end = mesh_.facets.nb(); f < f_end; ++f) {
@@ -362,7 +362,7 @@ namespace geolio
     void TriLocalOperationOptimization::smooth_vertices(
         const GEO::index_t iterations_nb
         ) const {
-        LOG::TRACE(__FUNCTION__);
+        LOG::TRACE("{}({})", __FUNCTION__, iterations_nb);
 
         /* Get adjacency */
         std::vector<std::vector<GEO::index_t>> mesh_v_adjacent_v(mesh_.vertices.nb());

@@ -6,7 +6,10 @@
 #include "geolio/tri_operations.h"
 #include <cassert>
 #include <ranges>
+#include <unordered_set>
+#include <geogram/mesh/mesh_io.h>
 
+#include "geolio/pair_hash.h"
 #include "geolio/vecg.h"
 
 namespace geolio
@@ -136,74 +139,96 @@ namespace geolio
         std::vector<std::pair<GEO::index_t, GEO::index_t>> v1_ordered_f_and_lv;
         get_vertex_incident_facets(M, f, lv1, v1_ordered_f_and_lv);
 
-        if (M.vertices.dimension() == 2) {
-            const auto& p0 = M.facets.point<2>(f, lv0);
-            const auto& p1 = M.facets.point<2>(f, lv1);
-            const auto& p2 = M.facets.point<2>(f, lv2);
-            const auto target_p = (1-r)*p0 + r*p1;
-
-            const auto normal = cross(p1-p0, p2-p0);
-            for (const auto& [nf, nlv] : v0_ordered_f_and_lv) {
-                std::array<GEO::vec2, 3> fps = {
-                    M.facets.point<2>(nf, 0),
-                    M.facets.point<2>(nf, 1),
-                    M.facets.point<2>(nf, 2)
-                };
-                fps[nlv] = target_p;
-                if (cross(fps[1]-fps[0], fps[2]-fps[0]) * normal < 0)
-                    return false;
-            }
-            for (const auto& [nf, nlv] : v1_ordered_f_and_lv) {
-                std::array<GEO::vec2, 3> fps = {
-                    M.facets.point<2>(nf, 0),
-                    M.facets.point<2>(nf, 1),
-                    M.facets.point<2>(nf, 2)
-                };
-                fps[nlv] = target_p;
-                if (cross(fps[1]-fps[0], fps[2]-fps[0]) * normal < 0)
-                    return false;
-            }
+        /* After collapse, no identical triangles can exist */
+        std::set<std::pair<GEO::index_t, GEO::index_t>> other_vertices_pair; // unordered
+        for (const auto& [nf, nlv] : v0_ordered_f_and_lv) {
+            const auto& v1 = M.facets.vertex(nf, (nlv+1)%3);
+            const auto& v2 = M.facets.vertex(nf, (nlv+2)%3);
+            if (v1 == v2)
+                return false; // Exist degenerate adjacent facet.
+            if (const std::pair<GEO::index_t, GEO::index_t> other_vertices = std::minmax(v1, v2);
+                !other_vertices_pair.insert(other_vertices).second)
+                return false; // Identical triangles in an adjacent face group.
         }
-        else {
-            assert(M.vertices.dimension() == 3);
-
-            const auto& p0 = M.facets.point(f, lv0);
-            const auto& p1 = M.facets.point(f, lv1);
-            const auto& p2 = M.facets.point(f, lv2);
-            const auto target_p = (1-r)*p0 + r*p1;
-
-            const auto normal = cross(p1-p0, p2-p0);
-            for (const auto& [nf, nlv] : v0_ordered_f_and_lv) {
-                std::array<GEO::vec3, 3> fps = {
-                    M.facets.point(nf, 0),
-                    M.facets.point(nf, 1),
-                    M.facets.point(nf, 2)
-                };
-                fps[nlv] = target_p;
-                if (GEO::dot(GEO::cross(fps[1]-fps[0], fps[2]-fps[0]), normal) < 0)
-                    return false;
-            }
-            for (const auto& [nf, nlv] : v1_ordered_f_and_lv) {
-                std::array<GEO::vec3, 3> fps = {
-                    M.facets.point(nf, 0),
-                    M.facets.point(nf, 1),
-                    M.facets.point(nf, 2)
-                };
-                fps[nlv] = target_p;
-                if (GEO::dot(GEO::cross(fps[1]-fps[0], fps[2]-fps[0]), normal) < 0)
-                    return false;
-            }
-
-            /* Check whether there are any co-edge facets other than f and nf */
-            const GEO::index_t nf = M.facets.adjacent(f, lv);
-            for (const auto& nf0: v0_ordered_f_and_lv | std::views::keys) {
-                for (const auto& nf1: v1_ordered_f_and_lv | std::views::keys) {
-                    if (nf0 == nf1 &&
-                        nf0 != f && nf0 != nf)
-                        return false;
-                }
-            }
+        for (const auto& [nf, nlv] : v1_ordered_f_and_lv) {
+            const auto& v1 = M.facets.vertex(nf, (nlv+1)%3);
+            const auto& v2 = M.facets.vertex(nf, (nlv+2)%3);
+            if (v1 == v2)
+                return false; // Exist degenerate adjacent facet.
+            if (const std::pair<GEO::index_t, GEO::index_t> other_vertices = std::minmax(v1, v2);
+                !other_vertices_pair.insert(other_vertices).second)
+                return false; // Identical triangles in an adjacent face group or two adjacent face group.
         }
+
+        /* Check inversion */
+        // if (M.vertices.dimension() == 2) {
+        //     const auto& p0 = M.facets.point<2>(f, lv0);
+        //     const auto& p1 = M.facets.point<2>(f, lv1);
+        //     const auto& p2 = M.facets.point<2>(f, lv2);
+        //     const auto target_p = (1-r)*p0 + r*p1;
+        //
+        //     const auto normal = cross(p1-p0, p2-p0);
+        //     for (const auto& [nf, nlv] : v0_ordered_f_and_lv) {
+        //         std::array<GEO::vec2, 3> fps = {
+        //             M.facets.point<2>(nf, 0),
+        //             M.facets.point<2>(nf, 1),
+        //             M.facets.point<2>(nf, 2)
+        //         };
+        //         fps[nlv] = target_p;
+        //         if (cross(fps[1]-fps[0], fps[2]-fps[0]) * normal < 0)
+        //             return false;
+        //     }
+        //     for (const auto& [nf, nlv] : v1_ordered_f_and_lv) {
+        //         std::array<GEO::vec2, 3> fps = {
+        //             M.facets.point<2>(nf, 0),
+        //             M.facets.point<2>(nf, 1),
+        //             M.facets.point<2>(nf, 2)
+        //         };
+        //         fps[nlv] = target_p;
+        //         if (cross(fps[1]-fps[0], fps[2]-fps[0]) * normal < 0)
+        //             return false;
+        //     }
+        // }
+        // else {
+        //     assert(M.vertices.dimension() == 3);
+        //
+        //     const auto& p0 = M.facets.point(f, lv0);
+        //     const auto& p1 = M.facets.point(f, lv1);
+        //     const auto& p2 = M.facets.point(f, lv2);
+        //     const auto target_p = (1-r)*p0 + r*p1;
+        //
+        //     const auto normal = cross(p1-p0, p2-p0);
+        //     for (const auto& [nf, nlv] : v0_ordered_f_and_lv) {
+        //         std::array<GEO::vec3, 3> fps = {
+        //             M.facets.point(nf, 0),
+        //             M.facets.point(nf, 1),
+        //             M.facets.point(nf, 2)
+        //         };
+        //         fps[nlv] = target_p;
+        //         if (GEO::dot(GEO::cross(fps[1]-fps[0], fps[2]-fps[0]), normal) < 0)
+        //             return false;
+        //     }
+        //     for (const auto& [nf, nlv] : v1_ordered_f_and_lv) {
+        //         std::array<GEO::vec3, 3> fps = {
+        //             M.facets.point(nf, 0),
+        //             M.facets.point(nf, 1),
+        //             M.facets.point(nf, 2)
+        //         };
+        //         fps[nlv] = target_p;
+        //         if (GEO::dot(GEO::cross(fps[1]-fps[0], fps[2]-fps[0]), normal) < 0)
+        //             return false;
+        //     }
+        //
+        //     /* Check whether there are any co-edge facets other than f and nf */
+        //     const GEO::index_t nf = M.facets.adjacent(f, lv);
+        //     for (const auto& nf0: v0_ordered_f_and_lv | std::views::keys) {
+        //         for (const auto& nf1: v1_ordered_f_and_lv | std::views::keys) {
+        //             if (nf0 == nf1 &&
+        //                 nf0 != f && nf0 != nf)
+        //                 return false;
+        //         }
+        //     }
+        // }
 
         return true;
     }
@@ -221,6 +246,9 @@ namespace geolio
         assert(M.facets.nb_vertices(f) == 3);
         assert(lv < 3);
         assert(r >= 0 && r <= 1);
+
+        GEO::Mesh debug_mesh;
+        debug_mesh.copy(M);
 
         /*
          *  v0 --------+            ++
@@ -335,36 +363,74 @@ namespace geolio
 
         const GEO::index_t nlv0 = M.facets.find_vertex(af, v1);
         assert(nlv0 != GEO::NO_INDEX);
+        const GEO::index_t nlv1 = (nlv0+1)%3;
         const GEO::index_t nlv2 = (nlv0+2)%3;
         const GEO::index_t v3 = M.facets.vertex(af, nlv2);
 
-        if (M.vertices.dimension() == 2) {
-            const auto& p0 = M.vertices.point<2>(v0);
-            const auto& p1 = M.vertices.point<2>(v1);
-            const auto& p2 = M.vertices.point<2>(v2);
-            const auto& p3 = M.vertices.point<2>(v3);
-            const auto normal0 = cross(p1-p0, p2-p0);
-            // const auto normal1 = cross(p0-p1, p3-p1);
-            // assert(normal0 * normal1 > 0);
-            const auto normal2 = cross(p3-p0, p2-p0);
-            const auto normal3 = cross(p2-p1, p3-p1);
-            if (normal2 * normal0 < 0 || normal3 * normal0 < 0)
-                return false;
+        /* Not allow two existing edges to exist in an adjacent facet */
+        if (const auto nf1 = M.facets.adjacent(f, lv1);
+            nf1 != GEO::NO_FACET) {
+            for (GEO::index_t nlv = 0; nlv < 3; ++nlv) {
+                if (M.facets.vertex(nf1, nlv) == v3)
+                    return false;
+            }
         }
         else {
-            assert(M.vertices.dimension() == 3);
-            const auto& p0 = M.vertices.point(v0);
-            const auto& p1 = M.vertices.point(v1);
-            const auto& p2 = M.vertices.point(v2);
-            const auto& p3 = M.vertices.point(v3);
-            const auto normal0 = GEO::cross(p1-p0, p2-p0);
-            const auto normal1 = GEO::cross(p0-p1, p3-p1);
-            const auto ave_normal = normal0+normal1;
-            const auto normal2 = GEO::cross(p3-p0, p2-p0);
-            const auto normal3 = GEO::cross(p2-p1, p3-p1);
-            if (GEO::dot(normal2, ave_normal) < 1e-10 || GEO::dot(normal3, ave_normal) < 1e-10)
-                return false;
+            if (const auto& anf2 = M.facets.adjacent(af, nlv2);
+                anf2 != GEO::NO_FACET) {
+                for (GEO::index_t nlv = 0; nlv < 3; ++nlv) {
+                    if (M.facets.vertex(anf2, nlv) == v2)
+                        return false;
+                }
+            }
         }
+
+        if (const auto nf2 = M.facets.adjacent(f, lv2);
+            nf2 != GEO::NO_FACET) {
+            for (GEO::index_t nlv = 0; nlv < 3; ++nlv) {
+                if (M.facets.vertex(nf2, nlv) == v3)
+                    return false;
+            }
+        }
+        else {
+            if (const auto& anf1 = M.facets.adjacent(af, nlv1);
+                anf1 != GEO::NO_FACET) {
+                for (GEO::index_t nlv = 0; nlv < 3; ++nlv) {
+                    if (M.facets.vertex(anf1, nlv) == v2)
+                        return false;
+                }
+            }
+        }
+
+        /* Check inversion */
+        // if (M.vertices.dimension() == 2) {
+        //     const auto& p0 = M.vertices.point<2>(v0);
+        //     const auto& p1 = M.vertices.point<2>(v1);
+        //     const auto& p2 = M.vertices.point<2>(v2);
+        //     const auto& p3 = M.vertices.point<2>(v3);
+        //     const auto normal0 = cross(p1-p0, p2-p0) > 0;
+        //     const auto normal1 = cross(p0-p1, p3-p1) > 0;
+        //     if (normal0 != normal1)
+        //         return false; // the two facets are initially oriented in opposite directions
+        //     const auto normal2 = cross(p3-p0, p2-p0) > 0;
+        //     const auto normal3 = cross(p2-p1, p3-p1) > 0;
+        //     if (normal2 != normal0 || normal3 != normal0)
+        //         return false; // inverse after swapping
+        // }
+        // else {
+        //     assert(M.vertices.dimension() == 3);
+        //     const auto& p0 = M.vertices.point(v0);
+        //     const auto& p1 = M.vertices.point(v1);
+        //     const auto& p2 = M.vertices.point(v2);
+        //     const auto& p3 = M.vertices.point(v3);
+        //     const auto normal0 = GEO::cross(p1-p0, p2-p0);
+        //     const auto normal1 = GEO::cross(p0-p1, p3-p1);
+        //     const auto ave_normal = normal0+normal1;
+        //     const auto normal2 = GEO::cross(p3-p0, p2-p0);
+        //     const auto normal3 = GEO::cross(p2-p1, p3-p1);
+        //     if (GEO::dot(normal2, ave_normal) < 1e-10 || GEO::dot(normal3, ave_normal) < 1e-10)
+        //         return false;
+        // }
 
         return true;
     }
