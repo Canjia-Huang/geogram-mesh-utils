@@ -5,11 +5,13 @@
 
 #include <gtest/gtest.h>
 #include "environment_geogram.h"
+#include "environment_spdlog.h"
 
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
 
     testing::AddGlobalTestEnvironment(new GeogramTestEnvironment);
+    testing::AddGlobalTestEnvironment(new SpdlogTestEnvironment);
 
     return RUN_ALL_TESTS();
 }

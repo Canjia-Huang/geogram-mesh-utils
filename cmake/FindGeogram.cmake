@@ -1,3 +1,5 @@
+geolio_begin_file()
+
 # Find Geogram
 # ------------
 #
@@ -159,3 +161,5 @@ if(WIN32)
     endif()
 
 endif()
+
+geolio_end_file()

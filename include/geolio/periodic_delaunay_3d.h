@@ -23,7 +23,7 @@ namespace geolio
      * @param[in] delaunay Source periodic Delaunay triangulation to export.
      * @param[in,out] mesh Destination mesh receiving appended vertices and tetrahedra.
      */
-    inline void append_delaunay_to_mesh(
+    inline void append_PeriodicDelaunay3d_to_mesh(
         const GEO::PeriodicDelaunay3d& delaunay,
         GEO::Mesh& mesh
         ) {

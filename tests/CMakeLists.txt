@@ -23,6 +23,7 @@ add_executable(${PROJECT_NAME}_TESTS
 
 target_link_libraries(${PROJECT_NAME}_TESTS
         geolio
+        geolio_THIRD_PARTY
         Geogram::geogram
         GTest::gtest_main
 )
