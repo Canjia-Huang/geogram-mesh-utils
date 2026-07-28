@@ -158,7 +158,7 @@ namespace geolio
          * Only facets are explicitly removed here; unused vertices remain as
          * reusable storage for future operations.
          */
-        void clean_unused_elements() const;
+        void clean_unused_elements();
 
         GEO::Mesh& mesh_;
         const bool mesh_2d_;

@@ -115,22 +115,25 @@ namespace geolio
                 M.facets.set_adjacent(nnf2, M.facets.find_vertex(nnf2, nv0), new_f1);
             }
         }
+        else
+            M.facets.set_adjacent(new_f0, lv0, GEO::NO_VERTEX);
     }
 
     bool is_tri_edge_collapse_valid(
         const GEO::Mesh& M,
         const GEO::index_t f,
-        const GEO::index_t lv,
-        const double r
+        const GEO::index_t lv
         ) {
         assert(f < M.facets.nb());
         assert(M.facets.nb_vertices(f) == 3);
         assert(lv < 3);
-        assert(r >= 0 && r <= 1);
 
         const GEO::index_t lv0 = lv;
         const GEO::index_t lv1 = (lv+1)%3;
-        const GEO::index_t lv2 = (lv+2)%3;
+        // const GEO::index_t lv2 = (lv+2)%3;
+        const GEO::index_t v0 = M.facets.vertex(f, lv0);
+        const GEO::index_t v1 = M.facets.vertex(f, lv1);
+        const auto af = M.facets.adjacent(f, lv);
 
         /* Find all incident vertices */
         std::vector<std::pair<GEO::index_t, GEO::index_t>> v0_ordered_f_and_lv;
@@ -142,20 +145,32 @@ namespace geolio
         /* After collapse, no identical triangles can exist */
         std::set<std::pair<GEO::index_t, GEO::index_t>> other_vertices_pair; // unordered
         for (const auto& [nf, nlv] : v0_ordered_f_and_lv) {
-            const auto& v1 = M.facets.vertex(nf, (nlv+1)%3);
-            const auto& v2 = M.facets.vertex(nf, (nlv+2)%3);
-            if (v1 == v2)
+            const auto& nv1 = M.facets.vertex(nf, (nlv+1)%3);
+            const auto& nv2 = M.facets.vertex(nf, (nlv+2)%3);
+            assert(nv1 != v0);
+            assert(nv2 != v0);
+            if (nv1 == nv2)
                 return false; // Exist degenerate adjacent facet.
-            if (const std::pair<GEO::index_t, GEO::index_t> other_vertices = std::minmax(v1, v2);
+            if (nv1 == v1 || nv2 == v1) {
+                if (nf != f && nf != af)
+                    return false; // Non-manifold edge.
+            }
+            if (const std::pair<GEO::index_t, GEO::index_t> other_vertices = std::minmax(nv1, nv2);
                 !other_vertices_pair.insert(other_vertices).second)
                 return false; // Identical triangles in an adjacent face group.
         }
         for (const auto& [nf, nlv] : v1_ordered_f_and_lv) {
-            const auto& v1 = M.facets.vertex(nf, (nlv+1)%3);
-            const auto& v2 = M.facets.vertex(nf, (nlv+2)%3);
-            if (v1 == v2)
+            const auto& nv1 = M.facets.vertex(nf, (nlv+1)%3);
+            const auto& nv2 = M.facets.vertex(nf, (nlv+2)%3);
+            assert(nv1 != v1);
+            assert(nv2 != v1);
+            if (nv1 == nv2)
                 return false; // Exist degenerate adjacent facet.
-            if (const std::pair<GEO::index_t, GEO::index_t> other_vertices = std::minmax(v1, v2);
+            if (nv1 == v0 || nv2 == v0) {
+                if (nf != f && nf != af)
+                    return false; // Non-manifold edge.
+            }
+            if (const std::pair<GEO::index_t, GEO::index_t> other_vertices = std::minmax(nv1, nv2);
                 !other_vertices_pair.insert(other_vertices).second)
                 return false; // Identical triangles in an adjacent face group or two adjacent face group.
         }
@@ -284,8 +299,9 @@ namespace geolio
         }
         disuse_v = v1;
         disuse_f0 = f;
+        disuse_f1 = af0; // facet or GEO::NO_FACET
 
-        /* Find all (f, lv) that incident to v1 */
+        /* Find all (f, lv) that incident to v1 (before performing collapse) */
         std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_f_and_lv;
         get_vertex_incident_facets(M, f, lv1, ordered_f_and_lv);
 
@@ -322,8 +338,6 @@ namespace geolio
             const GEO::index_t naf1 = M.facets.adjacent(af0, nlv1);
             const GEO::index_t naf2 = M.facets.adjacent(af0, nlv2);
 
-            disuse_f1 = af0;
-
             /* Set facet adjacency */
             if (naf1 != GEO::NO_FACET) {
                 assert(M.facets.find_vertex(naf1, nv2) != GEO::NO_INDEX);
@@ -333,9 +347,28 @@ namespace geolio
                 assert(M.facets.find_vertex(naf2, nv0) != GEO::NO_INDEX);
                 M.facets.set_adjacent(naf2, M.facets.find_vertex(naf2, nv0), naf1);
             }
+
+            { // DEBUG check
+                for (GEO::index_t i = 0; i < 3; ++i) {
+                    if (af1 != GEO::NO_FACET) {
+                        assert(M.facets.adjacent(af1, i) != disuse_f0);
+                        assert(M.facets.adjacent(af1, i) != disuse_f1);
+                    }
+                    if (af2 != GEO::NO_FACET) {
+                        assert(M.facets.adjacent(af2, i) != disuse_f0);
+                        assert(M.facets.adjacent(af2, i) != disuse_f1);
+                    }
+                    if (naf1 != GEO::NO_FACET) {
+                        assert(M.facets.adjacent(naf1, i) != disuse_f0);
+                        assert(M.facets.adjacent(naf1, i) != disuse_f1);
+                    }
+                    if (naf2 != GEO::NO_FACET) {
+                        assert(M.facets.adjacent(naf2, i) != disuse_f0);
+                        assert(M.facets.adjacent(naf2, i) != disuse_f1);
+                    }
+                }
+            }
         }
-        else
-            disuse_f1 = GEO::NO_FACET;
 
         /* Set facet vertices */
         for (const auto& [adj_f, adj_lv] : ordered_f_and_lv)
@@ -343,7 +376,7 @@ namespace geolio
     }
 
     bool is_tri_edge_swap_valid(
-        GEO::Mesh& M,
+        const GEO::Mesh& M,
         const GEO::index_t f,
         const GEO::index_t lv
         ) {
@@ -357,7 +390,7 @@ namespace geolio
 
         const GEO::index_t lv1 = (lv+1)%3;
         const GEO::index_t lv2 = (lv+2)%3;
-        const GEO::index_t v0 = M.facets.vertex(f, lv);
+        // const GEO::index_t v0 = M.facets.vertex(f, lv);
         const GEO::index_t v1 = M.facets.vertex(f, lv1);
         const GEO::index_t v2 = M.facets.vertex(f, lv2);
 
@@ -375,16 +408,6 @@ namespace geolio
                     return false;
             }
         }
-        else {
-            if (const auto& anf2 = M.facets.adjacent(af, nlv2);
-                anf2 != GEO::NO_FACET) {
-                for (GEO::index_t nlv = 0; nlv < 3; ++nlv) {
-                    if (M.facets.vertex(anf2, nlv) == v2)
-                        return false;
-                }
-            }
-        }
-
         if (const auto nf2 = M.facets.adjacent(f, lv2);
             nf2 != GEO::NO_FACET) {
             for (GEO::index_t nlv = 0; nlv < 3; ++nlv) {
@@ -392,13 +415,18 @@ namespace geolio
                     return false;
             }
         }
-        else {
-            if (const auto& anf1 = M.facets.adjacent(af, nlv1);
-                anf1 != GEO::NO_FACET) {
-                for (GEO::index_t nlv = 0; nlv < 3; ++nlv) {
-                    if (M.facets.vertex(anf1, nlv) == v2)
-                        return false;
-                }
+        if (const auto& anf1 = M.facets.adjacent(af, nlv1);
+            anf1 != GEO::NO_FACET) {
+            for (GEO::index_t nlv = 0; nlv < 3; ++nlv) {
+                if (M.facets.vertex(anf1, nlv) == v2)
+                    return false;
+            }
+        }
+        if (const auto& anf2 = M.facets.adjacent(af, nlv2);
+            anf2 != GEO::NO_FACET) {
+            for (GEO::index_t nlv = 0; nlv < 3; ++nlv) {
+                if (M.facets.vertex(anf2, nlv) == v2)
+                    return false;
             }
         }
 

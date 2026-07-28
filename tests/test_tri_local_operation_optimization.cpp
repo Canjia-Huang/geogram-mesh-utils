@@ -23,11 +23,11 @@ namespace geolio::test
         GEO::Mesh mesh(2);
         append_CDT2d_to_mesh(CDT, mesh);
         mesh.facets.connect();
-        GEO::mesh_save(mesh, get_current_test_name()+"_before_opt.geogram");
+        GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
 
         TriLocalOperationOptimization TLO_opt(mesh);
         TLO_opt.optimize();
-        GEO::mesh_save(mesh, get_current_test_name()+".geogram");
+        GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
     }
 
     TEST(TriLocalOperationOptimizationTest, three_d_model) {
@@ -36,6 +36,6 @@ namespace geolio::test
 
         TriLocalOperationOptimization TLO_opt(mesh);
         TLO_opt.optimize();
-        GEO::mesh_save(mesh, get_current_test_name()+".geogram");
+        GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
     }
 }

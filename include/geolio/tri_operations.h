@@ -49,14 +49,12 @@ namespace geolio
      * @param[in] M Target triangle mesh.
      * @param[in] f Index of the triangle facet that owns the candidate edge.
      * @param[in] lv Local vertex index (0, 1, or 2) identifying the edge to collapse.
-     * @param[in] r Interpolation ratio in [0, 1] for the new position of v(lv).
      * @return true if the collapse is geometrically valid; false otherwise.
      */
     bool is_tri_edge_collapse_valid(
         const GEO::Mesh& M,
         GEO::index_t f,
-        GEO::index_t lv,
-        double r = 0.5);
+        GEO::index_t lv);
 
     /**
      * @brief Collapse an edge of a triangle and update local connectivity.
@@ -98,7 +96,7 @@ namespace geolio
      * @return true if the edge swap is valid; false otherwise.
      */
     bool is_tri_edge_swap_valid(
-        GEO::Mesh& M,
+        const GEO::Mesh& M,
         GEO::index_t f,
         GEO::index_t lv);
 

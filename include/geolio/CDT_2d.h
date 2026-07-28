@@ -17,18 +17,26 @@ namespace geolio
      * The function copies all CDT vertices into the mesh, then creates one
      * mesh triangle for each CDT triangle using the copied vertex indices.
      *
-     * @param CDT The source 2D constrained Delaunay triangulation.
-     * @param mesh The destination mesh, which must already be 2D.
+     * @param[in] CDT The source 2D constrained Delaunay triangulation.
+     * @param[in, out] mesh The destination mesh.
      */
     inline void append_CDT2d_to_mesh(
         const GEO::CDT2d& CDT,
         GEO::Mesh& mesh
         ) {
-        assert(mesh.vertices.dimension() == 2);
-
         const GEO::index_t new_v = mesh.vertices.create_vertices(CDT.nv());
-        for (GEO::index_t v = 0, v_end = CDT.nv(); v < v_end; ++v)
-            mesh.vertices.point<2>(new_v+v) = CDT.point(v);
+        if (mesh.vertices.dimension() == 2) {
+            for (GEO::index_t v = 0, v_end = CDT.nv(); v < v_end; ++v)
+                mesh.vertices.point<2>(new_v+v) = CDT.point(v);
+        }
+        else {
+            assert(mesh.vertices.dimension() == 3);
+
+            for (GEO::index_t v = 0, v_end = CDT.nv(); v < v_end; ++v) {
+                const auto& p = CDT.point(v);
+                mesh.vertices.point(new_v+v) = GEO::vec3(p.x, p.y, 0);
+            }
+        }
 
         const GEO::index_t new_f = mesh.facets.create_triangles(CDT.nT());
         for (GEO::index_t f = 0, f_end = CDT.nT(); f < f_end; ++f) {

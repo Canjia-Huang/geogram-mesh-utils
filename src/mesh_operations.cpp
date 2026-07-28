@@ -5,6 +5,7 @@
 
 #include "geolio/mesh_operations.h"
 #include <cassert>
+#include <geogram/mesh/mesh_io.h>
 
 #include "geolio/hex_operations.h"
 #include "geolio/tet_operations.h"

@@ -109,7 +109,7 @@ namespace geolio::test
             ) override {
             const double r = GEO::Numeric::random_float32();
 
-            if (!is_tri_edge_collapse_valid(mesh, f, lv, r))
+            if (!is_tri_edge_collapse_valid(mesh, f, lv))
                 return;
 
             const bool EDGE_ON_BORDER = original_mesh.facets.adjacent(f, lv) == GEO::NO_FACET;

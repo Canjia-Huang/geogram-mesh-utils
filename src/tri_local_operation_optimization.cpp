@@ -44,22 +44,27 @@ namespace geolio
         const double SPLIT_EDGE_LENGTH = 4.0/3.0 * target_edge_length;
         const double COLLAPSE_EDGE_LENGTH = 4.0/5.0 * target_edge_length;
 
-        bind_attributes();
+        bind_attributes(); // begin
 
         fix_boundary_vertices();
 
         for (GEO::index_t round = 0; round < rounds_nb; ++round) {
             LOG::TRACE("round: {}/{}", round, rounds_nb);
 
+            const auto PREV_VERTICES_NB = mesh_.vertices.nb();
+            const auto PREV_FACETS_NB = mesh_.facets.nb();
+
             split_edges(SPLIT_EDGE_LENGTH);
             collapse_edges(COLLAPSE_EDGE_LENGTH);
             swap_edges();
             smooth_vertices(1);
+
+            LOG::DEBUG("#V: {} -> {}, #F: {} -> {}", PREV_VERTICES_NB, mesh_.vertices.nb(), PREV_FACETS_NB, mesh_.facets.nb());
         }
 
-        unbind_attributes();
-
         clean_unused_elements();
+
+        unbind_attributes(); // end
     }
 
     void TriLocalOperationOptimization::bind_attributes(
@@ -146,6 +151,7 @@ namespace geolio
         ) {
         if (v == GEO::NO_VERTEX)
             return;
+        assert(v < mesh_.vertices.nb());
         free_vertices_.push_back(v);
         mesh_v_used_[v] = false;
     }
@@ -169,6 +175,7 @@ namespace geolio
         ) {
         if (f == GEO::NO_FACET)
             return;
+        assert(f < mesh_.facets.nb());
         free_facets_.push_back(f);
         mesh_f_used_[f] = false;
     }
@@ -248,6 +255,8 @@ namespace geolio
         ) {
         LOG::TRACE("{}({})", __FUNCTION__, limit_edge_length);
 
+        GEO::index_t cnt = 0;
+
         std::vector<bool> facet_processed(mesh_.facets.nb(), false);
         for (GEO::index_t f = 0, f_end = mesh_.facets.nb(); f < f_end; ++f) {
             if (facet_processed[f]
@@ -261,25 +270,23 @@ namespace geolio
                     const auto& ev0 = mesh_.facets.vertex(f, lv);
                     const auto& ev1 = mesh_.facets.vertex(f, (lv+1)%3);
 
-                    if (mesh_v_fixed_[ev0] && mesh_v_fixed_[ev1]) // do not collapse fixed edge
+                    if (mesh_v_fixed_[ev1]) /* Because collapse pulls v1 toward v0, no operation is performed when v1
+                            is fixed, so that the vertex indices remain unchanged. */
                         continue;
 
-                    double R = 0.5;
-                    if (mesh_v_fixed_[ev0])
-                        R = 0;
-                    else if (mesh_v_fixed_[ev1]) {
-                        R = 1;
-                        mesh_v_fixed_[ev0] = true; // ev1 -> ev0
-                    }
-
-                    if (!is_tri_edge_collapse_valid(mesh_, f, lv, R))
+                    if (!is_tri_edge_collapse_valid(mesh_, f, lv))
                         continue;
 
                     /* Collapse */
                     GEO::index_t disuse_v = GEO::NO_VERTEX;
                     GEO::index_t disuse_f0 = GEO::NO_FACET;
                     GEO::index_t disuse_f1 = GEO::NO_FACET;
+
+                    double R = 0.5;
+                    if (mesh_v_fixed_[ev0])
+                        R = 0;
                     tri_edge_collapse(mesh_, f, lv, disuse_v, disuse_f0, disuse_f1, R);
+
                     disuse_a_vertex(disuse_v);
                     disuse_a_facet(disuse_f0);
                     disuse_a_facet(disuse_f1);
@@ -292,6 +299,8 @@ namespace geolio
                     break;
                 }
             }
+
+            ++cnt;
         }
     }
 
@@ -317,6 +326,7 @@ namespace geolio
                 const auto& v = mesh_.facets.vertex(f, lv);
                 const auto& nf = mesh_.facets.adjacent(f, lv);
                 assert(nf != GEO::NO_FACET);
+                assert(mesh_f_used_[nf]);
 
                 GEO::index_t valence0, valence1, valence2, valence3;
                 std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_f_and_lv;
@@ -451,12 +461,22 @@ namespace geolio
     }
 
     void TriLocalOperationOptimization::clean_unused_elements(
-        ) const {
+        ) {
         LOG::TRACE(__FUNCTION__);
+        assert(mesh_v_used_.is_bound());
+        assert(mesh_f_used_.is_bound());
 
         GEO::vector<GEO::index_t> facets_to_delete(mesh_.facets.nb(), 0);
-        for (const auto& f : free_facets_)
-            facets_to_delete[f] = 1;
+        for (const auto& f : free_facets_) {
+            if (f < mesh_.facets.nb())
+                facets_to_delete[f] = 1;
+        }
         mesh_.facets.delete_elements(facets_to_delete, true);
+
+        free_vertices_.clear();
+        free_facets_.clear();
+
+        assert(std::ranges::all_of(mesh_v_used_.get_vector(), [](const auto& b){ return b; }));
+        assert(std::ranges::all_of(mesh_f_used_.get_vector(), [](const auto& b){ return b; }));
     }
 }
