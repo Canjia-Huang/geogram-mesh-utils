@@ -42,7 +42,7 @@ namespace geolio::test
         delaunay->set_vertices(samples_nb, points.data());
         delaunay->compute();
 
-        append_delaunay_to_mesh(*delaunay, mesh);
+        append_PeriodicDelaunay3d_to_mesh(*delaunay, mesh);
         mesh.cells.connect();
     }
 
