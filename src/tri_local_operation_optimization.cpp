@@ -57,7 +57,7 @@ namespace geolio
 
         clean_unused_elements();
 
-        // unbind_attributes(); // end
+        unbind_attributes(); // end
     }
 
     void TriLocalOperationOptimization::bind_attributes(
@@ -225,12 +225,12 @@ namespace geolio
                     ) {
                     const auto& ev0 = mesh_.facets.vertex(f, lv);
                     const auto& ev1 = mesh_.facets.vertex(f, (lv+1)%3);
-                    if (strictly_fixed_) {
+                    if (!SPLIT_EDGES_CONNECTING_FIXED_VERTICES_) {
                         if (mesh_v_fixed_[ev0] && mesh_v_fixed_[ev1])
                             continue;
                     }
 
-                    const auto& nf = mesh_.facets.adjacent(f, lv);
+                    const auto nf = mesh_.facets.adjacent(f, lv);
 
                     /* Split */
                     const GEO::index_t new_v = require_a_new_vertex();

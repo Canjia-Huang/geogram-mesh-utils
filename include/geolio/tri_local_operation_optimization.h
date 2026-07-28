@@ -59,7 +59,7 @@ namespace geolio
 
         void fix_boundary_vertices();
 
-        double get_edge_length(
+        [[nodiscard]] double get_edge_length(
             GEO::index_t f,
             GEO::index_t lv) const;
 
@@ -165,7 +165,6 @@ namespace geolio
 
         GEO::Attribute<bool> mesh_f_processed_;
 
-        bool strictly_fixed_ = false;
         GEO::Attribute<bool> mesh_v_fixed_;
 
         GEO::Mesh original_mesh_;
@@ -175,6 +174,8 @@ namespace geolio
         GEO::Attribute<bool> mesh_f_used_;
         std::vector<GEO::index_t> free_vertices_;
         std::vector<GEO::index_t> free_facets_;
+
+        bool SPLIT_EDGES_CONNECTING_FIXED_VERTICES_ = true;
     };
 }
 
