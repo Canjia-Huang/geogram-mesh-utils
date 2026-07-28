@@ -249,6 +249,7 @@ namespace geolio
         }
         else {
             assert(M.vertices.dimension() == 3);
+
             const auto& p0 = M.vertices.point(v0);
             const auto& p1 = M.vertices.point(v1);
             M.vertices.point(v0) = (1-r)*p0 + r*p1;
