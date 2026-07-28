@@ -14,6 +14,17 @@
 
 namespace geolio::test
 {
+    /**
+     * @brief Generate a random 2D constrained Delaunay triangulation (CDT) and append it to a mesh.
+     *
+     * @param mesh [out] GEO::Mesh that will receive the generated triangulation. The function connects mesh facets before returning.
+     * @param samples_nb [in] Number of random sample points to insert (default: 20).
+     * @param w [in] Half-width of the square domain used to place the enclosing quad and sample points (default: 10).
+     *
+     * Implementation:
+     * Creates a CDT, builds an enclosing quadrilateral from (-w,-w) to (w,w), inserts `samples_nb` random points
+     * inside an expanded area, appends the CDT geometry to `mesh`, and connects the mesh facets.
+     */
     inline void generate_random_CDT2d_mesh(
         GEO::Mesh& mesh,
         const GEO::index_t samples_nb = 20,
@@ -28,6 +39,17 @@ namespace geolio::test
         mesh.facets.connect();
     }
 
+    /**
+     * @brief Generate a random 3D periodic Delaunay triangulation and append it to a mesh.
+     *
+     * @param mesh [out] GEO::Mesh that will receive the generated tetrahedral mesh. The function connects mesh cells before returning.
+     * @param samples_nb [in] Number of random vertices to generate (default: 20).
+     * @param w [in] Scale parameter used to spread generated vertex coordinates (default: 10).
+     *
+     * Implementation:
+     * Fills a flat vector with `samples_nb` random 3D coordinates, constructs a PeriodicDelaunay3d,
+     * sets the vertices, computes the Delaunay triangulation, appends the result to `mesh`, and connects mesh cells.
+     */
     inline void generate_random_delaunay3d_mesh (
         GEO::Mesh& mesh,
         const GEO::index_t samples_nb = 20,
@@ -46,6 +68,15 @@ namespace geolio::test
         mesh.cells.connect();
     }
 
+    /**
+     * @brief Construct a printable name for the currently running Google Test.
+     *
+     * @return std::string A string in the form "test_<test_case_name>_<test_name>".
+     *
+     * Implementation:
+     * Queries testing::UnitTest::GetInstance()->current_test_info() and concatenates the test case name
+     * and the test name with separators to produce a reproducible identifier useful for filenames or logs.
+     */
     inline std::string get_current_test_name(){
         const testing::TestInfo* const current_test_info = testing::UnitTest::GetInstance()->current_test_info();
         return std::string("test")
