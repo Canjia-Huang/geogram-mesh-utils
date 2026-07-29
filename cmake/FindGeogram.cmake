@@ -92,6 +92,29 @@ find_library (GEOGRAM_TBB_MALLOC_LIBRARY
 )
 message(STATUS "GEOGRAM_TBB_MALLOC_LIBRARY: ${GEOGRAM_TBB_MALLOC_LIBRARY}")
 
+# On Windows, locate the geogram DLL so consumers can copy it for runtime.
+if(WIN32 AND GEOGRAM_LIBRARY)
+    get_filename_component(_GEOGRAM_LIB_DIR "${GEOGRAM_LIBRARY}" DIRECTORY)
+    get_filename_component(_GEOGRAM_CONFIG "${_GEOGRAM_LIB_DIR}" NAME)
+    get_filename_component(_GEOGRAM_LIB_PARENT "${_GEOGRAM_LIB_DIR}" DIRECTORY)
+    get_filename_component(_GEOGRAM_BUILD_DIR "${_GEOGRAM_LIB_PARENT}" DIRECTORY)
+    find_file(GEOGRAM_DLL
+        NAMES geogram.dll
+        HINTS
+            "${_GEOGRAM_LIB_DIR}"
+            "${_GEOGRAM_BUILD_DIR}/bin"
+        PATH_SUFFIXES
+            .
+            "${_GEOGRAM_CONFIG}"
+    )
+    mark_as_advanced(GEOGRAM_DLL)
+    if(GEOGRAM_DLL)
+        message(STATUS "GEOGRAM_DLL: ${GEOGRAM_DLL}")
+    else()
+        message(STATUS "GEOGRAM_DLL: not found")
+    endif()
+endif()
+
 include (FindPackageHandleStandardArgs)
 find_package_handle_standard_args(
         Geogram DEFAULT_MSG GEOGRAM_LIBRARY GEOGRAM_INCLUDE_DIR

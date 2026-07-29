@@ -30,5 +30,24 @@ target_link_libraries(${PROJECT_NAME}_TESTS
 
 add_compile_definitions(TEST_DATA_PATH="${CMAKE_CURRENT_SOURCE_DIR}/data/")
 
+if(WIN32)
+    # The test executable needs geolio.dll (and potentially geogram.dll) at runtime.
+    # Copy them alongside the test executable so Windows can find them.
+    add_custom_command(TARGET ${PROJECT_NAME}_TESTS POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "$<TARGET_FILE:geolio>"
+            "$<TARGET_FILE_DIR:${PROJECT_NAME}_TESTS>"
+        COMMENT "Copying geolio.dll to test directory"
+    )
+    if(GEOGRAM_DLL)
+        add_custom_command(TARGET ${PROJECT_NAME}_TESTS POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${GEOGRAM_DLL}"
+                "$<TARGET_FILE_DIR:${PROJECT_NAME}_TESTS>"
+            COMMENT "Copying geogram.dll to test directory"
+        )
+    endif()
+endif()
+
 include(GoogleTest)
 gtest_discover_tests(${PROJECT_NAME}_TESTS)
