@@ -102,17 +102,17 @@ namespace geolio
         ) {
         LOG::TRACE(__FUNCTION__);
 
-        assert(mesh_v_boundary_.is_bound());
-        mesh_v_boundary_.destroy();
-        assert(mesh_v_fixed_.is_bound());
-        mesh_v_fixed_.destroy();
-        assert(mesh_v_used_.is_bound());
-        mesh_v_used_.destroy();
+        if (mesh_v_boundary_.is_bound())
+            mesh_v_boundary_.destroy();
+        if (mesh_v_fixed_.is_bound())
+            mesh_v_fixed_.destroy();
+        if (mesh_v_used_.is_bound());
+            mesh_v_used_.destroy();
 
-        assert(mesh_f_processed_.is_bound());
-        mesh_f_processed_.destroy();
-        assert(mesh_f_used_.is_bound());
-        mesh_f_used_.destroy();
+        if (mesh_f_processed_.is_bound())
+            mesh_f_processed_.destroy();
+        if (mesh_f_used_.is_bound())
+            mesh_f_used_.destroy();
     }
 
     void TriLocalOperationOptimization::label_boundary_vertices(
