@@ -304,11 +304,13 @@ namespace geolio
         GEO::Mesh& mesh_;
         const bool mesh_2d_; // mesh.vertices.dimension() == 2
 
+        const std::string attribute_name_;
         GEO::Attribute<bool> mesh_v_boundary_; // v -> on boundary
         GEO::Attribute<bool> mesh_v_fixed_; // v -> fixed
         GEO::Attribute<bool> mesh_v_used_; // v -> used
         GEO::Attribute<bool> mesh_f_processed_; // f -> processed (just pre-allocated)
         GEO::Attribute<bool> mesh_f_used_; // f -> used
+        GEO::Attribute<bool> mesh_fc_fixed; // fc (edge) -> fixed
 
         GEO::Mesh original_mesh_;
         GEO::MeshFacetsAABB original_mesh_facet_AABB_;

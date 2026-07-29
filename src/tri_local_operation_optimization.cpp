@@ -8,13 +8,15 @@
 
 #include "geolio/log.h"
 #include "geolio/tri_operations.h"
+#include "geolio/utils.h"
 
 namespace geolio
 {
     TriLocalOperationOptimization::TriLocalOperationOptimization(
         GEO::Mesh& mesh
         ) : mesh_(mesh),
-            mesh_2d_(mesh.vertices.dimension() == 2)
+            mesh_2d_(mesh.vertices.dimension() == 2),
+            attribute_name_(generate_random_string(22))
     {
         assert(mesh.facets.are_simplices());
 
@@ -86,16 +88,19 @@ namespace geolio
         ) {
         LOG::TRACE(__FUNCTION__);
 
-        mesh_v_boundary_.bind(mesh_.vertices.attributes(), "TriLocalOperationOptimization_boundary");
+        mesh_v_boundary_.bind(mesh_.vertices.attributes(), attribute_name_+":boundary");
         mesh_v_boundary_.fill(false);
-        mesh_v_fixed_.bind(mesh_.vertices.attributes(), "TriLocalOperationOptimization_fixed");
+        mesh_v_fixed_.bind(mesh_.vertices.attributes(), attribute_name_+":fixed");
         mesh_v_fixed_.fill(false);
-        mesh_v_used_.bind(mesh_.vertices.attributes(), "TriLocalOperationOptimization_used");
+        mesh_v_used_.bind(mesh_.vertices.attributes(), attribute_name_+":used");
         mesh_v_used_.fill(true);
 
-        mesh_f_processed_.bind(mesh_.facets.attributes(), "TriLocalOperationOptimization_processed");
-        mesh_f_used_.bind(mesh_.facets.attributes(), "TriLocalOperationOptimization_used");
+        mesh_f_processed_.bind(mesh_.facets.attributes(), attribute_name_+":processed");
+        mesh_f_used_.bind(mesh_.facets.attributes(), attribute_name_+":used");
         mesh_f_used_.fill(true);
+
+        mesh_fc_fixed.bind(mesh_.facet_corners.attributes(), attribute_name_+":fixed");
+        mesh_fc_fixed.fill(false);
     }
 
     void TriLocalOperationOptimization::unbind_attributes(
@@ -113,6 +118,9 @@ namespace geolio
             mesh_f_processed_.destroy();
         if (mesh_f_used_.is_bound())
             mesh_f_used_.destroy();
+
+        if (mesh_fc_fixed.is_bound())
+            mesh_fc_fixed.destroy();
     }
 
     void TriLocalOperationOptimization::label_boundary_vertices(
