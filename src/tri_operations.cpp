@@ -143,7 +143,7 @@ namespace geolio
         get_vertex_incident_facets(M, f, lv1, v1_ordered_f_and_lv);
 
         /* After collapse, no identical triangles can exist */
-        std::set<std::pair<GEO::index_t, GEO::index_t>> other_vertices_pair; // unordered
+        std::unordered_set<std::pair<GEO::index_t, GEO::index_t>, PairHash> other_vertices_pair;
         for (const auto& [nf, nlv] : v0_ordered_f_and_lv) {
             const auto& nv1 = M.facets.vertex(nf, (nlv+1)%3);
             const auto& nv2 = M.facets.vertex(nf, (nlv+2)%3);

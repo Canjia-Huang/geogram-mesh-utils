@@ -78,6 +78,20 @@ find_library (GEOGRAM_GLFW3_LIBRARY
 )
 message(STATUS "GEOGRAM_GLFW3_LIBRARY: ${GEOGRAM_GLFW3_LIBRARY}")
 
+# Find TBB (transitive dependency of Geogram). Geogram headers may inline TBB calls,
+# so consumers of Geogram::geogram must also link TBB on Linux.
+find_library (GEOGRAM_TBB_LIBRARY
+        NAMES tbb
+        PATHS ${GEOGRAM_SEARCH_PATHS_SYSTEM}
+)
+message(STATUS "GEOGRAM_TBB_LIBRARY: ${GEOGRAM_TBB_LIBRARY}")
+
+find_library (GEOGRAM_TBB_MALLOC_LIBRARY
+        NAMES tbbmalloc
+        PATHS ${GEOGRAM_SEARCH_PATHS_SYSTEM}
+)
+message(STATUS "GEOGRAM_TBB_MALLOC_LIBRARY: ${GEOGRAM_TBB_MALLOC_LIBRARY}")
+
 include (FindPackageHandleStandardArgs)
 find_package_handle_standard_args(
         Geogram DEFAULT_MSG GEOGRAM_LIBRARY GEOGRAM_INCLUDE_DIR
@@ -101,6 +115,21 @@ If (GEOGRAM_FOUND)
                 IMPORTED_LINK_INTERFACE_LANGUAGES "CXX"
                 IMPORTED_LOCATION "${GEOGRAM_LIBRARY}"
         )
+
+        # TBB is a transitive dependency of Geogram. Geogram headers may inline
+        # TBB calls, requiring consumers to link it explicitly on Linux.
+        set(GEOGRAM_TBB_LIBRARIES "")
+        if(GEOGRAM_TBB_LIBRARY)
+            list(APPEND GEOGRAM_TBB_LIBRARIES "${GEOGRAM_TBB_LIBRARY}")
+        endif()
+        if(GEOGRAM_TBB_MALLOC_LIBRARY)
+            list(APPEND GEOGRAM_TBB_LIBRARIES "${GEOGRAM_TBB_MALLOC_LIBRARY}")
+        endif()
+        if(GEOGRAM_TBB_LIBRARIES)
+            set_target_properties(Geogram::geogram PROPERTIES
+                INTERFACE_LINK_LIBRARIES "${GEOGRAM_TBB_LIBRARIES}"
+            )
+        endif()
     endif ()
 
     if (NOT TARGET Geogram::geogram_gfx)
