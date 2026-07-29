@@ -19,7 +19,7 @@ namespace geolio::test
 
         {
             TriLocalOperationOptimization TLOO(mesh);
-            TLOO.fix_boundary_vertices();
+            TLOO.fix_boundary_edges();
             TLOO.optimize(1);
         }
         GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
@@ -34,5 +34,28 @@ namespace geolio::test
             TLOO.optimize();
         }
         GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
+    }
+
+    TEST(TriLocalOperationOptimizationTest, three_d_model_sharp) {
+        GEO::Mesh mesh;
+        GEO::mesh_load(std::string(TEST_DATA_PATH)+"fandisk.obj", mesh);
+
+        {
+            TriLocalOperationOptimization TLOO(mesh);
+            TLOO.optimize();
+        }
+        GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
+    }
+
+    TEST(TriLocalOperationOptimizationTest, three_d_model_boundary) {
+        GEO::Mesh mesh;
+        GEO::mesh_load(std::string(TEST_DATA_PATH)+"beetle.obj", mesh);
+
+        {
+            TriLocalOperationOptimization TLOO(mesh);
+            TLOO.optimize();
+            GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
+        }
+
     }
 }

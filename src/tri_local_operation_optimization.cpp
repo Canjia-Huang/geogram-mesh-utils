@@ -3,12 +3,12 @@
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
 #include "geolio/tri_local_operation_optimization.h"
-
+#include <ranges>
 #include <geogram/mesh/mesh_io.h>
-
 #include "geolio/log.h"
 #include "geolio/tri_operations.h"
 #include "geolio/utils.h"
+#include <unordered_set>
 
 namespace geolio
 {
@@ -20,9 +20,11 @@ namespace geolio
     {
         assert(mesh.facets.are_simplices());
 
-        bind_attributes();
+        // TODO: check identical facet
 
+        bind_attributes();
         label_boundary_vertices();
+        fix_non_manifold_vertices();
 
         if (!mesh_2d_) {
             original_mesh_.copy(mesh_);
@@ -69,17 +71,15 @@ namespace geolio
         clean_unused_elements();
     }
 
-    void TriLocalOperationOptimization::fix_boundary_vertices(
+    void TriLocalOperationOptimization::fix_boundary_edges(
         ) {
         LOG::TRACE(__FUNCTION__);
-        assert(mesh_v_fixed_.is_bound());
+        assert(mesh_fc_fixed.is_bound());
 
         for (const auto& f : mesh_.facets) {
             for (GEO::index_t lv = 0; lv < 3; ++lv) {
-                if (mesh_.facets.adjacent(f, lv) == GEO::NO_FACET) {
-                    mesh_v_fixed_[mesh_.facets.vertex(f, lv)] = true;
-                    mesh_v_fixed_[mesh_.facets.vertex(f, (lv+1)%3)] = true;
-                }
+                if (mesh_.facets.adjacent(f, lv) == GEO::NO_FACET)
+                    fix_edge(f, lv);
             }
         }
     }
@@ -96,6 +96,7 @@ namespace geolio
         mesh_v_used_.fill(true);
 
         mesh_f_processed_.bind(mesh_.facets.attributes(), attribute_name_+":processed");
+        mesh_f_processed_.fill(false);
         mesh_f_used_.bind(mesh_.facets.attributes(), attribute_name_+":used");
         mesh_f_used_.fill(true);
 
@@ -136,6 +137,41 @@ namespace geolio
                 }
             }
         }
+    }
+
+    void TriLocalOperationOptimization::fix_non_manifold_vertices(
+        ) {
+        LOG::TRACE(__FUNCTION__);
+        assert(mesh_v_fixed_.is_bound());
+
+        std::vector<GEO::index_t> mesh_v_adjacent_facets(mesh_.vertices.nb(), 0);
+        for (const auto& f : mesh_.facets) {
+            for (GEO::index_t lv = 0; lv < 3; ++lv) {
+                const auto& v = mesh_.facets.vertex(f, lv);
+                ++mesh_v_adjacent_facets[v];
+            }
+        }
+
+        GEO::index_t non_manifold_vertices_nb = 0;
+        std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_f_and_lv;
+        for (const auto& f : mesh_.facets) {
+            for (GEO::index_t lv = 0; lv < 3; ++lv) {
+                const auto& v = mesh_.facets.vertex(f, lv);
+                if (mesh_v_adjacent_facets[v] == GEO::NO_INDEX) // already check
+                    continue;
+
+                get_vertex_incident_facets(mesh_, f, lv, ordered_f_and_lv);
+                if (ordered_f_and_lv.size() != mesh_v_adjacent_facets[v]) { // non-manifold vertex
+                    fix_vertex(v); // fix it, prevent errors in collapse operations involving this vertex.
+                    ++non_manifold_vertices_nb;
+                }
+
+                mesh_v_adjacent_facets[v] = GEO::NO_INDEX; // label
+            }
+        }
+
+        LOG::WARN("Detected {} non-manifold vertices in the input mesh; "
+                  "they have been fixed to prevent unexpected errors.", non_manifold_vertices_nb);
     }
 
     double TriLocalOperationOptimization::get_edge_length(
@@ -182,13 +218,14 @@ namespace geolio
     void TriLocalOperationOptimization::disuse_a_vertex(
         const GEO::index_t v
         ) {
-        if (v == GEO::NO_VERTEX)
-            return;
+        /* Recycle */
         assert(v < mesh_.vertices.nb());
         free_vertices_.push_back(v);
+
+        /* Init attributes */
         mesh_v_boundary_[v] = false;
-        mesh_v_fixed_[v] = false;
-        mesh_v_used_[v] = false;
+        mesh_v_fixed_[v]    = false;
+        mesh_v_used_[v]     = false;
     }
 
     GEO::index_t TriLocalOperationOptimization::require_a_new_facet(
@@ -208,11 +245,14 @@ namespace geolio
     void TriLocalOperationOptimization::disuse_a_facet(
         const GEO::index_t f
         ) {
-        if (f == GEO::NO_FACET)
-            return;
+        /* Recycle */
         assert(f < mesh_.facets.nb());
         free_facets_.push_back(f);
+
+        /* Init attributes */
         mesh_f_used_[f] = false;
+        for (GEO::index_t lv = 0; lv < 3; ++lv)
+            mesh_fc_fixed[3*f+lv] = false;
     }
 
     void TriLocalOperationOptimization::allocate_new_vertices(
@@ -312,31 +352,75 @@ namespace geolio
                     const auto& ev0 = mesh_.facets.vertex(f, lv);
                     const auto& ev1 = mesh_.facets.vertex(f, (lv+1)%3);
 
-                    if (mesh_v_fixed_[ev1]) /* Because collapse pulls v1 toward v0, no operation is performed when v1
+                    if (mesh_v_fixed_[ev1]) { /* Because collapse pulls v1 toward v0, no operation is performed when v1
                             is fixed, so that the vertex indices remain unchanged. */
                         continue;
+                    }
 
                     if (!is_tri_edge_collapse_valid(mesh_, f, lv))
                         continue;
+
+                    { // TODO: DEBUG
+                        GEO::Mesh debug_mesh;
+                        debug_mesh.copy(mesh_);
+                        GEO::vector<GEO::index_t> facets_to_delete(debug_mesh.facets.nb(), 1);
+                        for (const auto& f : mesh_.facets) {
+                            for (GEO::index_t lv = 0; lv < 3; ++lv) {
+                                if (const auto& v = mesh_.facets.vertex(f, lv);
+                                    v == ev0 || v == ev1)
+                                    facets_to_delete[f] = 0;
+                            }
+                        }
+                        debug_mesh.facets.delete_elements(facets_to_delete);
+                        for (auto& p : debug_mesh.vertices.points()) {
+                            p.x += 0.02*GEO::Numeric::random_float32();
+                            p.y += 0.02*GEO::Numeric::random_float32();
+                            p.z += 0.02*GEO::Numeric::random_float32();
+                        }
+                        GEO::mesh_save(debug_mesh, "debug_0.geogram");
+                    }
 
                     /* Collapse */
                     GEO::index_t disuse_v = GEO::NO_VERTEX;
                     GEO::index_t disuse_f0 = GEO::NO_FACET;
                     GEO::index_t disuse_f1 = GEO::NO_FACET;
 
-                    double R = 0.5;
+                    double R = 0.5; // mid point
                     if (mesh_v_fixed_[ev0])
-                        R = 0;
+                        R = 0; // pull ev1 -> ev0
                     tri_edge_collapse(mesh_, f, lv, disuse_v, disuse_f0, disuse_f1, R);
+                    assert(disuse_v == ev1);
 
                     disuse_a_vertex(disuse_v);
                     disuse_a_facet(disuse_f0);
-                    disuse_a_facet(disuse_f1);
-
-                    /* Label processed facets */
-                    mesh_f_processed_[disuse_f0] = true;
                     if (disuse_f1 != GEO::NO_FACET)
-                        mesh_f_processed_[disuse_f1] = true;
+                        disuse_a_facet(disuse_f1);
+
+                    { // TODO: DEBUG
+                        GEO::Mesh debug_mesh;
+                        debug_mesh.copy(mesh_);
+                        GEO::vector<GEO::index_t> facets_to_delete(debug_mesh.facets.nb(), 1);
+                        for (const auto& f : mesh_.facets) {
+                            for (GEO::index_t lv = 0; lv < 3; ++lv) {
+                                if (const auto& v = mesh_.facets.vertex(f, lv);
+                                    v == ev0 || v == ev1)
+                                    facets_to_delete[f] = 0;
+                            }
+                        }
+                        debug_mesh.facets.delete_elements(facets_to_delete);
+                        GEO::mesh_save(debug_mesh, "debug_1.geogram");
+                    }
+                    {// TODO: DEBUG
+                        for (const auto& f : mesh_.facets) {
+                            if (!mesh_f_used_[f])
+                                continue;
+                            for (GEO::index_t lv = 0; lv < 3; ++lv) {
+                                const auto& v = mesh_.facets.vertex(f, lv);
+                                assert(mesh_v_used_[v]);
+                            }
+                        }
+                    }
+
 
                     break;
                 }
@@ -520,6 +604,9 @@ namespace geolio
         LOG::TRACE(__FUNCTION__);
         assert(mesh_v_used_.is_bound());
         assert(mesh_f_used_.is_bound());
+
+        if (free_facets_.empty() && free_vertices_.empty())
+            return;
 
         GEO::vector<GEO::index_t> facets_to_delete(mesh_.facets.nb(), 0);
         for (const auto& f : free_facets_) {

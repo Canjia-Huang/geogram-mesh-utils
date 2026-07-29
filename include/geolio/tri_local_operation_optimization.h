@@ -78,17 +78,6 @@ namespace geolio
             GEO::index_t rounds_nb = 5);
 
         /**
-         * @brief Marks boundary vertices as fixed to avoid moving them.
-         *
-         * @details
-         * This method sets `mesh_v_fixed_` for vertices that lie on the mesh
-         * boundary or for which movement would break mesh consistency. On 3D
-         * meshes the boundary is detected with mesh connectivity; fixed
-         * vertices are excluded from smoothing and certain edge splits.
-         */
-        void fix_boundary_vertices();
-
-        /**
          * @brief Marks a specific vertex as fixed.
          *
          * @param[in] v Vertex index to lock.
@@ -98,11 +87,31 @@ namespace geolio
          * that would move it. The caller must ensure `v` is a valid vertex
          * index in `mesh_`.
          */
-        void fix_vertex(const GEO::index_t v) {
+        void fix_vertex(
+            const GEO::index_t v
+            ) {
             assert(mesh_v_fixed_.is_bound());
             assert(v < mesh_.vertices.nb());
             mesh_v_fixed_[v] = true;
         }
+
+        void fix_edge(
+            const GEO::index_t f,
+            const GEO::index_t lv
+            ) {
+            assert(f < mesh_.facets.nb());
+            assert(lv < 3);
+            mesh_fc_fixed[mesh_.facets.corner(f, lv)] = true;
+        }
+
+        void fix_edge(
+            const GEO::index_t fc
+            ) {
+            assert(fc < mesh_.facet_corners.nb());
+            mesh_fc_fixed[fc] = true;
+        }
+
+        void fix_boundary_edges();
 
     private:
         /**
@@ -136,6 +145,8 @@ namespace geolio
          * passes to preserve boundary shape and topology.
          */
         void label_boundary_vertices();
+
+        void fix_non_manifold_vertices();
 
         /**
          * @brief Compute the length of the edge opposite local vertex `lv` in facet `f`.
@@ -179,15 +190,6 @@ namespace geolio
          */
         [[nodiscard]] GEO::index_t require_a_new_vertex();
 
-        /**
-         * @brief Marks a vertex slot as unused so it can be reused later.
-         *
-         * @param[in] v The vertex index to release. GEO::NO_VERTEX is ignored.
-         *
-         * @details
-         * Sets `mesh_v_used_[v]` to false and pushes `v` into `free_vertices_`.
-         * Released vertices remain allocated in the mesh arrays for later reuse.
-         */
         void disuse_a_vertex(GEO::index_t v);
 
         /**
@@ -202,16 +204,6 @@ namespace geolio
          */
         [[nodiscard]] GEO::index_t require_a_new_facet();
 
-        /**
-         * @brief Marks a facet slot as unused so it can be reused later.
-         *
-         * @param[in] f The facet index to release. GEO::NO_FACET is ignored.
-         *
-         * @details
-         * Sets `mesh_f_used_[f]` to false and pushes `f` into `free_facets_`.
-         * Actual facet deletion from the mesh arrays is deferred to
-         * clean_unused_elements().
-         */
         void disuse_a_facet(GEO::index_t f);
 
         /**
