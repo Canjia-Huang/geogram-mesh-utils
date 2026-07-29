@@ -30,7 +30,7 @@ namespace geolio
 
     TriLocalOperationOptimization::~TriLocalOperationOptimization(
         ) {
-        // unbind_attributes();
+        unbind_attributes();
     }
 
     void TriLocalOperationOptimization::optimize(
