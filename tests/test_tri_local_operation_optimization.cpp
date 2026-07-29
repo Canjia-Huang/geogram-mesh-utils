@@ -17,8 +17,11 @@ namespace geolio::test
         generate_random_CDT2d_mesh(mesh, 20, 10);
         GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
 
-        TriLocalOperationOptimization TLO_opt(mesh);
-        TLO_opt.optimize(1);
+        {
+            TriLocalOperationOptimization TLOO(mesh);
+            TLOO.fix_boundary_vertices();
+            TLOO.optimize(1);
+        }
         GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
     }
 
@@ -26,8 +29,10 @@ namespace geolio::test
         GEO::Mesh mesh;
         GEO::mesh_load(std::string(TEST_DATA_PATH)+"bunny.obj", mesh);
 
-        TriLocalOperationOptimization TLO_opt(mesh);
-        TLO_opt.optimize();
+        {
+            TriLocalOperationOptimization TLOO(mesh);
+            TLOO.optimize();
+        }
         GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
     }
 }

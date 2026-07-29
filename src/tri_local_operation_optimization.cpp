@@ -18,10 +18,19 @@ namespace geolio
     {
         assert(mesh.facets.are_simplices());
 
+        bind_attributes();
+
+        label_boundary_vertices();
+
         if (!mesh_2d_) {
             original_mesh_.copy(mesh_);
             original_mesh_facet_AABB_.initialize(original_mesh_);
         }
+    }
+
+    TriLocalOperationOptimization::~TriLocalOperationOptimization(
+        ) {
+        // unbind_attributes();
     }
 
     void TriLocalOperationOptimization::optimize(
@@ -30,17 +39,16 @@ namespace geolio
         ) {
         LOG::TRACE(__FUNCTION__);
 
+        /* Compute target edge length */
         if (target_edge_length < 0) {
             target_edge_length = compute_average_mesh_edge_length();
             LOG::DEBUG("Automatically set the target edge length to the average edge length {}.", target_edge_length);
         }
+        assert(target_edge_length > 0);
         const double SPLIT_EDGE_LENGTH = 4.0/3.0 * target_edge_length;
         const double COLLAPSE_EDGE_LENGTH = 4.0/5.0 * target_edge_length;
 
-        bind_attributes(); // begin
-
-        fix_boundary_vertices();
-
+        /* Let's go! */
         for (GEO::index_t round = 0; round < rounds_nb; ++round) {
             LOG::TRACE("round: {}/{}", round+1, rounds_nb);
 
@@ -55,51 +63,68 @@ namespace geolio
             LOG::DEBUG("#V: {} -> {}, #F: {} -> {}", PREV_VERTICES_NB, mesh_.vertices.nb(), PREV_FACETS_NB, mesh_.facets.nb());
         }
 
+        /* Make output mesh valid */
         clean_unused_elements();
-
-        unbind_attributes(); // end
-    }
-
-    void TriLocalOperationOptimization::bind_attributes(
-        ) {
-        LOG::TRACE(__FUNCTION__);
-
-        mesh_f_processed_.bind(mesh_.facets.attributes(), "TriLocalOperationOptimization_processed");
-
-        mesh_v_used_.bind(mesh_.vertices.attributes(), "TriLocalOperationOptimization_used");
-        mesh_v_used_.fill(true);
-        mesh_f_used_.bind(mesh_.facets.attributes(), "TriLocalOperationOptimization_used");
-        mesh_f_used_.fill(true);
-
-        mesh_v_fixed_.bind(mesh_.vertices.attributes(), "TriLocalOperationOptimization_fixed");
-        mesh_v_fixed_.fill(false);
-    }
-
-    void TriLocalOperationOptimization::unbind_attributes(
-        ) {
-        LOG::TRACE(__FUNCTION__);
-
-        assert(mesh_f_processed_.is_bound());
-        mesh_f_processed_.destroy();
-
-        assert(mesh_v_used_.is_bound());
-        mesh_v_used_.destroy();
-        assert(mesh_f_used_.is_bound());
-        mesh_f_used_.destroy();
-
-        assert(mesh_v_fixed_.is_bound());
-        mesh_v_fixed_.destroy();
     }
 
     void TriLocalOperationOptimization::fix_boundary_vertices(
         ) {
         LOG::TRACE(__FUNCTION__);
+        assert(mesh_v_fixed_.is_bound());
 
         for (const auto& f : mesh_.facets) {
             for (GEO::index_t lv = 0; lv < 3; ++lv) {
                 if (mesh_.facets.adjacent(f, lv) == GEO::NO_FACET) {
                     mesh_v_fixed_[mesh_.facets.vertex(f, lv)] = true;
                     mesh_v_fixed_[mesh_.facets.vertex(f, (lv+1)%3)] = true;
+                }
+            }
+        }
+    }
+
+    void TriLocalOperationOptimization::bind_attributes(
+        ) {
+        LOG::TRACE(__FUNCTION__);
+
+        mesh_v_boundary_.bind(mesh_.vertices.attributes(), "TriLocalOperationOptimization_boundary");
+        mesh_v_boundary_.fill(false);
+        mesh_v_fixed_.bind(mesh_.vertices.attributes(), "TriLocalOperationOptimization_fixed");
+        mesh_v_fixed_.fill(false);
+        mesh_v_used_.bind(mesh_.vertices.attributes(), "TriLocalOperationOptimization_used");
+        mesh_v_used_.fill(true);
+
+        mesh_f_processed_.bind(mesh_.facets.attributes(), "TriLocalOperationOptimization_processed");
+        mesh_f_used_.bind(mesh_.facets.attributes(), "TriLocalOperationOptimization_used");
+        mesh_f_used_.fill(true);
+    }
+
+    void TriLocalOperationOptimization::unbind_attributes(
+        ) {
+        LOG::TRACE(__FUNCTION__);
+
+        assert(mesh_v_boundary_.is_bound());
+        mesh_v_boundary_.destroy();
+        assert(mesh_v_fixed_.is_bound());
+        mesh_v_fixed_.destroy();
+        assert(mesh_v_used_.is_bound());
+        mesh_v_used_.destroy();
+
+        assert(mesh_f_processed_.is_bound());
+        mesh_f_processed_.destroy();
+        assert(mesh_f_used_.is_bound());
+        mesh_f_used_.destroy();
+    }
+
+    void TriLocalOperationOptimization::label_boundary_vertices(
+        ) {
+        LOG::TRACE(__FUNCTION__);
+        assert(mesh_v_boundary_.is_bound());
+
+        for (const auto& f : mesh_.facets) {
+            for (GEO::index_t lv = 0; lv < 3; ++lv) {
+                if (mesh_.facets.adjacent(f, lv) == GEO::NO_FACET) {
+                    mesh_v_boundary_[mesh_.facets.vertex(f, lv)] = true;
+                    mesh_v_boundary_[mesh_.facets.vertex(f, (lv+1)%3)] = true;
                 }
             }
         }
@@ -153,6 +178,8 @@ namespace geolio
             return;
         assert(v < mesh_.vertices.nb());
         free_vertices_.push_back(v);
+        mesh_v_boundary_[v] = false;
+        mesh_v_fixed_[v] = false;
         mesh_v_used_[v] = false;
     }
 
@@ -247,7 +274,9 @@ namespace geolio
                         mesh_f_processed_[new_f1] = true;
                     }
 
-                    /* Label new feature vertex */
+                    /* Label new vertex */
+                    if (nf == GEO::NO_FACET)
+                        mesh_v_boundary_[new_v] = true;
                     if (mesh_v_fixed_[ev0] && mesh_v_fixed_[ev1])
                         mesh_v_fixed_[new_v] = true;
 
@@ -326,39 +355,54 @@ namespace geolio
                     continue;
 
                 /* Valence diff */
-                const auto& v = mesh_.facets.vertex(f, lv);
-                const auto& nf = mesh_.facets.adjacent(f, lv);
+                const auto v0 = mesh_.facets.vertex(f, lv);
+                const auto lv1 = (lv+1)%3;
+                const auto v1 = mesh_.facets.vertex(f, lv1);
+                const auto lv2 = (lv+2)%3;
+                const auto v2 = mesh_.facets.vertex(f, lv2);
+                const auto nf = mesh_.facets.adjacent(f, lv);
+                const auto nlv = (mesh_.facets.find_vertex(nf, v0) + 1)%3;
+                assert(nlv != GEO::NO_INDEX);
+                const auto v3 = mesh_.facets.vertex(nf, nlv);
                 assert(nf != GEO::NO_FACET);
                 assert(mesh_f_used_[nf]);
 
-                GEO::index_t valence0, valence1, valence2, valence3;
+                int valence0, valence1, valence2, valence3;
                 std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_f_and_lv;
                 {
                     get_vertex_incident_facets(mesh_, f, lv, ordered_f_and_lv);
                     valence0 = ordered_f_and_lv.size();
                 }
                 {
-                    get_vertex_incident_facets(mesh_, f, (lv+1)%3, ordered_f_and_lv);
+                    get_vertex_incident_facets(mesh_, f, lv1, ordered_f_and_lv);
                     valence1 = ordered_f_and_lv.size();
                 }
                 {
-                    get_vertex_incident_facets(mesh_, f, (lv+2)%3, ordered_f_and_lv);
+                    get_vertex_incident_facets(mesh_, f, lv2, ordered_f_and_lv);
                     valence2 = ordered_f_and_lv.size();
                 }
                 {
-                    const auto nlv = mesh_.facets.find_vertex(nf, v);
-                    get_vertex_incident_facets(mesh_, nf, (nlv+1)%3, ordered_f_and_lv);
+                    get_vertex_incident_facets(mesh_, nf, nlv, ordered_f_and_lv);
                     valence3 = ordered_f_and_lv.size();
                 }
-                constexpr GEO::index_t IDEAL_DEGREE = 4;
-                const auto prev_valence = std::pow(valence0-IDEAL_DEGREE, 2) + std::pow(valence1-IDEAL_DEGREE, 2) +
-                                          std::pow(valence2-IDEAL_DEGREE, 2) + std::pow(valence3-IDEAL_DEGREE, 2);
+                constexpr int INTERIOR_IDEAL_VALENCE = 6;
+                constexpr int BOUNDARY_IDEAL_VALENCE = 4;
+                const auto v0_ideal_valence = mesh_v_boundary_[v0] ? BOUNDARY_IDEAL_VALENCE : INTERIOR_IDEAL_VALENCE;
+                const auto v1_ideal_valence = mesh_v_boundary_[v1] ? BOUNDARY_IDEAL_VALENCE : INTERIOR_IDEAL_VALENCE;
+                const auto v2_ideal_valence = mesh_v_boundary_[v2] ? BOUNDARY_IDEAL_VALENCE : INTERIOR_IDEAL_VALENCE;
+                const auto v3_ideal_valence = mesh_v_boundary_[v3] ? BOUNDARY_IDEAL_VALENCE : INTERIOR_IDEAL_VALENCE;
+                const auto prev_valence = std::pow(valence0-v0_ideal_valence, 2) +
+                                          std::pow(valence1-v1_ideal_valence, 2) +
+                                          std::pow(valence2-v2_ideal_valence, 2) +
+                                          std::pow(valence3-v3_ideal_valence, 2);
                 --valence0;
                 --valence1;
                 ++valence2;
                 ++valence3;
-                const auto post_valence = std::pow(valence0-IDEAL_DEGREE, 2) + std::pow(valence1-IDEAL_DEGREE, 2) +
-                                          std::pow(valence2-IDEAL_DEGREE, 2) + std::pow(valence3-IDEAL_DEGREE, 2);
+                const auto post_valence = std::pow(valence0-v0_ideal_valence, 2) +
+                                          std::pow(valence1-v1_ideal_valence, 2) +
+                                          std::pow(valence2-v2_ideal_valence, 2) +
+                                          std::pow(valence3-v3_ideal_valence, 2);
                 if (post_valence > prev_valence)
                     continue;
 

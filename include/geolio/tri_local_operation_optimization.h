@@ -5,6 +5,7 @@
 #ifndef GEOLIO_TRI_LOCAL_OPERATION_OPTIMIZATION_H
 #define GEOLIO_TRI_LOCAL_OPERATION_OPTIMIZATION_H
 
+#include <cassert>
 #include <geogram/mesh/mesh.h>
 #include <geogram/mesh/mesh_AABB.h>
 
@@ -44,6 +45,16 @@ namespace geolio
         explicit TriLocalOperationOptimization(GEO::Mesh& mesh);
 
         /**
+         * @brief Destroys the optimizer and releases bound temporary resources.
+         *
+         * @details
+         * If temporary mesh attributes are still bound, they are released as
+         * part of object teardown. The referenced mesh itself is not owned and
+         * is not destroyed by this class.
+         */
+        ~TriLocalOperationOptimization();
+
+        /**
          * @brief Runs the local optimization pipeline.
          *
          * @param[in] target_edge_length Desired target edge length used to
@@ -65,6 +76,33 @@ namespace geolio
         void optimize(
             double target_edge_length = -1,
             GEO::index_t rounds_nb = 5);
+
+        /**
+         * @brief Marks boundary vertices as fixed to avoid moving them.
+         *
+         * @details
+         * This method sets `mesh_v_fixed_` for vertices that lie on the mesh
+         * boundary or for which movement would break mesh consistency. On 3D
+         * meshes the boundary is detected with mesh connectivity; fixed
+         * vertices are excluded from smoothing and certain edge splits.
+         */
+        void fix_boundary_vertices();
+
+        /**
+         * @brief Marks a specific vertex as fixed.
+         *
+         * @param[in] v Vertex index to lock.
+         *
+         * @details
+         * A fixed vertex is excluded from smoothing and from local operations
+         * that would move it. The caller must ensure `v` is a valid vertex
+         * index in `mesh_`.
+         */
+        void fix_vertex(const GEO::index_t v) {
+            assert(mesh_v_fixed_.is_bound());
+            assert(v < mesh_.vertices.nb());
+            mesh_v_fixed_[v] = true;
+        }
 
     private:
         /**
@@ -90,15 +128,14 @@ namespace geolio
         void unbind_attributes();
 
         /**
-         * @brief Marks boundary vertices as fixed to avoid moving them.
+         * @brief Detects and labels boundary vertices in the current mesh.
          *
          * @details
-         * This method sets `mesh_v_fixed_` for vertices that lie on the mesh
-         * boundary or for which movement would break mesh consistency. On 3D
-         * meshes the boundary is detected with mesh connectivity; fixed
-         * vertices are excluded from smoothing and certain edge splits.
+         * Updates `mesh_v_boundary_` so each vertex indicates whether it lies
+         * on a boundary edge. This label is used by fixing and local operation
+         * passes to preserve boundary shape and topology.
          */
-        void fix_boundary_vertices();
+        void label_boundary_vertices();
 
         /**
          * @brief Compute the length of the edge opposite local vertex `lv` in facet `f`.
@@ -136,7 +173,7 @@ namespace geolio
          *
          * @details
          * If `free_vertices_` is not empty, the last index is popped and
-         * returned. Otherwise allocate_new_vertices() is called to expand the
+         * returned. Otherwise, allocate_new_vertices() is called to expand the
          * vertex buffer and populate the free list; a new index is then
          * returned. The returned vertex should be initialized by the caller.
          */
@@ -265,17 +302,17 @@ namespace geolio
         void clean_unused_elements();
 
         GEO::Mesh& mesh_;
-        const bool mesh_2d_;
+        const bool mesh_2d_; // mesh.vertices.dimension() == 2
 
-        GEO::Attribute<bool> mesh_f_processed_;
-
-        GEO::Attribute<bool> mesh_v_fixed_;
+        GEO::Attribute<bool> mesh_v_boundary_; // v -> on boundary
+        GEO::Attribute<bool> mesh_v_fixed_; // v -> fixed
+        GEO::Attribute<bool> mesh_v_used_; // v -> used
+        GEO::Attribute<bool> mesh_f_processed_; // f -> processed (just pre-allocated)
+        GEO::Attribute<bool> mesh_f_used_; // f -> used
 
         GEO::Mesh original_mesh_;
         GEO::MeshFacetsAABB original_mesh_facet_AABB_;
 
-        GEO::Attribute<bool> mesh_v_used_;
-        GEO::Attribute<bool> mesh_f_used_;
         std::vector<GEO::index_t> free_vertices_;
         std::vector<GEO::index_t> free_facets_;
 
