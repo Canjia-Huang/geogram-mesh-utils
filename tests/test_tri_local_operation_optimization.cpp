@@ -5,7 +5,6 @@
 
 #include <geogram/mesh/mesh_io.h>
 #include <gtest/gtest.h>
-#include <mach/task_info.h>
 #include "geolio/tri_local_operation_optimization.h"
 #include "utils.h"
 #include "geogram/delaunay/CDT_2d.h"
