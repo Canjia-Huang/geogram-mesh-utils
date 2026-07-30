@@ -339,6 +339,18 @@ namespace geolio
                             is fixed, so that the vertex indices remain unchanged. */
                         continue;
 
+                    if (const bool ISOLATED_FACET = mesh_.facets.adjacent(f, 0) == GEO::NO_FACET &&
+                                                    mesh_.facets.adjacent(f, 1) == GEO::NO_FACET &&
+                                                    mesh_.facets.adjacent(f, 2) == GEO::NO_FACET;
+                        ISOLATED_FACET
+                        ) {
+                        disuse_a_vertex(ev0);
+                        disuse_a_vertex(ev1);
+                        disuse_a_vertex(mesh_.facets.vertex(f, (lv+2)%3));
+                        disuse_a_facet(f); // simply remove this facet
+                        break;
+                    }
+
                     if (!is_tri_edge_collapse_valid(mesh_, f, lv))
                         continue;
 
@@ -380,39 +392,44 @@ namespace geolio
                     continue;
 
             for (GEO::index_t lv = 0; lv < 3; ++lv) {
-                if (!is_tri_edge_swap_valid(mesh_, f, lv))
-                    continue;
-
-                /* Valence diff */
                 const auto v0 = mesh_.facets.vertex(f, lv);
                 const auto lv1 = (lv+1)%3;
                 const auto v1 = mesh_.facets.vertex(f, lv1);
                 const auto lv2 = (lv+2)%3;
                 const auto v2 = mesh_.facets.vertex(f, lv2);
                 const auto nf = mesh_.facets.adjacent(f, lv);
+                if (nf == GEO::NO_FACET)
+                    continue;
                 const auto nlv = (mesh_.facets.find_vertex(nf, v0) + 1)%3;
                 assert(nlv != GEO::NO_INDEX);
                 const auto v3 = mesh_.facets.vertex(nf, nlv);
                 assert(nf != GEO::NO_FACET);
                 assert(mesh_f_used_[nf]);
 
+                if (mesh_v_non_manifold_[v0] || mesh_v_non_manifold_[v1] || mesh_v_non_manifold_[v2] || mesh_v_non_manifold_[v3])
+                    continue;
+
+                if (!is_tri_edge_swap_valid(mesh_, f, lv))
+                    continue;
+
+                /* Valence diff */
                 int valence0, valence1, valence2, valence3;
                 std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_f_and_lv;
                 {
                     get_vertex_incident_facets(mesh_, f, lv, ordered_f_and_lv);
-                    valence0 = ordered_f_and_lv.size();
+                    valence0 = static_cast<int>(ordered_f_and_lv.size());
                 }
                 {
                     get_vertex_incident_facets(mesh_, f, lv1, ordered_f_and_lv);
-                    valence1 = ordered_f_and_lv.size();
+                    valence1 = static_cast<int>(ordered_f_and_lv.size());
                 }
                 {
                     get_vertex_incident_facets(mesh_, f, lv2, ordered_f_and_lv);
-                    valence2 = ordered_f_and_lv.size();
+                    valence2 = static_cast<int>(ordered_f_and_lv.size());
                 }
                 {
                     get_vertex_incident_facets(mesh_, nf, nlv, ordered_f_and_lv);
-                    valence3 = ordered_f_and_lv.size();
+                    valence3 = static_cast<int>(ordered_f_and_lv.size());
                 }
                 constexpr int INTERIOR_IDEAL_VALENCE = 6;
                 constexpr int BOUNDARY_IDEAL_VALENCE = 4;
@@ -478,10 +495,10 @@ namespace geolio
                     if (!mesh_v_used_[v])
                         continue;
 
+                    assert(!mesh_v_adjacent_v[v].empty());
                     mesh_v_new_pos[v] = GEO::vec2(0, 0);
                     for (const auto& nv : mesh_v_adjacent_v[v])
                         mesh_v_new_pos[v] += mesh_.vertices.point<2>(nv);
-                    assert(!mesh_v_adjacent_v[v].empty());
                     mesh_v_new_pos[v] /= mesh_v_adjacent_v[v].size();
                 }
 
@@ -506,10 +523,10 @@ namespace geolio
                     if (!mesh_v_used_[v])
                         continue;
 
+                    assert(!mesh_v_adjacent_v[v].empty());
                     mesh_v_new_pos[v] = GEO::vec3(0, 0, 0);
                     for (const auto& nv : mesh_v_adjacent_v[v])
                         mesh_v_new_pos[v] += mesh_.vertices.point(nv);
-                    assert(!mesh_v_adjacent_v[v].empty());
                     mesh_v_new_pos[v] /= mesh_v_adjacent_v[v].size();
                 }
 

@@ -113,7 +113,7 @@ namespace geolio
 
         void fix_boundary_edges();
 
-    private:
+    protected:
         /**
          * @brief Binds temporary usage attributes on mesh vertices and facets.
          *
