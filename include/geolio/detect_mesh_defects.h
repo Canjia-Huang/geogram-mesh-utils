@@ -28,6 +28,8 @@ namespace geolio
      * @param[in] mesh The input mesh to inspect.
      * @param[out] non_manifold_vertices Output list that receives the indices
      *            of vertices classified as non-manifold.
+     * @param[in] pseudo_manifold Whether to also treat pseudo-manifold
+     *            vertices as defects.
      * @return The number of non-manifold vertices found.
      *
      * This function scans mesh connectivity and records each vertex whose
@@ -35,7 +37,8 @@ namespace geolio
      */
     GEO::index_t detect_non_manifold_vertices(
         const GEO::Mesh& mesh,
-        std::vector<GEO::index_t>& non_manifold_vertices);
+        std::vector<GEO::index_t>& non_manifold_vertices,
+        bool pseudo_manifold = true);
 }
 
 #endif //GEOLIO_DETECT_MESH_DEFECTS_H

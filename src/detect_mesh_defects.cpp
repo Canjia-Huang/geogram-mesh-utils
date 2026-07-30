@@ -43,7 +43,8 @@ namespace geolio
 
     GEO::index_t detect_non_manifold_vertices(
         const GEO::Mesh& mesh,
-        std::vector<GEO::index_t>& non_manifold_vertices
+        std::vector<GEO::index_t>& non_manifold_vertices,
+        const bool pseudo_manifold
         ) {
         std::vector<GEO::index_t> mesh_v_adjacent_facets_nb(mesh.vertices.nb(), 0);
         for (const auto& f : mesh.facets) {
@@ -60,8 +61,10 @@ namespace geolio
                 if (mesh_v_adjacent_facets_nb[v] == GEO::NO_INDEX) // already check
                     continue;
 
-                get_vertex_incident_facets(mesh, f, lv, ordered_f_and_lv);
+                const auto ON_BORDER = get_vertex_incident_facets(mesh, f, lv, ordered_f_and_lv);
                 if (ordered_f_and_lv.size() != mesh_v_adjacent_facets_nb[v]) // non-manifold vertex
+                    non_manifold_vertices.push_back(v);
+                if (!pseudo_manifold && ON_BORDER)
                     non_manifold_vertices.push_back(v);
 
                 mesh_v_adjacent_facets_nb[v] = GEO::NO_INDEX; // label
