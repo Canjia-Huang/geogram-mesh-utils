@@ -2,7 +2,7 @@
 // Created by huangcanjia <huangcanjia0214@gmail.com> on 2026/7/26.
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
-#include "geolio/tri_local_operation_optimization.h"
+#include "tri_local_operation_optimization.h"
 #include <ranges>
 #include <geogram/mesh/mesh_io.h>
 #include "geolio/log.h"
@@ -17,7 +17,7 @@ namespace geolio
         GEO::Mesh& mesh
         ) : mesh_(mesh),
             mesh_2d_(mesh.vertices.dimension() == 2),
-            attribute_name_(generate_random_string(22))
+            mesh_element_manager_(mesh)
     {
         assert(mesh.facets.are_simplices());
 
@@ -302,11 +302,11 @@ namespace geolio
 
                 const auto nf = mesh_.facets.adjacent(f, lv);
 
-                /* Split */
-                const GEO::index_t new_v = require_a_new_vertex();
-                const GEO::index_t new_f0 = require_a_new_facet();
-                const GEO::index_t new_f1 = (nf == GEO::NO_FACET) ? GEO::NO_FACET : require_a_new_facet();
-                tri_edge_split(mesh_, f, lv, new_v, new_f0, new_f1);
+                // /* Split */
+                // const GEO::index_t new_v = require_a_new_vertex();
+                // const GEO::index_t new_f0 = require_a_new_facet();
+                // const GEO::index_t new_f1 = (nf == GEO::NO_FACET) ? GEO::NO_FACET : require_a_new_facet();
+                // tri_edge_split(mesh_, f, lv, new_v, new_f0, new_f1);
 
                 /* Label processed facets */
                 mesh_f_processed_[f] = true;

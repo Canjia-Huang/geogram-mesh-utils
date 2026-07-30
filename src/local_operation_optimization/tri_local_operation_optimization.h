@@ -8,6 +8,7 @@
 #include <cassert>
 #include <geogram/mesh/mesh.h>
 #include <geogram/mesh/mesh_AABB.h>
+#include "mesh_element_manager.h"
 
 namespace geolio
 {
@@ -296,20 +297,10 @@ namespace geolio
         GEO::Mesh& mesh_;
         const bool mesh_2d_; // mesh.vertices.dimension() == 2
 
-        const std::string attribute_name_; // Prevent anyone from using these attributes externally (unsafety).
-        GEO::Attribute<bool> mesh_v_boundary_; // v -> on boundary
-        GEO::Attribute<bool> mesh_v_fixed_; // v -> fixed
-        GEO::Attribute<bool> mesh_v_non_manifold_; // v -> non manifold
-        GEO::Attribute<bool> mesh_v_used_; // v -> used
-        GEO::Attribute<bool> mesh_f_processed_; // f -> processed (just pre-allocated)
-        GEO::Attribute<bool> mesh_f_used_; // f -> used
-        GEO::Attribute<bool> mesh_fc_fixed_; // fc (edge) -> fixed
+        MeshElementManager mesh_element_manager_;
 
         GEO::Mesh original_mesh_; // a copy of original input mesh
         GEO::MeshFacetsAABB original_mesh_facet_AABB_;
-
-        std::vector<GEO::index_t> free_vertices_;
-        std::vector<GEO::index_t> free_facets_;
 
         bool ALLOW_SPLIT_FIXED_EDGES_               = false;
         bool ALLOW_COLLAPSE_FIXED_EDGES_            = false;
