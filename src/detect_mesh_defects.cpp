@@ -6,6 +6,8 @@
 #include "geolio/array_hash.h"
 #include <unordered_set>
 
+#include "geolio/mesh_operations.h"
+
 namespace geolio
 {
     GEO::index_t detect_duplicate_triangles(
@@ -13,7 +15,7 @@ namespace geolio
         std::vector<GEO::index_t>& duplicate_triangles
         ) {
         std::vector<bool> mesh_f_duplicate(mesh.facets.nb(), false);
-        std::unordered_map<std::array<GEO::index_t, 3>, GEO::index_t, Array3Hash<GEO::index_t>> duplicate_triangles_set;
+        std::unordered_set<std::array<GEO::index_t, 3>, Array3Hash<GEO::index_t>> duplicate_triangles_set;
         for (const auto& f : mesh.facets) {
             if (mesh.facets.nb_vertices(f) != 3)
                 continue;
@@ -25,13 +27,8 @@ namespace geolio
             };
             std::ranges::sort(fvs);
 
-            if (auto it = duplicate_triangles_set.find(fvs);
-                it != duplicate_triangles_set.end())
-                duplicate_triangles_set.emplace(fvs, f);
-            else {
-                mesh_f_duplicate[it->second] = true;
+            if (!duplicate_triangles_set.insert(fvs).second)
                 mesh_f_duplicate[f] = true;
-            }
         }
 
         /* Output */
@@ -42,5 +39,35 @@ namespace geolio
         }
 
         return duplicate_triangles.size();
+    }
+
+    GEO::index_t detect_non_manifold_vertices(
+        const GEO::Mesh& mesh,
+        std::vector<GEO::index_t>& non_manifold_vertices
+        ) {
+        std::vector<GEO::index_t> mesh_v_adjacent_facets_nb(mesh.vertices.nb(), 0);
+        for (const auto& f : mesh.facets) {
+            for (GEO::index_t lv = 0; lv < 3; ++lv) {
+                const auto& v = mesh.facets.vertex(f, lv);
+                ++mesh_v_adjacent_facets_nb[v];
+            }
+        }
+
+        std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_f_and_lv; // pre-allocated
+        for (const auto& f : mesh.facets) {
+            for (GEO::index_t lv = 0; lv < 3; ++lv) {
+                const auto& v = mesh.facets.vertex(f, lv);
+                if (mesh_v_adjacent_facets_nb[v] == GEO::NO_INDEX) // already check
+                    continue;
+
+                get_vertex_incident_facets(mesh, f, lv, ordered_f_and_lv);
+                if (ordered_f_and_lv.size() != mesh_v_adjacent_facets_nb[v]) // non-manifold vertex
+                    non_manifold_vertices.push_back(v);
+
+                mesh_v_adjacent_facets_nb[v] = GEO::NO_INDEX; // label
+            }
+        }
+
+        return non_manifold_vertices.size();
     }
 }
