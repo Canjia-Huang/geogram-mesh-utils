@@ -101,14 +101,14 @@ namespace geolio
             ) {
             assert(f < mesh_.facets.nb());
             assert(lv < 3);
-            mesh_fc_fixed[mesh_.facets.corner(f, lv)] = true;
+            mesh_fc_fixed_[mesh_.facets.corner(f, lv)] = true;
         }
 
         void fix_edge(
             const GEO::index_t fc
             ) {
             assert(fc < mesh_.facet_corners.nb());
-            mesh_fc_fixed[fc] = true;
+            mesh_fc_fixed_[fc] = true;
         }
 
         void fix_boundary_edges();
@@ -303,7 +303,7 @@ namespace geolio
         GEO::Attribute<bool> mesh_v_used_; // v -> used
         GEO::Attribute<bool> mesh_f_processed_; // f -> processed (just pre-allocated)
         GEO::Attribute<bool> mesh_f_used_; // f -> used
-        GEO::Attribute<bool> mesh_fc_fixed; // fc (edge) -> fixed
+        GEO::Attribute<bool> mesh_fc_fixed_; // fc (edge) -> fixed
 
         GEO::Mesh original_mesh_; // a copy of original input mesh
         GEO::MeshFacetsAABB original_mesh_facet_AABB_;
@@ -311,7 +311,9 @@ namespace geolio
         std::vector<GEO::index_t> free_vertices_;
         std::vector<GEO::index_t> free_facets_;
 
-        bool SPLIT_EDGES_CONNECTING_FIXED_VERTICES_ = true;
+        bool ALLOW_SPLIT_FIXED_EDGES_               = false;
+        bool ALLOW_COLLAPSE_FIXED_EDGES_            = false;
+        bool ALLOW_SMOOTH_FIXED_EDGE_VERTICES_      = false;
     };
 }
 
