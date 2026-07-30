@@ -412,79 +412,79 @@ namespace geolio
         mesh_f_processed_.fill(false);
         for (GEO::index_t f = 0, f_end = mesh_.facets.nb(); f < f_end; ++f) {
             if (mesh_f_processed_[f]
-                || !mesh_f_used_[f]) // free facet
-                    continue;
+                // || !mesh_f_used_[f]) // free facet
+                //     continue;
 
             for (GEO::index_t lv = 0; lv < 3; ++lv) {
-                if (mesh_fc_fixed_[mesh_.facets.corner(f, lv)])
-                    continue;
+                // if (mesh_fc_fixed_[mesh_.facets.corner(f, lv)])
+                //     continue;
 
-                const auto v0 = mesh_.facets.vertex(f, lv);
-                const auto lv1 = (lv+1)%3;
-                const auto v1 = mesh_.facets.vertex(f, lv1);
-                const auto lv2 = (lv+2)%3;
-                const auto v2 = mesh_.facets.vertex(f, lv2);
-                const auto nf = mesh_.facets.adjacent(f, lv);
-                if (nf == GEO::NO_FACET)
-                    continue;
-                const auto nlv = (mesh_.facets.find_vertex(nf, v0) + 1)%3;
-                assert(nlv != GEO::NO_INDEX);
-                const auto v3 = mesh_.facets.vertex(nf, nlv);
-                assert(nf != GEO::NO_FACET);
-                assert(mesh_f_used_[nf]);
+                // const auto v0 = mesh_.facets.vertex(f, lv);
+                // const auto lv1 = (lv+1)%3;
+                // const auto v1 = mesh_.facets.vertex(f, lv1);
+                // const auto lv2 = (lv+2)%3;
+                // const auto v2 = mesh_.facets.vertex(f, lv2);
+                // const auto nf = mesh_.facets.adjacent(f, lv);
+                // if (nf == GEO::NO_FACET)
+                //     continue;
+                // const auto nlv = (mesh_.facets.find_vertex(nf, v0) + 1)%3;
+                // assert(nlv != GEO::NO_INDEX);
+                // const auto v3 = mesh_.facets.vertex(nf, nlv);
+                // assert(nf != GEO::NO_FACET);
+                // assert(mesh_f_used_[nf]);
 
-                if (mesh_v_non_manifold_[v0] || mesh_v_non_manifold_[v1] || mesh_v_non_manifold_[v2] || mesh_v_non_manifold_[v3])
-                    continue;
+                // if (mesh_v_non_manifold_[v0] || mesh_v_non_manifold_[v1] || mesh_v_non_manifold_[v2] || mesh_v_non_manifold_[v3])
+                //     continue;
 
-                if (!is_tri_edge_swap_valid(mesh_, f, lv))
-                    continue;
+                // if (!is_tri_edge_swap_valid(mesh_, f, lv))
+                //     continue;
 
                 /* Valence diff */
-                int valence0, valence1, valence2, valence3;
-                std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_f_and_lv;
-                {
-                    get_vertex_incident_facets(mesh_, f, lv, ordered_f_and_lv);
-                    valence0 = static_cast<int>(ordered_f_and_lv.size());
-                }
-                {
-                    get_vertex_incident_facets(mesh_, f, lv1, ordered_f_and_lv);
-                    valence1 = static_cast<int>(ordered_f_and_lv.size());
-                }
-                {
-                    get_vertex_incident_facets(mesh_, f, lv2, ordered_f_and_lv);
-                    valence2 = static_cast<int>(ordered_f_and_lv.size());
-                }
-                {
-                    get_vertex_incident_facets(mesh_, nf, nlv, ordered_f_and_lv);
-                    valence3 = static_cast<int>(ordered_f_and_lv.size());
-                }
-                constexpr int INTERIOR_IDEAL_VALENCE = 6;
-                constexpr int BOUNDARY_IDEAL_VALENCE = 4;
-                const auto v0_ideal_valence = mesh_v_boundary_[v0] ? BOUNDARY_IDEAL_VALENCE : INTERIOR_IDEAL_VALENCE;
-                const auto v1_ideal_valence = mesh_v_boundary_[v1] ? BOUNDARY_IDEAL_VALENCE : INTERIOR_IDEAL_VALENCE;
-                const auto v2_ideal_valence = mesh_v_boundary_[v2] ? BOUNDARY_IDEAL_VALENCE : INTERIOR_IDEAL_VALENCE;
-                const auto v3_ideal_valence = mesh_v_boundary_[v3] ? BOUNDARY_IDEAL_VALENCE : INTERIOR_IDEAL_VALENCE;
-                const auto prev_valence = std::pow(valence0-v0_ideal_valence, 2) +
-                                          std::pow(valence1-v1_ideal_valence, 2) +
-                                          std::pow(valence2-v2_ideal_valence, 2) +
-                                          std::pow(valence3-v3_ideal_valence, 2);
-                --valence0;
-                --valence1;
-                ++valence2;
-                ++valence3;
-                const auto post_valence = std::pow(valence0-v0_ideal_valence, 2) +
-                                          std::pow(valence1-v1_ideal_valence, 2) +
-                                          std::pow(valence2-v2_ideal_valence, 2) +
-                                          std::pow(valence3-v3_ideal_valence, 2);
-                if (post_valence > prev_valence)
-                    continue;
+                // int valence0, valence1, valence2, valence3;
+                // std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_f_and_lv;
+                // {
+                //     get_vertex_incident_facets(mesh_, f, lv, ordered_f_and_lv);
+                //     valence0 = static_cast<int>(ordered_f_and_lv.size());
+                // }
+                // {
+                //     get_vertex_incident_facets(mesh_, f, lv1, ordered_f_and_lv);
+                //     valence1 = static_cast<int>(ordered_f_and_lv.size());
+                // }
+                // {
+                //     get_vertex_incident_facets(mesh_, f, lv2, ordered_f_and_lv);
+                //     valence2 = static_cast<int>(ordered_f_and_lv.size());
+                // }
+                // {
+                //     get_vertex_incident_facets(mesh_, nf, nlv, ordered_f_and_lv);
+                //     valence3 = static_cast<int>(ordered_f_and_lv.size());
+                // }
+                // constexpr int INTERIOR_IDEAL_VALENCE = 6;
+                // constexpr int BOUNDARY_IDEAL_VALENCE = 4;
+                // const auto v0_ideal_valence = mesh_v_boundary_[v0] ? BOUNDARY_IDEAL_VALENCE : INTERIOR_IDEAL_VALENCE;
+                // const auto v1_ideal_valence = mesh_v_boundary_[v1] ? BOUNDARY_IDEAL_VALENCE : INTERIOR_IDEAL_VALENCE;
+                // const auto v2_ideal_valence = mesh_v_boundary_[v2] ? BOUNDARY_IDEAL_VALENCE : INTERIOR_IDEAL_VALENCE;
+                // const auto v3_ideal_valence = mesh_v_boundary_[v3] ? BOUNDARY_IDEAL_VALENCE : INTERIOR_IDEAL_VALENCE;
+                // const auto prev_valence = std::pow(valence0-v0_ideal_valence, 2) +
+                //                           std::pow(valence1-v1_ideal_valence, 2) +
+                //                           std::pow(valence2-v2_ideal_valence, 2) +
+                //                           std::pow(valence3-v3_ideal_valence, 2);
+                // --valence0;
+                // --valence1;
+                // ++valence2;
+                // ++valence3;
+                // const auto post_valence = std::pow(valence0-v0_ideal_valence, 2) +
+                //                           std::pow(valence1-v1_ideal_valence, 2) +
+                //                           std::pow(valence2-v2_ideal_valence, 2) +
+                //                           std::pow(valence3-v3_ideal_valence, 2);
+                // if (post_valence > prev_valence)
+                //     continue;
 
                 /* Swap */
-                tri_edge_swap(mesh_, f, lv);
+                // tri_edge_swap(mesh_, f, lv);
 
                 /* Label processed facets */
-                mesh_f_processed_[f] = true;
-                mesh_f_processed_[nf] = true;
+                // mesh_f_processed_[f] = true;
+                // mesh_f_processed_[nf] = true;
             }
         }
     }

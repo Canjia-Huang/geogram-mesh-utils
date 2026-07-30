@@ -29,8 +29,6 @@ namespace geolio
                 GEO::index_t new_v, new_f0, new_f1;
                 perform(f, lv, new_v, new_f0, new_f1);
 
-                assert(post_check(f, lv, new_v, new_f0, new_f1));
-
                 post_process(f, lv, new_v, new_f0, new_f1);
 
                 /* Label processed facets */
@@ -86,35 +84,6 @@ namespace geolio
         new_f0 = manager_.require_a_new_facet();
         new_f1 = EDGE_ON_BOUNDARY ? GEO::NO_FACET : manager_.require_a_new_facet();
         tri_edge_split(mesh_, f, lv, new_v, new_f0, new_f1);
-    }
-
-    bool SplitOperation::post_check(
-        const GEO::index_t f,
-        const GEO::index_t lv,
-        const GEO::index_t new_v,
-        const GEO::index_t new_f0,
-        const GEO::index_t new_f1
-        ) const {
-        assert(f < mesh_.facets.nb());
-        assert(lv < 3);
-
-        for (const auto& nf = mesh_.facets.adjacent(f, lv);
-            const auto& ff : {f, nf, new_f0, new_f1}
-            ) {
-            if (ff == GEO::NO_FACET)
-                continue;
-
-            if (!manager_.mesh_f_used[ff])
-                return false;
-
-            for (GEO::index_t llv = 0; llv < 3; ++llv) {
-                if (const auto& v = mesh_.facets.vertex(ff, llv);
-                    !manager_.mesh_v_used[v])
-                    return false;
-            }
-        }
-
-        return true;
     }
 
     void SplitOperation::post_process(

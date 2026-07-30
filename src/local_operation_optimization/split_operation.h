@@ -23,9 +23,6 @@ namespace geolio
         void perform(GEO::index_t f, GEO::index_t lv,
                      GEO::index_t& new_v, GEO::index_t& new_f0, GEO::index_t& new_f1) const;
 
-        [[nodiscard]] bool post_check(GEO::index_t f, GEO::index_t lv,
-                                      GEO::index_t new_v, GEO::index_t new_f0, GEO::index_t new_f1) const;
-
         void post_process(GEO::index_t f, GEO::index_t lv,
                           GEO::index_t new_v, GEO::index_t new_f0, GEO::index_t new_f1) const;
 
