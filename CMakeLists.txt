@@ -71,5 +71,6 @@ write_basic_package_version_file(
 install(FILES
         ${CMAKE_CURRENT_BINARY_DIR}/GeolioConfig.cmake
         ${CMAKE_CURRENT_BINARY_DIR}/GeolioConfigVersion.cmake
+        ${CMAKE_CURRENT_LIST_DIR}/cmake/FindGeogram.cmake
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Geolio
 )
