@@ -2,7 +2,12 @@
 # CMake options
 ########################################################################################################################
 cmake_minimum_required(VERSION 3.30)
-project(geolio)
+project(Geolio
+        VERSION 0.1.0
+        DESCRIPTION "Geometry library"
+        HOMEPAGE_URL "https://github.com/Canjia-Huang/geolio"
+        LANGUAGES CXX
+)
 
 # == Options ==
 option(BUILD_TESTS "Build tests" ON)
@@ -28,6 +33,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 list(PREPEND CMAKE_MODULE_PATH
         ${CMAKE_CURRENT_LIST_DIR}/cmake)
 include(LoggingHelper)
+include(MyAddLibrary)
 
 ########################################################################################################################
 # Include
@@ -43,3 +49,27 @@ if (BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
 endif()
+
+########################################################################################################################
+# Install
+########################################################################################################################
+include(CMakePackageConfigHelpers)
+include(GNUInstallDirs)
+
+configure_package_config_file(
+        ${CMAKE_CURRENT_LIST_DIR}/cmake/GeolioConfig.cmake.in
+        ${CMAKE_CURRENT_BINARY_DIR}/GeolioConfig.cmake
+        INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Geolio
+)
+
+write_basic_package_version_file(
+        ${CMAKE_CURRENT_BINARY_DIR}/GeolioConfigVersion.cmake
+        VERSION ${PROJECT_VERSION}
+        COMPATIBILITY SameMajorVersion
+)
+
+install(FILES
+        ${CMAKE_CURRENT_BINARY_DIR}/GeolioConfig.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/GeolioConfigVersion.cmake
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Geolio
+)
