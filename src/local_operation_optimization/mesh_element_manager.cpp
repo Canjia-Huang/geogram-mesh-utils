@@ -5,16 +5,17 @@
 
 #include "mesh_element_manager.h"
 #include <cassert>
-#include "geolio/log.h"
 
 namespace geolio
 {
     MeshElementManager::MeshElementManager(
-        GEO::Mesh& mesh
-        ) : mesh(mesh),
-            mesh_2d_(mesh.vertices.dimension() == 2),
+        GEO::Mesh& _mesh
+        ) : mesh(_mesh),
+            mesh_2d(_mesh.vertices.dimension() == 2),
             attribute_name_(generate_random_string(22))
     {
+        assert(mesh.facets.are_simplices());
+
         /* Bind attributes */
         mesh_v_boundary.bind(mesh.vertices.attributes(), attribute_name_+":boundary");
         mesh_v_boundary.fill(false);
@@ -47,78 +48,37 @@ namespace geolio
             mesh_fc_fixed.destroy();
     }
 
-    GEO::index_t MeshElementManager::require_a_new_vertex(
+    void MeshElementManager::clean_unused_elements(
         ) {
-        if (free_vertices_.empty())
-            allocate_new_vertices();
-        assert(!free_vertices_.empty());
+        if (free_facets_.empty() && free_vertices_.empty())
+            return;
 
-        const GEO::index_t new_v = free_vertices_.back();
-        free_vertices_.pop_back();
-        assert(new_v < mesh.vertices.nb());
-        mesh_v_used[new_v] = true;
+        GEO::vector<GEO::index_t> facets_to_delete(mesh.facets.nb(), 0);
+        for (const auto& f : free_facets_) {
+            if (f < mesh.facets.nb())
+                facets_to_delete[f] = 1;
+        }
+        mesh.facets.delete_elements(facets_to_delete, true);
 
-        return new_v;
+        free_vertices_.clear();
+        free_facets_.clear();
+
+        assert(std::ranges::all_of(mesh_v_used.get_vector(), [](const auto& b){ return b; }));
+        assert(std::ranges::all_of(mesh_f_used.get_vector(), [](const auto& b){ return b; }));
     }
 
-    void MeshElementManager::disuse_vertex(
-        const GEO::index_t v
-        ) {
-        assert(v < mesh.vertices.nb());
-
-        /* Recycle */
-        free_vertices_.push_back(v);
-
-        /* Init attributes */
-        mesh_v_boundary[v]     = false;
-        mesh_v_fixed[v]        = false;
-        mesh_v_non_manifold[v] = false;
-        mesh_v_used[v]         = false;
-    }
-
-    GEO::index_t MeshElementManager::require_a_new_facet(
-        ) {
-        if (free_facets_.empty())
-            allocate_new_facets();
-        assert(!free_facets_.empty());
-
-        const GEO::index_t new_f = free_facets_.back();
-        free_facets_.pop_back();
-        assert(new_f < mesh.facets.nb());
-        mesh_f_used[new_f] = true;
-
-        return new_f;
-    }
-
-    void MeshElementManager::disuse_facet(
-        const GEO::index_t f
-        ) {
-        assert(f < mesh.facets.nb());
-
-        /* Recycle */
-        free_facets_.push_back(f);
-
-        for (GEO::index_t lv = 0; lv < 3; ++lv) {
-            if (const auto& v = mesh.facets.vertex(f, lv);
-                v != GEO::NO_VERTEX && mesh_v_used[v])
-                disuse_vertex(v);
+    double MeshElementManager::compute_average_mesh_edge_length(
+        ) const {
+        double l = 0;
+        GEO::index_t edges_nb = 0;
+        for (const auto& f : mesh.facets) {
+            for (GEO::index_t lv = 0; lv < 3; ++lv) {
+                l += get_edge_length(f, lv);
+                ++edges_nb;
+            }
         }
 
-        /* Init attributes */
-        mesh_f_used[f] = false;
-        for (GEO::index_t lv = 0; lv < 3; ++lv)
-            mesh_fc_fixed[3*f+lv] = false;
-    }
-
-    double MeshElementManager::get_edge_length(
-        const GEO::index_t f,
-        const GEO::index_t lv
-        ) const {
-        assert(f < mesh.facets.nb());
-        assert(lv < 3);
-        if (mesh_2d_)
-            return GEO::distance(mesh.facets.point<2>(f, lv), mesh.facets.point<2>(f, (lv+1)%3));
-        return GEO::distance(mesh.facets.point(f, lv), mesh.facets.point(f, (lv+1)%3));
+        return l / edges_nb;
     }
 
     void MeshElementManager::allocate_new_vertices(

@@ -80,9 +80,9 @@ namespace geolio
         const bool EDGE_ON_BOUNDARY = mesh_.facets.adjacent(f, lv) == GEO::NO_FACET;
 
         /* Split */
-        new_v = manager_.require_a_new_vertex();
-        new_f0 = manager_.require_a_new_facet();
-        new_f1 = EDGE_ON_BOUNDARY ? GEO::NO_FACET : manager_.require_a_new_facet();
+        new_v = manager_.require_new_vertex();
+        new_f0 = manager_.require_new_facet();
+        new_f1 = EDGE_ON_BOUNDARY ? GEO::NO_FACET : manager_.require_new_facet();
         tri_edge_split(mesh_, f, lv, new_v, new_f0, new_f1);
     }
 
@@ -96,7 +96,7 @@ namespace geolio
         assert(f < mesh_.facets.nb());
         assert(lv < 3);
         assert(new_v < mesh_.vertices.nb());
-        assert(new_f0 < mesh_.vertices.nb());
+        assert(new_f0 < mesh_.facets.nb());
 
         const bool EDGE_ON_BOUNDARY = mesh_.facets.adjacent(f, lv) == GEO::NO_FACET;
 

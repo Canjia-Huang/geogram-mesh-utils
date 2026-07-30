@@ -19,7 +19,7 @@ namespace geolio::test
 
         {
             TriLocalOperationOptimization TLOO(mesh);
-            TLOO.fix_boundary_edges();
+            TLOO.fix_boundary_elements();
             TLOO.optimize(1);
         }
         GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
@@ -53,7 +53,7 @@ namespace geolio::test
 
         {
             TriLocalOperationOptimization TLOO(mesh);
-            TLOO.fix_boundary_edges();
+            TLOO.fix_boundary_elements();
             TLOO.optimize();
             GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
         }
