@@ -1,4 +1,4 @@
-name: Multi-platform CI
+name: Build and Test
 
 on:
   push:

@@ -31,6 +31,7 @@ target_link_libraries(${CURRENT_LIB_NAME}
         PRIVATE
         ${PROJECT_NAME}::local_operation_optimization
         ${PROJECT_NAME}::third_party
+        PUBLIC
         Geogram::geogram
 )
 
