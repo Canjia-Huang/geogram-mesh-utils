@@ -13,14 +13,14 @@ namespace geolio
             attribute_name_(generate_random_string(22))
     {
         /* Bind attributes */
-        mesh_f_processed.bind(mesh_.facets.attributes(), attribute_name_+":processed");
-        mesh_f_processed.fill(false);
+        mesh_f_processed_.bind(mesh_.facets.attributes(), attribute_name_+":processed");
+        mesh_f_processed_.fill(false);
     }
 
     BaseOperation::~BaseOperation(
         ) {
         /* Destroy attributes */
-        if (mesh_f_processed.is_bound())
-            mesh_f_processed.destroy();
+        if (mesh_f_processed_.is_bound())
+            mesh_f_processed_.destroy();
     }
 }

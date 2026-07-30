@@ -61,11 +61,12 @@ namespace geolio
         return new_v;
     }
 
-    void MeshElementManager::disuse_a_vertex(
+    void MeshElementManager::disuse_vertex(
         const GEO::index_t v
         ) {
-        /* Recycle */
         assert(v < mesh.vertices.nb());
+
+        /* Recycle */
         free_vertices_.push_back(v);
 
         /* Init attributes */
@@ -89,15 +90,21 @@ namespace geolio
         return new_f;
     }
 
-    void MeshElementManager::disuse_a_facet(
+    void MeshElementManager::disuse_facet(
         const GEO::index_t f
         ) {
-        /* Recycle */
         assert(f < mesh.facets.nb());
+
+        /* Recycle */
         free_facets_.push_back(f);
 
+        for (GEO::index_t lv = 0; lv < 3; ++lv) {
+            if (const auto& v = mesh.facets.vertex(f, lv);
+                v != GEO::NO_VERTEX && mesh_v_used[v])
+                disuse_vertex(v);
+        }
+
         /* Init attributes */
-        mesh_f_processed[f] = false;
         mesh_f_used[f] = false;
         for (GEO::index_t lv = 0; lv < 3; ++lv)
             mesh_fc_fixed[3*f+lv] = false;

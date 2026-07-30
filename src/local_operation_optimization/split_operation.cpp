@@ -63,7 +63,7 @@ namespace geolio
             return false;
 
         if (const auto edge_length = manager_.get_edge_length(f, lv);
-            edge_length < limit_edge_length_)
+            edge_length < limit_edge_length_) // Do not split edges lesser than the limit length.
             return false;
 
         return true;
@@ -76,6 +76,9 @@ namespace geolio
         GEO::index_t& new_f0,
         GEO::index_t& new_f1
         ) const {
+        assert(f < mesh_.facets.nb());
+        assert(lv < 3);
+
         const bool EDGE_ON_BOUNDARY = mesh_.facets.adjacent(f, lv) == GEO::NO_FACET;
 
         /* Split */
@@ -92,6 +95,9 @@ namespace geolio
         const GEO::index_t new_f0,
         const GEO::index_t new_f1
         ) const {
+        assert(f < mesh_.facets.nb());
+        assert(lv < 3);
+
         for (const auto& nf = mesh_.facets.adjacent(f, lv);
             const auto& ff : {f, nf, new_f0, new_f1}
             ) {
@@ -118,6 +124,11 @@ namespace geolio
         const GEO::index_t new_f0,
         const GEO::index_t new_f1
         ) const {
+        assert(f < mesh_.facets.nb());
+        assert(lv < 3);
+        assert(new_v < mesh_.vertices.nb());
+        assert(new_f0 < mesh_.vertices.nb());
+
         const bool EDGE_ON_BOUNDARY = mesh_.facets.adjacent(f, lv) == GEO::NO_FACET;
 
         if (EDGE_ON_BOUNDARY) // Split edge inherits boundary attribute.

@@ -18,11 +18,11 @@ namespace geolio
 
         [[nodiscard]] inline GEO::index_t require_a_new_vertex();
 
-        inline void disuse_a_vertex(GEO::index_t v);
+        inline void disuse_vertex(GEO::index_t v);
 
         [[nodiscard]] inline GEO::index_t require_a_new_facet();
 
-        inline void disuse_a_facet(GEO::index_t f);
+        inline void disuse_facet(GEO::index_t f);
 
         [[nodiscard]] inline double get_edge_length(GEO::index_t f, GEO::index_t lv) const;
 

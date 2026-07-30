@@ -337,68 +337,68 @@ namespace geolio
         mesh_f_processed_.fill(false);
         for (GEO::index_t f = 0, f_end = mesh_.facets.nb(); f < f_end; ++f) {
             if (mesh_f_processed_[f]
-                || !mesh_f_used_[f]) // free facet
+                // || !mesh_f_used_[f]) // free facet
                 continue;
 
             for (GEO::index_t lv = 0; lv < 3; ++lv) {
-                if (ALLOW_COLLAPSE_FIXED_EDGES_) {
-                    // TODO
-                }
-                else if (mesh_fc_fixed_[mesh_.facets.corner(f, lv)])
-                    continue;
+                // if (ALLOW_COLLAPSE_FIXED_EDGES_) {
+                //     // TODO
+                // }
+                // else if (mesh_fc_fixed_[mesh_.facets.corner(f, lv)])
+                //     continue;
+                //
+                // if (const auto edge_length = get_edge_length(f, lv);
+                //     edge_length > limit_edge_length)
+                //     continue;
+                //
+                // const auto ev0 = mesh_.facets.vertex(f, lv);
+                // const auto ev1 = mesh_.facets.vertex(f, (lv+1)%3);
+                // const auto nf = mesh_.facets.adjacent(f, lv);
+                //
+                // if ((mesh_v_boundary_[ev0] && mesh_v_boundary_[ev1] && nf != GEO::NO_FACET)
+                //     || mesh_v_non_manifold_[ev0]
+                //     || mesh_v_non_manifold_[ev1]) // Prevent creation of new non-manifold vertex.
+                //     continue;
+                //
+                // if (mesh_v_fixed_[ev1]) /* Because collapse pulls v1 toward v0, no operation is performed when v1
+                //         is fixed, so that the vertex indices remain unchanged. */
+                //     continue;
 
-                if (const auto edge_length = get_edge_length(f, lv);
-                    edge_length > limit_edge_length)
-                    continue;
+                // if (const bool ISOLATED_FACET = mesh_.facets.adjacent(f, 0) == GEO::NO_FACET &&
+                //                                 mesh_.facets.adjacent(f, 1) == GEO::NO_FACET &&
+                //                                 mesh_.facets.adjacent(f, 2) == GEO::NO_FACET;
+                //     ISOLATED_FACET
+                //     ) {
+                //     disuse_a_vertex(ev0);
+                //     disuse_a_vertex(ev1);
+                //     disuse_a_vertex(mesh_.facets.vertex(f, (lv+2)%3));
+                //     disuse_a_facet(f); // simply remove this facet
+                //     break;
+                // }
 
-                const auto ev0 = mesh_.facets.vertex(f, lv);
-                const auto ev1 = mesh_.facets.vertex(f, (lv+1)%3);
-                const auto nf = mesh_.facets.adjacent(f, lv);
-
-                if ((mesh_v_boundary_[ev0] && mesh_v_boundary_[ev1] && nf != GEO::NO_FACET)
-                    || mesh_v_non_manifold_[ev0]
-                    || mesh_v_non_manifold_[ev1]) // Prevent creation of new non-manifold vertex.
-                    continue;
-
-                if (mesh_v_fixed_[ev1]) /* Because collapse pulls v1 toward v0, no operation is performed when v1
-                        is fixed, so that the vertex indices remain unchanged. */
-                    continue;
-
-                if (const bool ISOLATED_FACET = mesh_.facets.adjacent(f, 0) == GEO::NO_FACET &&
-                                                mesh_.facets.adjacent(f, 1) == GEO::NO_FACET &&
-                                                mesh_.facets.adjacent(f, 2) == GEO::NO_FACET;
-                    ISOLATED_FACET
-                    ) {
-                    disuse_a_vertex(ev0);
-                    disuse_a_vertex(ev1);
-                    disuse_a_vertex(mesh_.facets.vertex(f, (lv+2)%3));
-                    disuse_a_facet(f); // simply remove this facet
-                    break;
-                }
-
-                if (!is_tri_edge_collapse_valid(mesh_, f, lv))
-                    continue;
+                // if (!is_tri_edge_collapse_valid(mesh_, f, lv))
+                //     continue;
 
                 /* Collapse */
-                GEO::index_t disuse_v = GEO::NO_VERTEX;
-                GEO::index_t disuse_f0 = GEO::NO_FACET;
-                GEO::index_t disuse_f1 = GEO::NO_FACET;
+                // GEO::index_t disuse_v = GEO::NO_VERTEX;
+                // GEO::index_t disuse_f0 = GEO::NO_FACET;
+                // GEO::index_t disuse_f1 = GEO::NO_FACET;
 
-                double R = 0.5; // mid point
-                if (mesh_v_fixed_[ev0])
-                    R = 0; // pull ev1 -> ev0
-                tri_edge_collapse(mesh_, f, lv, disuse_v, disuse_f0, disuse_f1, R);
-                assert(disuse_v == ev1);
+                // double R = 0.5; // mid point
+                // if (mesh_v_fixed_[ev0])
+                //     R = 0; // pull ev1 -> ev0
+                // tri_edge_collapse(mesh_, f, lv, disuse_v, disuse_f0, disuse_f1, R);
+                // assert(disuse_v == ev1);
 
                 /* Label vertices */
-                if (mesh_v_boundary_[ev1])
-                    mesh_v_boundary_[ev0] = true;
+                // if (mesh_v_boundary_[ev1])
+                //     mesh_v_boundary_[ev0] = true;
 
                 /* Disuse */
-                disuse_a_vertex(disuse_v);
-                disuse_a_facet(disuse_f0);
-                if (disuse_f1 != GEO::NO_FACET)
-                    disuse_a_facet(disuse_f1);
+                // disuse_a_vertex(disuse_v);
+                // disuse_a_facet(disuse_f0);
+                // if (disuse_f1 != GEO::NO_FACET)
+                //     disuse_a_facet(disuse_f1);
 
                 break;
             }
