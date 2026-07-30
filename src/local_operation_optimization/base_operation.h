@@ -15,6 +15,8 @@ namespace geolio
 
         ~BaseOperation();
 
+        bool post_check();
+
     protected:
         MeshElementManager& manager_;
         const std::string attribute_name_; // Prevent anyone from using these attributes externally (unsafety).

@@ -53,13 +53,14 @@ namespace geolio
             split_operation.perform_one_pass();
             collapse_operation.perform_one_pass();
             swap_operation.perform_one_pass();
-            smooth_operation.perform_one_pass(1);
+            smooth_operation.perform_one_pass(5);
 
             LOG::DEBUG("#V: {} -> {}, #F: {} -> {}", PREV_VERTICES_NB, mesh_.vertices.nb(), PREV_FACETS_NB, mesh_.facets.nb());
         }
 
         /* Make output mesh valid */
-        manager_.clean_unused_elements();
+        manager_.clean_unused_elements(true);
+        LOG::DEBUG("result mesh #V: {}, #F: {}", mesh_.vertices.nb(), mesh_.facets.nb());
     }
 
     void TriLocalOperationOptimization::fix_boundary_elements(
@@ -81,6 +82,7 @@ namespace geolio
         ) {
         LOG::TRACE(__FUNCTION__);
 
+        manager_.mesh_v_boundary.fill(false);
         for (const auto& f : mesh_.facets) {
             for (GEO::index_t lv = 0; lv < 3; ++lv) {
                 if (mesh_.facets.adjacent(f, lv) == GEO::NO_FACET) {

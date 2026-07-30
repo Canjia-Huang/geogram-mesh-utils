@@ -17,8 +17,7 @@ namespace geolio
 
         ~MeshElementManager();
 
-        [[nodiscard]] GEO::index_t require_new_vertex(
-            ) {
+        [[nodiscard]] GEO::index_t require_new_vertex() {
             if (free_vertices_.empty())
                 allocate_new_vertices();
             assert(!free_vertices_.empty());
@@ -31,7 +30,7 @@ namespace geolio
             return new_v;
         }
 
-        void disuse_vertex(GEO::index_t v) {
+        void disuse_vertex(const GEO::index_t v) {
             assert(v < mesh.vertices.nb());
 
             /* Recycle */
@@ -44,8 +43,7 @@ namespace geolio
             mesh_v_used[v]         = false;
         }
 
-        [[nodiscard]] GEO::index_t require_new_facet(
-            ) {
+        [[nodiscard]] GEO::index_t require_new_facet() {
             if (free_facets_.empty())
                 allocate_new_facets();
             assert(!free_facets_.empty());
@@ -58,17 +56,11 @@ namespace geolio
             return new_f;
         }
 
-        void disuse_facet(GEO::index_t f) {
+        void disuse_facet(const GEO::index_t f) {
             assert(f < mesh.facets.nb());
 
             /* Recycle */
             free_facets_.push_back(f);
-
-            for (GEO::index_t lv = 0; lv < 3; ++lv) {
-                if (const auto& v = mesh.facets.vertex(f, lv);
-                    v != GEO::NO_VERTEX && mesh_v_used[v])
-                    disuse_vertex(v);
-            }
 
             /* Init attributes */
             mesh_f_used[f] = false;
@@ -76,9 +68,9 @@ namespace geolio
                 mesh_fc_fixed[3*f+lv] = false;
         }
 
-        void clean_unused_elements();
+        void clean_unused_elements(bool remove_isolated_vertices = true);
 
-        [[nodiscard]] double get_edge_length(GEO::index_t f, GEO::index_t lv) const {
+        [[nodiscard]] double get_edge_length(const GEO::index_t f, const GEO::index_t lv) const {
             assert(f < mesh.facets.nb());
             assert(lv < 3);
             if (mesh_2d)

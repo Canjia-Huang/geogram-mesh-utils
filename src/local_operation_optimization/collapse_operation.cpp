@@ -4,6 +4,8 @@
 //
 #include "collapse_operation.h"
 #include <cassert>
+#include <geogram/mesh/mesh_io.h>
+#include "geolio/log.h"
 #include "geolio/tri_operations.h"
 
 namespace geolio
@@ -28,10 +30,13 @@ namespace geolio
                     continue;
 
                 const auto v = mesh_.facets.vertex(f, lv);
-                GEO::index_t disuse_v, disuse_f0, disuse_f1;
-                perform(f, lv, disuse_v, disuse_f0, disuse_f1);
 
-                post_process(v, disuse_v, disuse_f0, disuse_f1);
+                GEO::index_t disuse_v0, disuse_v1, disuse_v2, disuse_f0, disuse_f1;
+                perform(f, lv, disuse_v0, disuse_v1, disuse_v2, disuse_f0, disuse_f1);
+
+                post_process(v, disuse_v0, disuse_v1, disuse_v2, disuse_f0, disuse_f1);
+
+                assert(post_check());
             }
         }
     }
@@ -81,14 +86,18 @@ namespace geolio
     void CollapseOperation::perform(
         const GEO::index_t f,
         const GEO::index_t lv,
-        GEO::index_t& disuse_v,
+        GEO::index_t& disuse_v0,
+        GEO::index_t& disuse_v1,
+        GEO::index_t& disuse_v2,
         GEO::index_t& disuse_f0,
         GEO::index_t& disuse_f1
         ) const {
         assert(f < mesh_.facets.nb());
         assert(lv < 3);
 
-        disuse_v = GEO::NO_VERTEX;
+        disuse_v0 = GEO::NO_VERTEX;
+        disuse_v1 = GEO::NO_VERTEX;
+        disuse_v2 = GEO::NO_VERTEX;
         disuse_f0 = GEO::NO_FACET;
         disuse_f1 = GEO::NO_FACET;
 
@@ -96,6 +105,9 @@ namespace geolio
             mesh_.facets.adjacent(f, 1) == GEO::NO_FACET &&
             mesh_.facets.adjacent(f, 2) == GEO::NO_FACET
             ) { // For an isolated facet, collapse will directly remove it.
+            disuse_v0 = mesh_.facets.vertex(f, 0);
+            disuse_v1 = mesh_.facets.vertex(f, 1);
+            disuse_v2 = mesh_.facets.vertex(f, 2);
             disuse_f0 = f;
             return;
         }
@@ -105,25 +117,31 @@ namespace geolio
             manager_.mesh_v_fixed[ev0])
             R = 0; // pull ev1 -> ev0
 
-        tri_edge_collapse(mesh_, f, lv, disuse_v, disuse_f0, disuse_f1, R);
+        tri_edge_collapse(mesh_, f, lv, disuse_v0, disuse_f0, disuse_f1, R);
     }
 
     void CollapseOperation::post_process(
         const GEO::index_t v,
-        const GEO::index_t disuse_v,
+        const GEO::index_t disuse_v0,
+        const GEO::index_t disuse_v1,
+        const GEO::index_t disuse_v2,
         const GEO::index_t disuse_f0,
         const GEO::index_t disuse_f1
         ) const {
         assert(v < mesh_.vertices.nb());
 
-        if (manager_.mesh_v_boundary[disuse_v]) // After edge collapse on a boundary vertex, it remains a boundary vertex.
+        if (manager_.mesh_v_boundary[disuse_v0]) // After edge collapse on a boundary vertex, it remains a boundary vertex.
             manager_.mesh_v_boundary[v] = true;
 
         /* Disuse elements */
-        if (disuse_v != GEO::NO_VERTEX)
-            manager_.disuse_vertex(disuse_v);
-        if (disuse_f0 != GEO::NO_FACET)
-            manager_.disuse_facet(disuse_f0);
+        assert(disuse_v0 != GEO::NO_VERTEX);
+        manager_.disuse_vertex(disuse_v0);
+        if (disuse_v1 != GEO::NO_VERTEX)
+            manager_.disuse_vertex(disuse_v1);
+        if (disuse_v2 != GEO::NO_VERTEX)
+            manager_.disuse_vertex(disuse_v2);
+        assert(disuse_f0 != GEO::NO_FACET);
+        manager_.disuse_facet(disuse_f0);
         if (disuse_f1 != GEO::NO_FACET)
             manager_.disuse_facet(disuse_f1);
     }

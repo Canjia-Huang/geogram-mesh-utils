@@ -21,10 +21,12 @@ namespace geolio
         [[nodiscard]] bool is_perform_valid(GEO::index_t f, GEO::index_t lv) const;
 
         void perform(GEO::index_t f, GEO::index_t lv,
-                     GEO::index_t& disuse_v, GEO::index_t& disuse_f0, GEO::index_t& disuse_f1) const;
+                     GEO::index_t& disuse_v0, GEO::index_t& disuse_v1, GEO::index_t& disuse_v2,
+                     GEO::index_t& disuse_f0, GEO::index_t& disuse_f1) const;
 
         void post_process(GEO::index_t v,
-                          GEO::index_t disuse_v, GEO::index_t disuse_f0, GEO::index_t disuse_f1) const;
+                          GEO::index_t disuse_v0, GEO::index_t disuse_v1, GEO::index_t disuse_v2,
+                          GEO::index_t disuse_f0, GEO::index_t disuse_f1) const;
 
         const double limit_edge_length_;
     };

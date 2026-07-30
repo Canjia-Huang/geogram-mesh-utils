@@ -31,6 +31,8 @@ namespace geolio
 
                 post_process(f, lv, new_v, new_f0, new_f1);
 
+                assert(post_check());
+
                 /* Label processed facets */
                 mesh_f_processed_[f] = true;
                 mesh_f_processed_[new_f0] = true;

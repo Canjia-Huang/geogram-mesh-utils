@@ -49,6 +49,7 @@ namespace geolio
     }
 
     void MeshElementManager::clean_unused_elements(
+        const bool remove_isolated_vertices
         ) {
         if (free_facets_.empty() && free_vertices_.empty())
             return;
@@ -58,12 +59,13 @@ namespace geolio
             if (f < mesh.facets.nb())
                 facets_to_delete[f] = 1;
         }
-        mesh.facets.delete_elements(facets_to_delete, true);
+        mesh.facets.delete_elements(facets_to_delete, remove_isolated_vertices);
 
         free_vertices_.clear();
         free_facets_.clear();
 
-        assert(std::ranges::all_of(mesh_v_used.get_vector(), [](const auto& b){ return b; }));
+        assert(!remove_isolated_vertices ||
+            std::ranges::all_of(mesh_v_used.get_vector(), [](const auto& b){ return b; }));
         assert(std::ranges::all_of(mesh_f_used.get_vector(), [](const auto& b){ return b; }));
     }
 
