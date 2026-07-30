@@ -146,7 +146,7 @@ namespace geolio
          */
         void label_boundary_vertices();
 
-        void fix_non_manifold_vertices();
+        void label_non_manifold_vertices();
 
         /**
          * @brief Compute the length of the edge opposite local vertex `lv` in facet `f`.
@@ -296,15 +296,16 @@ namespace geolio
         GEO::Mesh& mesh_;
         const bool mesh_2d_; // mesh.vertices.dimension() == 2
 
-        const std::string attribute_name_;
+        const std::string attribute_name_; // Prevent anyone from using these attributes externally (unsafety).
         GEO::Attribute<bool> mesh_v_boundary_; // v -> on boundary
         GEO::Attribute<bool> mesh_v_fixed_; // v -> fixed
+        GEO::Attribute<bool> mesh_v_non_manifold_; // v -> non manifold
         GEO::Attribute<bool> mesh_v_used_; // v -> used
         GEO::Attribute<bool> mesh_f_processed_; // f -> processed (just pre-allocated)
         GEO::Attribute<bool> mesh_f_used_; // f -> used
         GEO::Attribute<bool> mesh_fc_fixed; // fc (edge) -> fixed
 
-        GEO::Mesh original_mesh_;
+        GEO::Mesh original_mesh_; // a copy of original input mesh
         GEO::MeshFacetsAABB original_mesh_facet_AABB_;
 
         std::vector<GEO::index_t> free_vertices_;
