@@ -16,7 +16,7 @@ namespace geolio
 
         void perform_one_pass(GEO::index_t iterations_nb) const;
 
-        bool ALLOW_SMOOTH_FIXED_EDGE_VERTICES = true;
+        bool ALLOW_SMOOTH_FIXED_EDGE_VERTICES = false;
 
     private:
         [[nodiscard]] bool is_perform_valid(GEO::index_t v) const;

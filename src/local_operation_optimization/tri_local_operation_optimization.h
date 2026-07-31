@@ -87,6 +87,8 @@ namespace geolio
 
         void fix_boundary_elements();
 
+        void fix_sharp_elements(double sharp_angle = 0.75*M_PI);
+
     protected:
         void label_boundary_vertices();
 

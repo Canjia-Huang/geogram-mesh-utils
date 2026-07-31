@@ -39,6 +39,7 @@ namespace geolio
         }
 
         /* Build fixed edge adjacent edges */
+        std::vector<char> mesh_v_on_fixed_edges;
         std::vector<std::pair<GEO::index_t, GEO::index_t>> mesh_fixed_edge_v_adjacent_v; // v -> adjacent vertices along adjacent fixed edges
         if (ALLOW_SMOOTH_FIXED_EDGE_VERTICES) {
             mesh_fixed_edge_v_adjacent_v.assign(mesh_.vertices.nb(), std::pair(GEO::NO_VERTEX, GEO::NO_VERTEX));
@@ -58,8 +59,6 @@ namespace geolio
                                 if (adj_v0 != ev1)
                                     adj_v1 = ev1;
                             }
-                            else
-                                manager_.mesh_v_fixed[ev0] = true; // This vertex is connected to more than three fixed edges.
                         }
                         {
                             if (auto& [adj_v0, adj_v1] = mesh_fixed_edge_v_adjacent_v[ev1];
@@ -69,25 +68,30 @@ namespace geolio
                                 if (adj_v0 != ev0)
                                     adj_v1 = ev0;
                             }
-                            else
-                                manager_.mesh_v_fixed[ev1] = true; // This vertex is connected to more than three fixed edges.
                         }
                     }
                 }
-            }
-
-            /* Fix vertex that connected to only one fixed edge */
-            for (const auto& v : mesh_.vertices) {
-                if (auto& [adj_v0, adj_v1] = mesh_fixed_edge_v_adjacent_v[v];
-                    adj_v0 != GEO::NO_VERTEX &&
-                    adj_v1 == GEO::NO_VERTEX)
-                    manager_.mesh_v_fixed[v] = true;
             }
 
             /* Fix fixed vertex */
             for (const auto& v : mesh_.vertices) {
                 if (manager_.mesh_v_fixed[v])
                     mesh_fixed_edge_v_adjacent_v[v] = std::pair(GEO::NO_VERTEX, GEO::NO_VERTEX);
+            }
+        }
+        else {
+            mesh_v_on_fixed_edges.assign(mesh_.vertices.nb(), false);
+            for (const auto& f : mesh_.facets) {
+                for (GEO::index_t lv = 0; lv < 3; ++lv) {
+                    if (const auto& fc = mesh_.facets.corner(f, lv);
+                        manager_.mesh_fc_fixed[fc]
+                        ) {
+                        const auto& ev0 = mesh_.facets.vertex(f, lv);
+                        const auto& ev1 = mesh_.facets.vertex(f, (lv+1)%3);
+                        mesh_v_on_fixed_edges[ev0] = true;
+                        mesh_v_on_fixed_edges[ev1] = true;
+                    }
+                }
             }
         }
 
@@ -124,6 +128,11 @@ namespace geolio
                             const auto& p1 = mesh_.vertices.point<2>(v1);
                             const auto p1p0 = GEO::normalize(p1-p0);
                             target_p = p0 + GEO::dot(target_p-p0, p1p0) * p1p0;
+                        }
+                        else {
+                            assert(mesh_v_on_fixed_edges.size() == mesh_.vertices.nb());
+                            if (mesh_v_on_fixed_edges[v])
+                                continue;
                         }
 
                         mesh_.vertices.point<2>(v) = target_p;
@@ -164,7 +173,21 @@ namespace geolio
 
                         /* Slide along fixed edge */
                         if (ALLOW_SMOOTH_FIXED_EDGE_VERTICES) {
-                            // TODO
+                            assert(mesh_fixed_edge_v_adjacent_v.size() == mesh_.vertices.nb());
+                            assert(!manager_.mesh_v_fixed[v]);
+                            if (const auto& [v0, v1] = mesh_fixed_edge_v_adjacent_v[v];
+                                v0 != GEO::NO_VERTEX && v1 != GEO::NO_VERTEX
+                                ) {
+                                const auto& p0 = mesh_.vertices.point(v0);
+                                const auto& p1 = mesh_.vertices.point(v1);
+                                const auto p1p0 = GEO::normalize(p1-p0);
+                                target_p = p0 + GEO::dot(target_p-p0, p1p0) * p1p0;
+                            }
+                        }
+                        else {
+                            assert(mesh_v_on_fixed_edges.size() == mesh_.vertices.nb());
+                            if (mesh_v_on_fixed_edges[v])
+                                continue;
                         }
 
                         mesh_.vertices.point(v) = mesh_v_new_pos[v];

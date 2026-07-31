@@ -32,9 +32,10 @@ namespace geolio::test
 
         {
             TriLocalOperationOptimization TLOO(mesh);
+            TLOO.fix_sharp_elements();
             TLOO.optimize();
+            GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
         }
-        GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
     }
 
     TEST(TriLocalOperationOptimizationTest, three_d_model_sharp) {
@@ -44,10 +45,11 @@ namespace geolio::test
 
         {
             TriLocalOperationOptimization TLOO(mesh);
-            // TODO: fix sharp edges
+            TLOO.fix_sharp_elements();
             TLOO.optimize();
+            GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
         }
-        GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
+
     }
 
     TEST(TriLocalOperationOptimizationTest, three_d_model_boundary) {

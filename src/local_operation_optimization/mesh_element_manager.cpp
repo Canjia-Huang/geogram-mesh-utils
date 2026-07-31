@@ -34,18 +34,18 @@ namespace geolio
     MeshElementManager::~MeshElementManager(
         ) {
         /* Destroy attributes */
-        // if (mesh_v_boundary.is_bound())
-        //     mesh_v_boundary.destroy();
-        // if (mesh_v_fixed.is_bound())
-        //     mesh_v_fixed.destroy();
-        // if (mesh_v_non_manifold.is_bound())
-        //     mesh_v_non_manifold.destroy();
-        // if (mesh_v_used.is_bound())
-        //     mesh_v_used.destroy();
-        // if (mesh_f_used.is_bound())
-        //     mesh_f_used.destroy();
-        // if (mesh_fc_fixed.is_bound())
-        //     mesh_fc_fixed.destroy();
+        if (mesh_v_boundary.is_bound())
+            mesh_v_boundary.destroy();
+        if (mesh_v_fixed.is_bound())
+            mesh_v_fixed.destroy();
+        if (mesh_v_non_manifold.is_bound())
+            mesh_v_non_manifold.destroy();
+        if (mesh_v_used.is_bound())
+            mesh_v_used.destroy();
+        if (mesh_f_used.is_bound())
+            mesh_f_used.destroy();
+        if (mesh_fc_fixed.is_bound())
+            mesh_fc_fixed.destroy();
     }
 
     void MeshElementManager::clean_unused_elements(
