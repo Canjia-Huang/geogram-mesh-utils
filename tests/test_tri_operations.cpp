@@ -8,7 +8,6 @@
 #include <ranges>
 #include <geogram/mesh/mesh_io.h>
 #include <gtest/gtest.h>
-
 #include "utils.h"
 #include "geolio/tri_operations.h"
 #include "geolio/log.h"

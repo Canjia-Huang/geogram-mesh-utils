@@ -53,9 +53,9 @@ namespace geolio
             const auto PREV_FACETS_NB = mesh_.facets.nb();
 
             split_operation.perform_one_pass();
-            collapse_operation.perform_one_pass();
-            swap_operation.perform_one_pass();
-            smooth_operation.perform_one_pass(3);
+            // collapse_operation.perform_one_pass();
+            // swap_operation.perform_one_pass();
+            // smooth_operation.perform_one_pass(3);
 
             LOG::DEBUG("#V: {} -> {}, #F: {} -> {}", PREV_VERTICES_NB, mesh_.vertices.nb(), PREV_FACETS_NB, mesh_.facets.nb());
         }
@@ -70,29 +70,17 @@ namespace geolio
         LOG::TRACE(__FUNCTION__);
 
         /* Fix edges */
-        std::vector<GEO::index_t> mesh_v_adjacent_fixed_edges_nb(mesh_.vertices.nb(), 0);
         for (const auto& f : mesh_.facets) {
             for (GEO::index_t lv = 0; lv < 3; ++lv) {
                 if (manager_.mesh_fc_fixed[mesh_.facets.corner(f, lv)])
                     continue;
 
-                if (mesh_.facets.adjacent(f, lv) == GEO::NO_FACET) {
+                if (mesh_.facets.adjacent(f, lv) == GEO::NO_FACET)
                     fix_edge(f, lv);
-
-                    const auto& ev0 = mesh_.facets.vertex(f, lv);
-                    const auto& ev1 = mesh_.facets.vertex(f, (lv+1)%3);
-                    ++mesh_v_adjacent_fixed_edges_nb[ev0];
-                    ++mesh_v_adjacent_fixed_edges_nb[ev1];
-                }
             }
         }
 
-        /* Fix vertices */
-        for (const auto& v : mesh_.vertices) {
-            if (const auto& adj_edges_nb = mesh_v_adjacent_fixed_edges_nb[v];
-                adj_edges_nb > 2 || adj_edges_nb == 1)
-                fix_vertex(v);
-        }
+        fix_vertices_based_on_fixed_edges();
     }
 
     void TriLocalOperationOptimization::fix_sharp_elements(
@@ -110,7 +98,6 @@ namespace geolio
                 mesh_.facets.point(f, 2));
 
         /* Fix edges */
-        std::vector<GEO::index_t> mesh_v_adjacent_fixed_edges_nb(mesh_.vertices.nb(), 0);
         for (const auto& f : mesh_.facets) {
             for (GEO::index_t lv = 0; lv < 3; ++lv) {
                 if (manager_.mesh_fc_fixed[mesh_.facets.corner(f, lv)])
@@ -118,24 +105,12 @@ namespace geolio
 
                 if (const auto& nf = mesh_.facets.adjacent(f, lv);
                     nf != GEO::NO_FACET &&
-                    M_PI - GEO::Geom::angle(mesh_f_normal[f], mesh_f_normal[nf]) < sharp_angle
-                    ) {
+                    M_PI - GEO::Geom::angle(mesh_f_normal[f], mesh_f_normal[nf]) < sharp_angle)
                     fix_edge(f, lv);
-
-                    const auto& ev0 = mesh_.facets.vertex(f, lv);
-                    const auto& ev1 = mesh_.facets.vertex(f, (lv+1)%3);
-                    ++mesh_v_adjacent_fixed_edges_nb[ev0];
-                    ++mesh_v_adjacent_fixed_edges_nb[ev1];
-                }
             }
         }
 
-        /* Fix vertices */
-        for (const auto& v : mesh_.vertices) {
-            if (const auto& adj_edges_nb = mesh_v_adjacent_fixed_edges_nb[v];
-                adj_edges_nb > 2 || adj_edges_nb == 1)
-                fix_vertex(v);
-        }
+        fix_vertices_based_on_fixed_edges();
     }
 
     void TriLocalOperationOptimization::label_boundary_vertices(
@@ -168,5 +143,59 @@ namespace geolio
 
         LOG::WARN("Detected {} non-manifold vertices in the input mesh; "
                   "they have been fixed to prevent unexpected errors.", NON_MANIFOLD_VERTICES_NB);
+    }
+
+    void TriLocalOperationOptimization::fix_vertices_based_on_fixed_edges(
+        const double sharp_angle
+        ) {
+        std::vector<std::pair<GEO::index_t, GEO::index_t>> mesh_v_adjacent_v(
+            mesh_.vertices.nb(), std::pair(GEO::NO_VERTEX, GEO::NO_VERTEX));
+
+        for (const auto& f : mesh_.facets) {
+            for (GEO::index_t lv = 0; lv < 3; ++lv) {
+                if (manager_.mesh_fc_fixed[mesh_.facets.corner(f, lv)]) {
+                    const auto& ev0 = mesh_.facets.vertex(f, lv);
+                    const auto& ev1 = mesh_.facets.vertex(f, (lv+1)%3);
+
+                    if (auto& [adj_v0, adj_v1] = mesh_v_adjacent_v[ev0];
+                        adj_v0 == GEO::NO_VERTEX)
+                        adj_v0 = ev1;
+                    else if (adj_v0 != ev1) {
+                        if (adj_v1 == GEO::NO_VERTEX)
+                            adj_v1 = ev1;
+                        else if (adj_v1 != ev1)
+                            manager_.mesh_v_fixed[ev0] = true; // fix vertex adjacent to more than 3 fixed edges
+                    }
+
+                    if (auto& [adj_v0, adj_v1] = mesh_v_adjacent_v[ev1];
+                        adj_v0 == GEO::NO_VERTEX)
+                        adj_v0 = ev0;
+                    else if (adj_v0 != ev0) {
+                        if (adj_v1 == GEO::NO_VERTEX)
+                            adj_v1 = ev0;
+                        else if (adj_v1 != ev0)
+                            manager_.mesh_v_fixed[ev1] = true; // fix vertex adjacent to more than 3 fixed edges
+                    }
+                }
+            }
+        }
+
+        for (const auto& v : mesh_.vertices) {
+            if (manager_.mesh_v_fixed[v])
+                continue;
+            if (const auto& [adj_v0, adj_v1] = mesh_v_adjacent_v[v];
+                adj_v0 != GEO::NO_VERTEX
+                ) {
+                if (adj_v1 == GEO::NO_VERTEX)
+                    manager_.mesh_v_fixed[v] = true; // fix vertex that adjacent to only one fixed edge
+                else {
+                    const auto& p = mesh_.vertices.point(v);
+                    const auto& p0 = mesh_.vertices.point(adj_v0);
+                    const auto& p1 = mesh_.vertices.point(adj_v1);
+                    if (GEO::Geom::angle(p0-p, p1-p) < sharp_angle)
+                        manager_.mesh_v_fixed[v] = true; // fix vertex that adjacent fixed edges form a sharp angle
+                }
+            }
+        }
     }
 }

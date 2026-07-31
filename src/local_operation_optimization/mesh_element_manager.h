@@ -36,11 +36,8 @@ namespace geolio
             /* Recycle */
             free_vertices_.push_back(v);
 
-            /* Init attributes */
-            mesh_v_boundary[v]     = false;
-            mesh_v_fixed[v]        = false;
-            mesh_v_non_manifold[v] = false;
-            mesh_v_used[v]         = false;
+            /* Restore attributes */
+            mesh.vertices.attributes().zero_item(v);
         }
 
         [[nodiscard]] GEO::index_t require_new_facet() {
@@ -62,10 +59,10 @@ namespace geolio
             /* Recycle */
             free_facets_.push_back(f);
 
-            /* Init attributes */
-            mesh_f_used[f] = false;
+            /* Restore attributes */
+            mesh.facets.attributes().zero_item(f);
             for (GEO::index_t lv = 0; lv < 3; ++lv)
-                mesh_fc_fixed[3*f+lv] = false;
+                mesh.facet_corners.attributes().zero_item(mesh.facets.corner(f, lv));
         }
 
         void clean_unused_elements(bool remove_isolated_vertices = true);

@@ -39,6 +39,17 @@ namespace geolio
                 }
             }
         }
+        if constexpr (false) { // Adjacent facets of a used facet should also be detected as used.
+            for (const auto& f : mesh_.facets) {
+                if (!manager_.mesh_f_used[f])
+                    continue;
+                for (GEO::index_t lv = 0; lv < 3; ++lv) {
+                    if (const auto& nf = mesh_.facets.adjacent(f, lv);
+                        nf != GEO::NO_FACET)
+                        assert(manager_.mesh_f_used[nf]);
+                }
+            }
+        }
 
         return true;
     }

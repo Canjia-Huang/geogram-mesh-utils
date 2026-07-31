@@ -94,6 +94,8 @@ namespace geolio
 
         void label_non_manifold_vertices();
 
+        void fix_vertices_based_on_fixed_edges(double sharp_angle = 0.75*M_PI);
+
         GEO::Mesh& mesh_;
         MeshElementManager manager_;
     };

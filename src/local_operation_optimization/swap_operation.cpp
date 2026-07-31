@@ -143,26 +143,8 @@ namespace geolio
         assert(lv < 3);
         assert(nf < mesh_.facets.nb());
 
-        const auto& v2 = mesh_.facets.vertex(f, (lv+2)%3);
-
-        /* Update fixed edges */
-        assert(!manager_.mesh_fc_fixed[mesh_.facets.corner(f, lv)]);
-        {
-            const auto nlv = mesh_.facets.find_vertex(nf, v2);
-            assert(nlv != GEO::NO_INDEX);
-
-            if (const auto& fc = mesh_.facets.corner(f, (lv+1)%3);
-                manager_.mesh_fc_fixed[fc]
-                ) {
-                manager_.mesh_fc_fixed[fc] = false;
-                manager_.mesh_fc_fixed[mesh_.facets.corner(nf, (nlv+2)%3)] = true;
-            }
-            if (const auto& fc = mesh_.facets.corner(nf, nlv);
-                manager_.mesh_fc_fixed[fc]
-                ) {
-                manager_.mesh_fc_fixed[fc] = false;
-                manager_.mesh_fc_fixed[mesh_.facets.corner(f, lv)] = true;
-            }
-        }
+        /* Reset facet attributes (will be restored after swap operation) */
+        manager_.mesh_f_used[f] = true;
+        manager_.mesh_f_used[nf] = true;
     }
 }
