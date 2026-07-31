@@ -189,11 +189,20 @@ namespace geolio
                 if (adj_v1 == GEO::NO_VERTEX)
                     manager_.mesh_v_fixed[v] = true; // fix vertex that adjacent to only one fixed edge
                 else {
-                    const auto& p = mesh_.vertices.point(v);
-                    const auto& p0 = mesh_.vertices.point(adj_v0);
-                    const auto& p1 = mesh_.vertices.point(adj_v1);
-                    if (GEO::Geom::angle(p0-p, p1-p) < sharp_angle)
-                        manager_.mesh_v_fixed[v] = true; // fix vertex that adjacent fixed edges form a sharp angle
+                    if (manager_.mesh_2d) {
+                        const auto& p = mesh_.vertices.point<2>(v);
+                        const auto& p0 = mesh_.vertices.point<2>(adj_v0);
+                        const auto& p1 = mesh_.vertices.point<2>(adj_v1);
+                        if (GEO::Geom::angle(p0-p, p1-p) < sharp_angle)
+                            manager_.mesh_v_fixed[v] = true; // fix vertex that adjacent fixed edges form a sharp angle
+                    }
+                    else {
+                        const auto& p = mesh_.vertices.point(v);
+                        const auto& p0 = mesh_.vertices.point(adj_v0);
+                        const auto& p1 = mesh_.vertices.point(adj_v1);
+                        if (GEO::Geom::angle(p0-p, p1-p) < sharp_angle)
+                            manager_.mesh_v_fixed[v] = true; // fix vertex that adjacent fixed edges form a sharp angle
+                    }
                 }
             }
         }
