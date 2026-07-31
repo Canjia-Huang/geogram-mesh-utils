@@ -50,6 +50,23 @@ namespace geolio
                 }
             }
         }
+        if constexpr (false) { // Fixed mesh facet corner should appear in pairs.
+            for (const auto& f : mesh_.facets) {
+                if (!manager_.mesh_f_used[f])
+                    continue;
+                for (GEO::index_t lv = 0; lv < 3; ++lv) {
+                    if (const auto& nf = mesh_.facets.adjacent(f, lv);
+                        nf != GEO::NO_FACET) {
+                        if (manager_.mesh_fc_fixed[mesh_.facets.corner(f, lv)]) {
+                            const auto& v = mesh_.facets.vertex(f, lv);
+                            const auto nlv = mesh_.facets.find_vertex(nf, v);
+                            assert(nlv != GEO::NO_INDEX);
+                            assert(manager_.mesh_fc_fixed[mesh_.facets.corner(nf, (nlv+2)%3)]);
+                        }
+                    }
+                }
+            }
+        }
 
         return true;
     }

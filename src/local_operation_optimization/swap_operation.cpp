@@ -49,15 +49,18 @@ namespace geolio
         assert(f < mesh_.facets.nb());
         assert(lv < 3);
 
-        if (!manager_.mesh_f_used[f]) // This facet should not yet exist.
+        /* This facet should not yet exist. */
+        if (!manager_.mesh_f_used[f])
             return false;
 
+        /* Forbid swapping fixed edge. */
         if (const auto& fc = mesh_.facets.corner(f, lv);
-            manager_.mesh_fc_fixed[fc]) // Forbid swapping fixed edge.
+            manager_.mesh_fc_fixed[fc])
             return false;
 
+        /* Forbid swapping boundary edge. */
         const auto nf = mesh_.facets.adjacent(f, lv);
-        if (nf == GEO::NO_FACET) // Forbid swapping boundary edge.
+        if (nf == GEO::NO_FACET)
             return false;
         assert(nf != GEO::NO_FACET);
         assert(manager_.mesh_f_used[nf]);
@@ -71,13 +74,15 @@ namespace geolio
         assert(nlv != GEO::NO_INDEX);
         const auto v3 = mesh_.facets.vertex(nf, nlv);
 
+        /* It is prohibited to swap an edge that has a non-manifold vertex, because the vertex will not be changed. */
         if (manager_.mesh_v_non_manifold[v0] ||
             manager_.mesh_v_non_manifold[v1] ||
             manager_.mesh_v_non_manifold[v2] ||
             manager_.mesh_v_non_manifold[v3])
-            return false; // It is prohibited to swap an edge that has a non-manifold vertex, because the vertex will not be changed.
+            return false;
 
-        if (!is_tri_edge_swap_valid(mesh_, f, lv)) // Swap operation is not valid.
+        /* Swap operation is not valid. */
+        if (!is_tri_edge_swap_valid(mesh_, f, lv))
             return false;
 
         { // The swap operation should help improve the overall valence.

@@ -150,51 +150,56 @@ namespace geolio
         assert(disuse_v0 != GEO::NO_VERTEX);
         assert(disuse_f0 != GEO::NO_FACET);
 
+        /* After edge collapse on a boundary vertex, it remains a boundary vertex. */
         const auto v0 = mesh_.facets.vertex(disuse_v0, lv);
-        if (manager_.mesh_v_boundary[disuse_v0]) // After edge collapse on a boundary vertex, it remains a boundary vertex.
+        if (manager_.mesh_v_boundary[disuse_v0])
             manager_.mesh_v_boundary[v0] = true;
 
         /* Update fixed edges */
         {
-            if (const auto& fc = mesh_.facets.corner(disuse_f0, (lv+2)%3);
-                manager_.mesh_fc_fixed[fc]
+            if (manager_.mesh_fc_fixed[mesh_.facets.corner(disuse_f0, (lv+1)%3)] ||
+                manager_.mesh_fc_fixed[mesh_.facets.corner(disuse_f0, (lv+2)%3)]
                 ) {
-                const auto v2 = mesh_.facet_corners.vertex(fc);
-                const auto& nf1 = mesh_.facets.adjacent(disuse_f0, (lv+1)%3);
-                const auto& nf2 = mesh_.facets.adjacent(disuse_f0, (lv+2)%3);
-                if (nf1 != GEO::NO_FACET) {
+                const auto v2 = mesh_.facets.vertex(disuse_f0, (lv+2)%3);
+                if (const auto& nf1 = mesh_.facets.adjacent(disuse_f0, (lv+1)%3);
+                    nf1 != GEO::NO_FACET) {
                     const auto nlv = mesh_.facets.find_vertex(nf1, v2);
                     assert(nlv != GEO::NO_INDEX);
-                    const auto nf1_fc = mesh_.facets.corner(nf1, nlv);
-                    manager_.mesh_fc_fixed[nf1_fc] = true;
+                    manager_.mesh_fc_fixed[mesh_.facets.corner(nf1, nlv)] = true;
                 }
-                if (nf2 != GEO::NO_FACET) {
+                if (const auto& nf2 = mesh_.facets.adjacent(disuse_f0, (lv+2)%3);
+                    nf2 != GEO::NO_FACET) {
                     const auto nlv = mesh_.facets.find_vertex(nf2, v2);
                     assert(nlv != GEO::NO_INDEX);
-                    const auto nf2_fc = mesh_.facets.corner(nf2, (nlv+2)%3);
-                    manager_.mesh_fc_fixed[nf2_fc] = true;
+                    manager_.mesh_fc_fixed[mesh_.facets.corner(nf2, (nlv+2)%3)] = true;
                 }
             }
             if (disuse_f1 != GEO::NO_FACET) {
-                const auto v1 = mesh_.facets.vertex(disuse_f0, (lv+1)%3);
-                const auto nlv = mesh_.facets.find_vertex(disuse_f1, v1);
-                if (const auto& fc = mesh_.facets.corner(disuse_f1, (nlv+2)%3);
-                    manager_.mesh_fc_fixed[fc]
+                // mesh_.facets.vertex(disuse_f1, (nlv+1)%3) is not reliable (-> v0 rather than v1)
+                GEO::index_t nlv = GEO::NO_INDEX;
+                for (GEO::index_t i = 0; i < 3; ++i) {
+                    if (mesh_.facets.adjacent(disuse_f1, i) == disuse_f0) {
+                        nlv = i;
+                        break;
+                    }
+                }
+                assert(nlv != GEO::NO_INDEX);
+
+                if (manager_.mesh_fc_fixed[mesh_.facets.corner(disuse_f1, (nlv+1)%3)] ||
+                    manager_.mesh_fc_fixed[mesh_.facets.corner(disuse_f1, (nlv+2)%3)]
                     ) {
-                    const auto v3 = mesh_.facet_corners.vertex(fc);
-                    const auto& nf0 = mesh_.facets.adjacent(disuse_f1, (nlv+1)%3);
-                    const auto& nf3 = mesh_.facets.adjacent(disuse_f1, (nlv+2)%3);
-                    if (nf0 != GEO::NO_FACET) {
+                    const auto v3 = mesh_.facets.vertex(disuse_f1, (nlv+2)%3);
+                    if (const auto& nf0 = mesh_.facets.adjacent(disuse_f1, (nlv+1)%3);
+                        nf0 != GEO::NO_FACET) {
                         const auto nnlv = mesh_.facets.find_vertex(nf0, v3);
                         assert(nnlv != GEO::NO_INDEX);
-                        const auto nf0_fc = mesh_.facets.corner(nf0, nnlv);
-                        manager_.mesh_fc_fixed[nf0_fc] = true;
+                        manager_.mesh_fc_fixed[mesh_.facets.corner(nf0, nnlv)] = true;
                     }
-                    if (nf3 != GEO::NO_FACET) {
+                    if (const auto& nf3 = mesh_.facets.adjacent(disuse_f1, (nlv+2)%3);
+                        nf3 != GEO::NO_FACET) {
                         const auto nnlv = mesh_.facets.find_vertex(nf3, v3);
                         assert(nnlv != GEO::NO_INDEX);
-                        const auto nf3_fc = mesh_.facets.corner(nf3, (nnlv+2)%3);
-                        manager_.mesh_fc_fixed[nf3_fc] = true;
+                        manager_.mesh_fc_fixed[mesh_.facets.corner(nf3, (nnlv+2)%3)] = true;
                     }
                 }
             }
