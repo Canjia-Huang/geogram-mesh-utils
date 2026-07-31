@@ -1,0 +1,135 @@
+name: External Consumption Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test-consumption:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      # ================================================================================================
+      # Install Geogram (reused from ci.yml)
+      # ================================================================================================
+
+      - name: Install Dependency Geogram (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get install cmake build-essential libx11-dev libxcb1-dev libxau-dev libxdmcp-dev
+          sudo apt-get install libxi-dev libxcursor-dev libxinerama-dev libxrandr-dev
+          sudo apt-get install libtbb-dev
+          git clone --recurse-submodules https://github.com/BrunoLevy/geogram.git
+          cd geogram
+          echo "GEOGRAM_DIR=$(pwd)" >> $GITHUB_ENV
+          ./configure.sh
+          cd build/Linux64-gcc-dynamic-Release
+          make -j
+
+      - name: Install Dependency Geogram (Windows)
+        shell: pwsh
+        if: runner.os == 'Windows'
+        run: |
+          git clone --recurse-submodules https://github.com/BrunoLevy/geogram.git
+          cd geogram
+          .\configure.bat
+          $geogramRoot = Get-Location
+          echo "GEOGRAM_DIR=$geogramRoot" >> $env:GITHUB_ENV
+          cmake --build build/Windows --config Release --parallel
+
+      - name: Install Dependency Geogram (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          git clone --recurse-submodules https://github.com/BrunoLevy/geogram.git
+          cd geogram
+          echo "GEOGRAM_DIR=$(pwd)" >> $GITHUB_ENV
+          ./configure.sh
+          cd build/Darwin-clang-dynamic-Release
+          make -j
+
+      # ================================================================================================
+      # Build and install Geolio to a local prefix
+      # ================================================================================================
+
+      - name: Configure Geolio
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/install -DBUILD_TESTS=OFF
+
+      - name: Build Geolio
+        run: cmake --build build --config Release --parallel
+
+      - name: Install Geolio
+        run: cmake --install build --prefix ${{ github.workspace }}/install
+
+      # ================================================================================================
+      # Create a minimal external project that consumes Geolio via find_package
+      # ================================================================================================
+
+      - name: Create consumer project
+        shell: bash
+        run: |
+          mkdir -p ${{ github.workspace }}/consumer
+          cat > ${{ github.workspace }}/consumer/CMakeLists.txt << 'CMAKEEOF'
+          cmake_minimum_required(VERSION 3.30)
+          project(GeolioConsumer LANGUAGES CXX)
+          set(CMAKE_CXX_STANDARD 20)
+          set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+          find_package(Geolio REQUIRED)
+
+          add_executable(test_consumer main.cpp)
+          target_link_libraries(test_consumer PRIVATE Geolio::Geolio)
+          CMAKEEOF
+
+          cat > ${{ github.workspace }}/consumer/main.cpp << 'CEOF'
+          #include <geolio/tri_local_operation_optimization.h>
+          #include <geogram/mesh/mesh.h>
+
+          int main() {
+              GEO::Mesh mesh(2);
+              {
+                  geolio::TriLocalOperationOptimization optimizer(mesh);
+                  optimizer.fix_boundary_edges();
+              }
+              return 0;
+          }
+          CEOF
+
+      - name: Configure consumer
+        run: cmake -B consumer/build -S consumer -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=${{ github.workspace }}/install
+
+      - name: Build consumer
+        run: cmake --build consumer/build --config Release --parallel
+
+      # ================================================================================================
+      # Build succeeded — run the consumer to verify runtime linking
+      # ================================================================================================
+
+      - name: Run consumer (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          LD_LIBRARY_PATH="${{ github.workspace }}/install/lib:$GEOGRAM_DIR/build/Linux64-gcc-dynamic-Release/lib" \
+            consumer/build/test_consumer
+
+      - name: Run consumer (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          DYLD_LIBRARY_PATH="${{ github.workspace }}/install/lib:$GEOGRAM_DIR/build/Darwin-clang-dynamic-Release/lib" \
+            consumer/build/test_consumer
+
+      - name: Run consumer (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $env:Path = "${{ github.workspace }}\install\bin;${{ env.GEOGRAM_DIR }}\build\Windows\bin\Release;$env:Path"
+          consumer\build\Release\test_consumer.exe

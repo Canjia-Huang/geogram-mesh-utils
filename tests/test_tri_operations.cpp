@@ -8,7 +8,6 @@
 #include <ranges>
 #include <geogram/mesh/mesh_io.h>
 #include <gtest/gtest.h>
-
 #include "utils.h"
 #include "geolio/tri_operations.h"
 #include "geolio/log.h"
@@ -101,6 +100,69 @@ namespace geolio::test
         for_each_f_lv();
     }
 
+    TEST_F(TriEdgeSplitTest, manage_attributes) {
+        mesh.clear();
+
+        GEO::Attribute<GEO::index_t> mesh_f_idx(mesh.facets.attributes(), "idx");
+        GEO::Attribute<GEO::index_t> mesh_fc_idx(mesh.facet_corners.attributes(), "idx");
+
+        const std::array<GEO::vec3, 8> vertices = {
+            GEO::vec3(0, 2, 0), GEO::vec3(1, 2, 0), GEO::vec3(2, 2, 0),
+            GEO::vec3(0, 1, 0), GEO::vec3(2, 1, 0),
+            GEO::vec3(0, 0, 0), GEO::vec3(1, 0, 0), GEO::vec3(2, 0, 0),
+        };
+        const std::array<GEO::index_t, 3*6> facets = {
+            0, 3, 1,
+            1, 4, 2, 1, 3, 6, 1, 6, 4,
+            3, 5, 6, 4, 6, 7
+        };
+        mesh.vertices.create_vertices(vertices.size());
+        for (const auto& v : mesh.vertices)
+            mesh.vertices.point(v) = vertices[v];
+        mesh.facets.create_triangles(facets.size()/3);
+        for (const auto& f : mesh.facets) {
+            mesh_f_idx[f] = f;
+            for (GEO::index_t lv = 0; lv < 3; ++lv) {
+                mesh.facets.set_vertex(f, lv, facets[3*f+lv]);
+
+                const auto fc = mesh.facets.corner(f, lv);
+                mesh_fc_idx[fc] = fc;
+            }
+        }
+        mesh.facets.connect();
+        GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
+
+        /* Split */
+        const GEO::index_t new_v = mesh.vertices.create_vertices(1);
+        const GEO::index_t new_f0 = mesh.facets.create_triangles(2);
+        const GEO::index_t new_f1 = new_f0+1;
+        tri_edge_split(mesh, 3, 0, new_v, new_f0, new_f1, 0.4);
+        EXPECT_EQ(mesh_f_idx[3], 3);
+        EXPECT_EQ(mesh_f_idx[2], 2);
+        EXPECT_EQ(mesh_f_idx[new_f0], 3);
+        EXPECT_EQ(mesh_f_idx[new_f1], 2);
+        {
+            constexpr GEO::index_t f = 3;
+            EXPECT_EQ(mesh_fc_idx[3*f+0], 3*f);
+            EXPECT_EQ(mesh_fc_idx[3*f+1], 0);
+            EXPECT_EQ(mesh_fc_idx[3*f+2], 3*f+2);
+            EXPECT_EQ(mesh_fc_idx[3*new_f0+0], 3*f);
+            EXPECT_EQ(mesh_fc_idx[3*new_f0+1], 3*f+1);
+            EXPECT_EQ(mesh_fc_idx[3*new_f0+2], 0);
+        }
+        {
+            constexpr GEO::index_t f = 2;
+            EXPECT_EQ(mesh_fc_idx[3*f+0], 3*f);
+            EXPECT_EQ(mesh_fc_idx[3*f+1], 0);
+            EXPECT_EQ(mesh_fc_idx[3*f+2], 3*f+2);
+            EXPECT_EQ(mesh_fc_idx[3*new_f1+0], 0);
+            EXPECT_EQ(mesh_fc_idx[3*new_f1+1], 3*f+1);
+            EXPECT_EQ(mesh_fc_idx[3*new_f1+2], 3*f+2);
+        }
+
+        GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
+    }
+
     /* ============================================================================================================= */
 
     class TriEdgeCollapseTest : public TriOperationsTest {
@@ -134,6 +196,48 @@ namespace geolio::test
 
     TEST_F(TriEdgeCollapseTest, tri_edge_collapse) {
         for_each_f_lv();
+    }
+
+    TEST_F(TriEdgeCollapseTest, manage_attributes) {
+        mesh.clear();
+
+        GEO::Attribute<double> mesh_v_idx(mesh.vertices.attributes(), "idx");
+
+        const std::array<GEO::vec3, 8> vertices = {
+            GEO::vec3(0, 2, 0), GEO::vec3(1, 2, 0), GEO::vec3(2, 2, 0),
+            GEO::vec3(0, 1, 0), GEO::vec3(2, 1, 0),
+            GEO::vec3(0, 0, 0), GEO::vec3(1, 0, 0), GEO::vec3(2, 0, 0),
+        };
+        const std::array<GEO::index_t, 3*6> facets = {
+            0, 3, 1,
+            1, 4, 2, 1, 3, 6, 1, 6, 4,
+            3, 5, 6, 4, 6, 7
+        };
+        mesh.vertices.create_vertices(vertices.size());
+        for (const auto& v : mesh.vertices) {
+            mesh.vertices.point(v) = vertices[v];
+            mesh_v_idx[v] = v;
+        }
+        mesh.facets.create_triangles(facets.size()/3);
+        for (const auto& f : mesh.facets) {
+            for (GEO::index_t lv = 0; lv < 3; ++lv)
+                mesh.facets.set_vertex(f, lv, facets[3*f+lv]);
+        }
+        mesh.facets.connect();
+        GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
+
+        /* Split */
+        GEO::index_t disuse_v, disuse_f0, disuse_f1;
+        tri_edge_collapse(mesh, 3, 0, disuse_v, disuse_f0, disuse_f1, 0.3);
+        EXPECT_NEAR(mesh_v_idx[1], 0.7*1 + 0.3*6, 1e-10);
+
+        { // Clean unused elements
+            GEO::vector<GEO::index_t> facets_to_delete(mesh.facets.nb(), 0);
+            facets_to_delete[disuse_f0] = 1;
+            facets_to_delete[disuse_f1] = 1;
+            mesh.facets.delete_elements(facets_to_delete);
+        }
+        GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
     }
 
     TEST_F(TriEdgeCollapseTest, degenerate_2d) {
@@ -299,6 +403,56 @@ namespace geolio::test
 
     TEST_F(TriEdgeSwapTest, tri_edge_swap) {
         for_each_f_lv();
+    }
+
+    TEST_F(TriEdgeSwapTest, manage_attributes) {
+        mesh.clear();
+
+        GEO::Attribute<GEO::index_t> mesh_f_idx(mesh.facets.attributes(), "idx");
+        GEO::Attribute<GEO::index_t> mesh_fc_idx(mesh.facet_corners.attributes(), "idx");
+
+        const std::array<GEO::vec3, 8> vertices = {
+            GEO::vec3(0, 2, 0), GEO::vec3(1, 2, 0), GEO::vec3(2, 2, 0),
+            GEO::vec3(0, 1, 0), GEO::vec3(2, 1, 0),
+            GEO::vec3(0, 0, 0), GEO::vec3(1, 0, 0), GEO::vec3(2, 0, 0),
+        };
+        const std::array<GEO::index_t, 3*6> facets = {
+            0, 3, 1,
+            1, 4, 2, 1, 3, 6, 1, 6, 4,
+            3, 5, 6, 4, 6, 7
+        };
+        mesh.vertices.create_vertices(vertices.size());
+        for (const auto& v : mesh.vertices)
+            mesh.vertices.point(v) = vertices[v];
+        mesh.facets.create_triangles(facets.size()/3);
+        for (const auto& f : mesh.facets) {
+            mesh_f_idx[f] = f;
+            for (GEO::index_t lv = 0; lv < 3; ++lv) {
+                mesh.facets.set_vertex(f, lv, facets[3*f+lv]);
+
+                const auto fc = mesh.facets.corner(f, lv);
+                mesh_fc_idx[fc] = fc;
+            }
+        }
+        mesh.facets.connect();
+        GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
+
+        /* Split */
+        tri_edge_swap(mesh, 3, 0);
+        EXPECT_EQ(mesh_f_idx[3], 0);
+        EXPECT_EQ(mesh_f_idx[2], 0);
+        {
+            constexpr GEO::index_t f0 = 3;
+            constexpr GEO::index_t f1 = 2;
+            EXPECT_EQ(mesh_fc_idx[3*f0+0], 3*f1+0);
+            EXPECT_EQ(mesh_fc_idx[3*f0+1], 0);
+            EXPECT_EQ(mesh_fc_idx[3*f0+2], 3*f0+2);
+            EXPECT_EQ(mesh_fc_idx[3*f1+0], 0);
+            EXPECT_EQ(mesh_fc_idx[3*f1+1], 3*f1+1);
+            EXPECT_EQ(mesh_fc_idx[3*f1+2], 3*f0+1);
+        }
+
+        GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
     }
 
     TEST_F(TriEdgeSwapTest, degenerate_2d) {

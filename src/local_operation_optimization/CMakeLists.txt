@@ -1,0 +1,28 @@
+geolio_begin_file()
+set(CURRENT_LIB_NAME ${PROJECT_NAME}_local_operation_optimization)
+set(CURRENT_LIB_ALIAS_NAME ${PROJECT_NAME}::local_operation_optimization)
+
+add_library(${CURRENT_LIB_NAME} OBJECT)
+add_library(${CURRENT_LIB_ALIAS_NAME} ALIAS ${CURRENT_LIB_NAME})
+
+file(GLOB SOURCE_FILES
+        ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+target_sources(${CURRENT_LIB_NAME}
+        PRIVATE
+        ${SOURCE_FILES}
+)
+
+target_include_directories(${CURRENT_LIB_NAME}
+        PUBLIC
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+
+target_link_libraries(${CURRENT_LIB_NAME}
+        PUBLIC
+        Geogram::geogram
+        ${PROJECT_NAME}::third_party
+)
+
+geolio_end_file()

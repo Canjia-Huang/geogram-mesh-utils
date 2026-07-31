@@ -1,4 +1,6 @@
-geolio_begin_file()
+if(COMMAND geolio_begin_file)
+    geolio_begin_file()
+endif()
 
 # Find Geogram
 # ------------
@@ -214,4 +216,6 @@ if(WIN32)
 
 endif()
 
-geolio_end_file()
+if(COMMAND geolio_end_file)
+    geolio_end_file()
+endif()

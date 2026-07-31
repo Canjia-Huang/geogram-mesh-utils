@@ -5,7 +5,7 @@
 
 #include <geogram/mesh/mesh_io.h>
 #include <gtest/gtest.h>
-#include "geolio/tri_local_operation_optimization.h"
+#include "../src/local_operation_optimization/tri_local_operation_optimization.h"
 #include "utils.h"
 #include "geogram/delaunay/CDT_2d.h"
 #include "geolio/CDT_2d.h"
@@ -19,8 +19,8 @@ namespace geolio::test
 
         {
             TriLocalOperationOptimization TLOO(mesh);
-            TLOO.fix_boundary_vertices();
-            TLOO.optimize(1);
+            TLOO.fix_boundary_elements();
+            TLOO.optimize(10, 1);
         }
         GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
     }
@@ -31,8 +31,40 @@ namespace geolio::test
 
         {
             TriLocalOperationOptimization TLOO(mesh);
+            TLOO.fix_sharp_elements();
+            GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
+
             TLOO.optimize();
+            GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
         }
-        GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
+    }
+
+    TEST(TriLocalOperationOptimizationTest, three_d_model_sharp) {
+        GEO::Mesh mesh;
+        GEO::mesh_load(std::string(TEST_DATA_PATH)+"fandisk.obj", mesh);
+
+        {
+            TriLocalOperationOptimization TLOO(mesh);
+            TLOO.fix_sharp_elements();
+            GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
+
+            TLOO.optimize();
+            GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
+        }
+
+    }
+
+    TEST(TriLocalOperationOptimizationTest, three_d_model_boundary) {
+        GEO::Mesh mesh;
+        GEO::mesh_load(std::string(TEST_DATA_PATH)+"beetle.obj", mesh);
+        GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
+
+        {
+            TriLocalOperationOptimization TLOO(mesh);
+            TLOO.fix_boundary_elements();
+            TLOO.optimize();
+            GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
+        }
+
     }
 }

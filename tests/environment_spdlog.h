@@ -2,8 +2,8 @@
 // Created by huangcanjia <huangcanjia0214@gmail.com> on 2026/7/26.
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
-#ifndef GEOLIO_ENVIRONMENT_SPDLOG_H
-#define GEOLIO_ENVIRONMENT_SPDLOG_H
+#ifndef GEOLIO_TEST_ENVIRONMENT_SPDLOG_H
+#define GEOLIO_TEST_ENVIRONMENT_SPDLOG_H
 
 #include <gtest/gtest.h>
 #include "geolio/log.h"
@@ -23,4 +23,4 @@ public:
     }
 };
 
-#endif //GEOLIO_ENVIRONMENT_SPDLOG_H
+#endif //GEOLIO_TEST_ENVIRONMENT_SPDLOG_H
