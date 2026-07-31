@@ -56,18 +56,16 @@ namespace geolio
         const auto ev0 = mesh_.facets.vertex(f, lv);
         const auto ev1 = mesh_.facets.vertex(f, (lv+1)%3);
 
-        if (!manager_.mesh_v_fixed[ev1]) /* Collapse pulls v1 toward v0, no operation is performed when v1
+        if (manager_.mesh_v_fixed[ev1]) /* Collapse pulls v1 toward v0, no operation is performed when v1
                         is fixed, so that the vertex indices remain unchanged. */
             return false;
-        if (const auto& fc = mesh_.facets.corner(f, (lv+1)%3);
-            manager_.mesh_fc_fixed[fc]) // The fixed edge involving ev1 also prevents collapse (because it would move ev1).
-            return false;
-        if (!EDGE_ON_BOUNDARY) {
-            const auto nlv = mesh_.facets.find_vertex(nf, ev1);
-            assert(nlv != GEO::NO_INDEX);
-            if (const auto& fc = mesh_.facets.corner(nf, (nlv+2)%3);
-                manager_.mesh_fc_fixed[fc]) // The fixed edge involving ev1 also prevents collapse (because it would move ev1).
-                return false;
+        { // The fixed edge involving ev1 also prevents collapse (because it would remove ev1).
+            std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_f_and_lv;
+            get_vertex_incident_facets(mesh_, f, (lv+1)%3, ordered_f_and_lv);
+            for (const auto& [ff, llv] : ordered_f_and_lv) {
+                if (manager_.mesh_fc_fixed[mesh_.facets.corner(ff, llv)])
+                    return false;
+            }
         }
 
         if (ALLOW_COLLAPSE_FIXED_EDGES) {
@@ -75,9 +73,6 @@ namespace geolio
         }
         else if (const auto& fc = mesh_.facets.corner(f, lv);
                 manager_.mesh_fc_fixed[fc]) // Do not collapse the fixed edge.
-            return false;
-
-        if (manager_.mesh_v_boundary[ev0] && manager_.mesh_v_boundary[ev1] && !EDGE_ON_BOUNDARY) // Collapse will produce non-manifold vertices.
             return false;
 
         if (manager_.mesh_v_non_manifold[ev0] ||
@@ -127,19 +122,14 @@ namespace geolio
         if (const auto& ev0 = mesh_.facets.vertex(f, lv);
             manager_.mesh_v_fixed[ev0]) // pull ev1 -> ev0
             R = 0;
-        else if (const auto& fc = mesh_.facets.corner(f, (lv+2)%3);
-            manager_.mesh_fc_fixed[fc]) // The fixed edge involving ev0 also pull ev1 -> ev0.
-            R = 0;
-        else {
-            const auto nf = mesh_.facets.adjacent(f, lv);
-            if (const bool EDGE_ON_BOUNDARY = (nf == GEO::NO_FACET);
-                !EDGE_ON_BOUNDARY) {
-                const auto ev1 = mesh_.facets.vertex(f, (lv+1)%3);
-                const auto nlv = mesh_.facets.find_vertex(nf, ev1);
-                assert(nlv != GEO::NO_INDEX);
-                if (const auto fc2 = mesh_.facets.corner(nf, (nlv+1)%3);
-                    manager_.mesh_fc_fixed[fc2]) // The fixed edge involving ev0 also pull ev1 -> ev0.
+        { // The fixed edge involving ev0 also pull ev1 -> ev0.
+            std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_f_and_lv;
+            get_vertex_incident_facets(mesh_, f, lv, ordered_f_and_lv);
+            for (const auto& [ff, llv] : ordered_f_and_lv) {
+                if (manager_.mesh_fc_fixed[mesh_.facets.corner(ff, llv)]) {
                     R = 0;
+                    break;
+                }
             }
         }
 

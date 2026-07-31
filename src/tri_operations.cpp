@@ -354,27 +354,6 @@ namespace geolio
                 assert(M.facets.find_vertex(naf2, nv0) != GEO::NO_INDEX);
                 M.facets.set_adjacent(naf2, M.facets.find_vertex(naf2, nv0), naf1);
             }
-
-            { // DEBUG check
-                for (GEO::index_t i = 0; i < 3; ++i) {
-                    if (af1 != GEO::NO_FACET) {
-                        assert(M.facets.adjacent(af1, i) != disuse_f0);
-                        assert(M.facets.adjacent(af1, i) != disuse_f1);
-                    }
-                    if (af2 != GEO::NO_FACET) {
-                        assert(M.facets.adjacent(af2, i) != disuse_f0);
-                        assert(M.facets.adjacent(af2, i) != disuse_f1);
-                    }
-                    if (naf1 != GEO::NO_FACET) {
-                        assert(M.facets.adjacent(naf1, i) != disuse_f0);
-                        assert(M.facets.adjacent(naf1, i) != disuse_f1);
-                    }
-                    if (naf2 != GEO::NO_FACET) {
-                        assert(M.facets.adjacent(naf2, i) != disuse_f0);
-                        assert(M.facets.adjacent(naf2, i) != disuse_f1);
-                    }
-                }
-            }
         }
 
         /* Set facet vertices */
