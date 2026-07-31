@@ -89,10 +89,6 @@ namespace geolio
         GEO::Attribute<bool> mesh_f_used; // f -> used
         GEO::Attribute<bool> mesh_fc_fixed; // fc (edge) -> fixed
 
-        bool ALLOW_SPLIT_FIXED_EDGES               = false;
-        bool ALLOW_COLLAPSE_FIXED_EDGES            = false;
-        bool ALLOW_SMOOTH_FIXED_EDGE_VERTICES      = false;
-
     private:
         void allocate_new_vertices();
 

@@ -31,7 +31,7 @@ namespace geolio
 
                 perform(f, lv);
 
-                post_process(f, lv);
+                post_process(f, lv, nf);
 
                 assert(post_check());
 
@@ -136,8 +136,33 @@ namespace geolio
 
     void SwapOperation::post_process(
         const GEO::index_t f,
-        const GEO::index_t lv
+        const GEO::index_t lv,
+        const GEO::index_t nf
         ) const {
-        // do nothing
+        assert(f < mesh_.facets.nb());
+        assert(lv < 3);
+        assert(nf < mesh_.facets.nb());
+
+        const auto& v2 = mesh_.facets.vertex(f, (lv+2)%3);
+
+        /* Update fixed edges */
+        assert(!manager_.mesh_fc_fixed[mesh_.facets.corner(f, lv)]);
+        {
+            const auto nlv = mesh_.facets.find_vertex(nf, v2);
+            assert(nlv != GEO::NO_INDEX);
+
+            if (const auto& fc = mesh_.facets.corner(f, (lv+1)%3);
+                manager_.mesh_fc_fixed[fc]
+                ) {
+                manager_.mesh_fc_fixed[fc] = false;
+                manager_.mesh_fc_fixed[mesh_.facets.corner(nf, (nlv+2)%3)] = true;
+            }
+            if (const auto& fc = mesh_.facets.corner(nf, nlv);
+                manager_.mesh_fc_fixed[fc]
+                ) {
+                manager_.mesh_fc_fixed[fc] = false;
+                manager_.mesh_fc_fixed[mesh_.facets.corner(f, lv)] = true;
+            }
+        }
     }
 }

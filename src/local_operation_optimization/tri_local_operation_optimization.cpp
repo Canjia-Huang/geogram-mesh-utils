@@ -23,8 +23,8 @@ namespace geolio
     }
 
     void TriLocalOperationOptimization::optimize(
-        double target_edge_length,
-        GEO::index_t rounds_nb
+        GEO::index_t rounds_nb,
+        double target_edge_length
         ) {
         LOG::TRACE(__FUNCTION__);
 
@@ -53,7 +53,7 @@ namespace geolio
             split_operation.perform_one_pass();
             collapse_operation.perform_one_pass();
             swap_operation.perform_one_pass();
-            smooth_operation.perform_one_pass(5);
+            smooth_operation.perform_one_pass(3);
 
             LOG::DEBUG("#V: {} -> {}, #F: {} -> {}", PREV_VERTICES_NB, mesh_.vertices.nb(), PREV_FACETS_NB, mesh_.facets.nb());
         }

@@ -28,23 +28,14 @@ namespace geolio
 
     bool BaseOperation::post_check(
         ) {
-        {
+        if constexpr (false) { // Check whether all used facets use the used vertices.
             for (const auto& f : mesh_.facets) {
                 if (!manager_.mesh_f_used[f])
                     continue;
                 for (GEO::index_t lv = 0; lv < 3; ++lv) {
                     if (const auto& v = mesh_.facets.vertex(f, lv);
-                        !manager_.mesh_v_used[v]
-                        ) {
-                        // temp
-                        LOG::DEBUG("v:{}", v);
-                        GEO::Attribute<bool> mesh_v_label(mesh_.vertices.attributes(), "label");
-                        mesh_v_label[v] = true;
-                        manager_.clean_unused_elements(false);
-                        GEO::mesh_save(mesh_, "debug.geogram");
-
+                        !manager_.mesh_v_used[v])
                         return false;
-                    }
                 }
             }
         }

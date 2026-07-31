@@ -17,6 +17,8 @@ namespace geolio
 
         void perform_one_pass();
 
+        bool ALLOW_COLLAPSE_FIXED_EDGES = false;
+
     private:
         [[nodiscard]] bool is_perform_valid(GEO::index_t f, GEO::index_t lv) const;
 
@@ -24,7 +26,7 @@ namespace geolio
                      GEO::index_t& disuse_v0, GEO::index_t& disuse_v1, GEO::index_t& disuse_v2,
                      GEO::index_t& disuse_f0, GEO::index_t& disuse_f1) const;
 
-        void post_process(GEO::index_t v,
+        void post_process(GEO::index_t f, GEO::index_t lv,
                           GEO::index_t disuse_v0, GEO::index_t disuse_v1, GEO::index_t disuse_v2,
                           GEO::index_t disuse_f0, GEO::index_t disuse_f1) const;
 

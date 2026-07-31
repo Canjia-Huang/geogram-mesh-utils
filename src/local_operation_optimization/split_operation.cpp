@@ -58,7 +58,7 @@ namespace geolio
             return false;
 
         if (const auto& fc = mesh_.facets.corner(f, lv);
-            !manager_.ALLOW_SPLIT_FIXED_EDGES
+            !ALLOW_SPLIT_FIXED_EDGES
             && manager_.mesh_fc_fixed[fc]) // Splitting fixed edges is not allowed.
             return false;
 
@@ -100,11 +100,13 @@ namespace geolio
         assert(new_v < mesh_.vertices.nb());
         assert(new_f0 < mesh_.facets.nb());
 
-        const bool EDGE_ON_BOUNDARY = mesh_.facets.adjacent(f, lv) == GEO::NO_FACET;
+        const auto nf = mesh_.facets.adjacent(f, lv);
+        const bool EDGE_ON_BOUNDARY = (nf == GEO::NO_FACET);
 
         if (EDGE_ON_BOUNDARY) // Split edge inherits boundary attribute.
             manager_.mesh_v_boundary[new_v] = true;
 
+        /* Update fixed edge */
         if (const auto& fc = mesh_.facets.corner(f, lv);
             manager_.mesh_fc_fixed[fc]
             ) { // Split edge inherits fixed attribute.
@@ -118,6 +120,23 @@ namespace geolio
                 assert(nlv != GEO::NO_INDEX);
                 const auto& new_f1_fc = mesh_.facets.corner(new_f1, (nlv+2)%3);
                 manager_.mesh_fc_fixed[new_f1_fc] = true;
+            }
+        }
+        if (const auto& fc = mesh_.facets.corner(f, (lv+1)%3);
+            manager_.mesh_fc_fixed[fc]
+            ) {
+            manager_.mesh_fc_fixed[fc] = false;
+            manager_.mesh_fc_fixed[mesh_.facets.corner(new_f0, (lv+1)%3)] = true;
+        }
+        if (!EDGE_ON_BOUNDARY) {
+            assert(new_f1 != GEO::NO_FACET);
+            const auto nlv = mesh_.facets.find_vertex(nf, new_v);
+            assert(nlv != GEO::NO_INDEX);
+            if (const auto& fc = mesh_.facets.corner(nf, (nlv+2)%3);
+                manager_.mesh_fc_fixed[fc]
+                ) {
+                manager_.mesh_fc_fixed[fc] = false;
+                manager_.mesh_fc_fixed[mesh_.facets.corner(new_f1, (nlv+2)%3)] = true;
             }
         }
     }

@@ -20,7 +20,7 @@ namespace geolio
 
         void perform(GEO::index_t f, GEO::index_t lv) const;
 
-        void post_process(GEO::index_t f, GEO::index_t lv) const;
+        void post_process(GEO::index_t f, GEO::index_t lv, GEO::index_t nf) const;
     };
 }
 

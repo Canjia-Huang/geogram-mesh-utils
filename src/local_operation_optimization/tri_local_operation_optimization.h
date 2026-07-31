@@ -25,11 +25,11 @@ namespace geolio
         /**
          * @brief Runs the local optimization pipeline.
          *
+         * @param[in] rounds_nb Number of optimization rounds to execute. Each
+         * round runs split, collapse, swap and smooth passes in that order.
          * @param[in] target_edge_length Desired target edge length used to
          * guide split/collapse decisions. If negative, the optimizer computes
          * an automatic target using compute_average_mesh_edge_length().
-         * @param[in] rounds_nb Number of optimization rounds to execute. Each
-         * round runs split, collapse, swap and smooth passes in that order.
          *
          * @details
          * The method performs the following steps per round:
@@ -42,8 +42,8 @@ namespace geolio
          * After the requested rounds, unbind_attributes() is called to clean up.
          */
         void optimize(
-            double target_edge_length = -1,
-            GEO::index_t rounds_nb = 5);
+            GEO::index_t rounds_nb = 5,
+            double target_edge_length = -1);
 
         /**
          * @brief Marks a specific vertex as fixed.
@@ -68,7 +68,14 @@ namespace geolio
             ) {
             assert(f < mesh_.facets.nb());
             assert(lv < 3);
-            manager_.mesh_fc_fixed[mesh_.facets.corner(f, lv)] = true;
+            fix_edge(mesh_.facets.corner(f, lv));
+            if (const auto nf = mesh_.facets.adjacent(f, lv);
+                nf != GEO::NO_FACET) {
+                const auto v = mesh_.facets.vertex(f, lv);
+                const auto nlv = mesh_.facets.find_vertex(nf, v);
+                assert(nlv != GEO::NO_INDEX);
+                fix_edge(mesh_.facets.corner(nf, (nlv+2)%3));
+            }
         }
 
         void fix_edge(

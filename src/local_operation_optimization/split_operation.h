@@ -17,6 +17,8 @@ namespace geolio
 
         void perform_one_pass();
 
+        bool ALLOW_SPLIT_FIXED_EDGES = false;
+
     private:
         [[nodiscard]] bool is_perform_valid(GEO::index_t f, GEO::index_t lv) const;
 

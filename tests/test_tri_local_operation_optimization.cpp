@@ -20,7 +20,7 @@ namespace geolio::test
         {
             TriLocalOperationOptimization TLOO(mesh);
             TLOO.fix_boundary_elements();
-            TLOO.optimize(1);
+            TLOO.optimize(10, 1);
         }
         GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
     }
@@ -28,6 +28,7 @@ namespace geolio::test
     TEST(TriLocalOperationOptimizationTest, three_d_model) {
         GEO::Mesh mesh;
         GEO::mesh_load(std::string(TEST_DATA_PATH)+"bunny.obj", mesh);
+        GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
 
         {
             TriLocalOperationOptimization TLOO(mesh);
@@ -39,6 +40,7 @@ namespace geolio::test
     TEST(TriLocalOperationOptimizationTest, three_d_model_sharp) {
         GEO::Mesh mesh;
         GEO::mesh_load(std::string(TEST_DATA_PATH)+"fandisk.obj", mesh);
+        GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
 
         {
             TriLocalOperationOptimization TLOO(mesh);
@@ -51,6 +53,7 @@ namespace geolio::test
     TEST(TriLocalOperationOptimizationTest, three_d_model_boundary) {
         GEO::Mesh mesh;
         GEO::mesh_load(std::string(TEST_DATA_PATH)+"beetle.obj", mesh);
+        GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
 
         {
             TriLocalOperationOptimization TLOO(mesh);
