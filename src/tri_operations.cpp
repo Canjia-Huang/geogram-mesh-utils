@@ -76,6 +76,13 @@ namespace geolio
             M.facets.set_adjacent(nf1, M.facets.find_vertex(nf1, v2), new_f0);
         }
 
+        /* Copy attributes */
+        M.facets.attributes().copy_item(new_f0, f);
+        M.facet_corners.attributes().copy_item(M.facets.corner(new_f0, lv0), M.facets.corner(f, lv0));
+        M.facet_corners.attributes().copy_item(M.facets.corner(new_f0, lv1), M.facets.corner(f, lv1));
+        /* Restore attributes */
+        M.facet_corners.attributes().zero_item(M.facets.corner(f, lv1));
+
         /* == Split adjacent facet ================================================================================= */
         if (nf0 != GEO::NO_FACET) {
             assert(new_f1 < M.facets.nb());
@@ -114,6 +121,13 @@ namespace geolio
                 assert(M.facets.find_vertex(new_f1, nv0) != GEO::NO_INDEX);
                 M.facets.set_adjacent(nnf2, M.facets.find_vertex(nnf2, nv0), new_f1);
             }
+
+            /* Copy attributes */
+            M.facets.attributes().copy_item(new_f1, nf0);
+            M.facet_corners.attributes().copy_item(M.facets.corner(new_f1, nlv0), M.facets.corner(nf0, nlv0));
+            M.facet_corners.attributes().copy_item(M.facets.corner(new_f1, nlv2), M.facets.corner(nf0, nlv2));
+            /* Restore attributes */
+            M.facet_corners.attributes().zero_item(M.facets.corner(nf0, nlv2));
         }
         else
             M.facets.set_adjacent(new_f0, lv0, GEO::NO_VERTEX);
@@ -137,10 +151,13 @@ namespace geolio
 
         /* Find all incident vertices */
         std::vector<std::pair<GEO::index_t, GEO::index_t>> v0_ordered_f_and_lv;
-        get_vertex_incident_facets(M, f, lv0, v0_ordered_f_and_lv);
+        const bool v0_on_boundary = get_vertex_incident_facets(M, f, lv0, v0_ordered_f_and_lv);
 
         std::vector<std::pair<GEO::index_t, GEO::index_t>> v1_ordered_f_and_lv;
-        get_vertex_incident_facets(M, f, lv1, v1_ordered_f_and_lv);
+        const bool v1_on_boundary = get_vertex_incident_facets(M, f, lv1, v1_ordered_f_and_lv);
+
+        if (v0_on_boundary && v1_on_boundary && af != GEO::NO_FACET) /* will create a new non-manifold vertex */
+            return false;
 
         /* After collapse, no identical triangles can exist */
         std::unordered_set<std::pair<GEO::index_t, GEO::index_t>, PairHash> other_vertices_pair;
@@ -284,19 +301,9 @@ namespace geolio
         const GEO::index_t af1 = M.facets.adjacent(f, lv1);
         const GEO::index_t af2 = M.facets.adjacent(f, lv2);
 
-        /* Set collapsed point (v0) */
-        if (M.vertices.dimension() == 2) {
-            const auto& p0 = M.vertices.point<2>(v0);
-            const auto& p1 = M.vertices.point<2>(v1);
-            M.vertices.point<2>(v0) = (1-r)*p0 + r*p1;
-        }
-        else {
-            assert(M.vertices.dimension() == 3);
-
-            const auto& p0 = M.vertices.point(v0);
-            const auto& p1 = M.vertices.point(v1);
-            M.vertices.point(v0) = (1-r)*p0 + r*p1;
-        }
+        /* Set collapsed point (v0) and interpolate attributes */
+        M.vertices.attributes().scale_item(v0, 1.0-r);
+        M.vertices.attributes().madd_item(v0, r, v1);
         disuse_v = v1;
         disuse_f0 = f;
         disuse_f1 = af0; // facet or GEO::NO_FACET
@@ -521,6 +528,15 @@ namespace geolio
             assert(M.facets.find_vertex(af1, v2) != GEO::NO_INDEX);
             M.facets.set_adjacent(af1, M.facets.find_vertex(af1, v2), af);
         }
+
+        /* Copy attributes */
+        M.facet_corners.attributes().copy_item(M.facets.corner(f, lv), M.facets.corner(af, nlv1));
+        M.facet_corners.attributes().copy_item(M.facets.corner(af, nlv0), M.facets.corner(f, lv1));
+        /* Restore attributes */
+        M.facets.attributes().zero_item(f);
+        M.facets.attributes().zero_item(af);
+        M.facet_corners.attributes().zero_item(M.facets.corner(f, lv1));
+        M.facet_corners.attributes().zero_item(M.facets.corner(af, nlv1));
 
         return true;
     }
