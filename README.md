@@ -68,6 +68,12 @@ project(MyApp LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Centralize build outputs so the app and geolio's shared libraries/DLLs land in
+# the same tree and are easy to find at runtime.
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
 # Embed geolio; exposes the target Geolio::geolio
 add_subdirectory(third_party/geolio)
 
@@ -76,6 +82,8 @@ target_link_libraries(my_app PRIVATE Geolio::geolio)
 ```
 
 When consumed as a submodule (`CMAKE_PROJECT_NAME != PROJECT_NAME`), geolio automatically disables `BUILD_TESTS`.
+
+The output directories above put the built `Geolio.dll` next to your executable (in `build/bin/<config>` on Windows), so it is resolved at runtime without extra setup. Without them, on Windows the DLL lands in geolio's nested build subdirectory and must be added to `PATH`; Linux/macOS resolve the shared library automatically through RPATH.
 
 ### 3. Make Geogram visible
 
