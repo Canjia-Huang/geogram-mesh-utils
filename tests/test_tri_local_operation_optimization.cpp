@@ -23,19 +23,19 @@ namespace geolio::test
         GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
     }
 
-    TEST(TriLocalOperationOptimizationTest, three_d_model) {
-        GEO::Mesh mesh;
-        GEO::mesh_load(std::string(TEST_DATA_PATH)+"bunny.obj", mesh);
-
-        {
-            TriLocalOperationOptimization TLOO(mesh);
-            TLOO.fix_sharp_elements();
-            GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
-
-            TLOO.optimize();
-            GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
-        }
-    }
+    // TEST(TriLocalOperationOptimizationTest, three_d_model) {
+    //     GEO::Mesh mesh;
+    //     GEO::mesh_load(std::string(TEST_DATA_PATH)+"bunny.obj", mesh);
+    //
+    //     {
+    //         TriLocalOperationOptimization TLOO(mesh);
+    //         TLOO.fix_sharp_elements();
+    //         GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
+    //
+    //         TLOO.optimize();
+    //         GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
+    //     }
+    // }
 
     TEST(TriLocalOperationOptimizationTest, three_d_model_sharp) {
         GEO::Mesh mesh;

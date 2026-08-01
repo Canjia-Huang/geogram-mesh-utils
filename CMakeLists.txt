@@ -19,6 +19,10 @@ else()
     set(BUILD_TESTS OFF)
 endif()
 
+# Location of the Geogram source tree. Defaults to the GEOGRAM_DIR environment
+# variable; overridable at configure time with -DGEOGRAM_DIR=...
+set(GEOGRAM_DIR "$ENV{GEOGRAM_DIR}" CACHE PATH "Path to the Geogram source directory (defaults to the GEOGRAM_DIR environment variable)")
+
 if(WIN32)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /utf-8")
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)

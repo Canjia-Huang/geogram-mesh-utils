@@ -135,6 +135,20 @@ If (GEOGRAM_FOUND)
                 INTERFACE_INCLUDE_DIRECTORIES "${GEOGRAM_INCLUDE_DIR}"
         )
 
+        # On Windows Geogram is built with its bundled third-party deps and as
+        # dynamic libraries. Both are compile-time requirements for any target
+        # that consumes geogram headers (GEOGRAM_USE_BUILTIN_DEPS switches the
+        # zlib include to geogram's bundled copy, otherwise <zlib.h> is expected
+        # from the system). Exposing them on the interface lets add_subdirectory()
+        # consumers inherit them; directory-scoped add_compile_definitions() in
+        # Geogram.cmake alone does not propagate outside geolio.
+        if(WIN32)
+            set_target_properties(Geogram::geogram PROPERTIES
+                    INTERFACE_COMPILE_DEFINITIONS
+                    "GEOGRAM_USE_BUILTIN_DEPS;GEO_DYNAMIC_LIBS;NOMINMAX;WIN32_LEAN_AND_MEAN;VC_EXTRALEAN;_USE_MATH_DEFINES"
+            )
+        endif()
+
         # Link to library file
         Set_Target_Properties(Geogram::geogram PROPERTIES
                 IMPORTED_LINK_INTERFACE_LANGUAGES "CXX"
