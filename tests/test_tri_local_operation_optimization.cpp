@@ -64,6 +64,22 @@ namespace geolio::test
             TLOO.optimize();
             GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
         }
+    }
 
+    TEST(TriLocalOperationOptimizationTest, three_d_model_preseve_idx) {
+        GEO::Mesh mesh;
+        GEO::mesh_load(std::string(TEST_DATA_PATH)+"fandisk.obj", mesh);
+
+        GEO::Attribute<GEO::index_t> mesh_v_original_idx(mesh.vertices.attributes(), "original_idx");
+        GEO::Attribute<GEO::index_t> mesh_f_original_idx(mesh.facets.attributes(), "original_idx");
+
+        {
+            TriLocalOperationOptimization TLOO(mesh, &mesh_v_original_idx, &mesh_f_original_idx);
+            TLOO.fix_sharp_elements();
+            GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
+
+            TLOO.optimize();
+        }
+        GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
     }
 }

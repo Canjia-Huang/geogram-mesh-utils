@@ -87,7 +87,7 @@ namespace geolio
         if (!is_tri_edge_swap_valid(mesh_, f, lv))
             return false;
 
-        { // The swap operation should help improve the overall valence.
+        if (SWAP_CRITERION & SWAP_BASED_ON_VALENCE) { // The swap operation should help improve the overall valence.
             int valence0, valence1, valence2, valence3;
                 std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_f_and_lv;
                 {
@@ -126,6 +126,28 @@ namespace geolio
                                           std::pow(valence3-v3_ideal_valence, 2);
                 if (post_valence > prev_valence)
                     return false;
+        }
+        if (SWAP_CRITERION & SWAP_BASED_ON_DELAUNAY) {
+            if (manager_.mesh_2d) {
+                const auto& p0 = mesh_.vertices.point<2>(v0);
+                const auto& p1 = mesh_.vertices.point<2>(v1);
+                const auto& p2 = mesh_.vertices.point<2>(v2);
+                const auto& p3 = mesh_.vertices.point<2>(v3);
+                const auto angle0 = GEO::Geom::angle(p0-p2, p1-p2);
+                const auto angle1 = GEO::Geom::angle(p0-p3, p1-p3);
+                if (angle0+angle1 < M_PI)
+                    return false;
+            }
+            else {
+                const auto& p0 = mesh_.vertices.point(v0);
+                const auto& p1 = mesh_.vertices.point(v1);
+                const auto& p2 = mesh_.vertices.point(v2);
+                const auto& p3 = mesh_.vertices.point(v3);
+                const auto angle0 = GEO::Geom::angle(p0-p2, p1-p2);
+                const auto angle1 = GEO::Geom::angle(p0-p3, p1-p3);
+                if (angle0+angle1 < M_PI)
+                    return false;
+            }
         }
 
         return true;

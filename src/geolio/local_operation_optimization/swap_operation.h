@@ -29,6 +29,13 @@ namespace geolio
          */
         void perform_one_pass();
 
+        enum SwapCriterion {
+            SWAP_BASED_ON_VALENCE   = 1<<0,
+            SWAP_BASED_ON_DELAUNAY  = 1<<1
+        };
+
+        GEO::index_t SWAP_CRITERION = SWAP_BASED_ON_DELAUNAY;
+
     private:
         /**
          * @brief Checks whether the edge of facet @p f at local vertex @p lv may be swapped.
