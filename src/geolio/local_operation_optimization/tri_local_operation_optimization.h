@@ -21,7 +21,10 @@ namespace geolio
          *          preserve or fix them.
          * @param[in] mesh The triangle mesh to optimize; only simplex facets are supported.
          */
-        explicit TriLocalOperationOptimization(GEO::Mesh& mesh);
+        explicit TriLocalOperationOptimization(
+            GEO::Mesh& mesh,
+            GEO::Attribute<GEO::index_t>* mesh_v_original_idx = nullptr,
+            GEO::Attribute<GEO::index_t>* mesh_f_original_idx = nullptr);
 
 
         /**
@@ -130,6 +133,9 @@ namespace geolio
 
         GEO::Mesh& mesh_;
         MeshElementManager manager_;
+
+        GEO::Attribute<GEO::index_t>* mesh_v_original_idx_ = nullptr;
+        GEO::Attribute<GEO::index_t>* mesh_f_original_idx_ = nullptr;
     };
 }
 

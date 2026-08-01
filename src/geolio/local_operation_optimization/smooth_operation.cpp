@@ -9,15 +9,6 @@
 
 namespace geolio
 {
-    /**
-     * @brief Constructs a SmoothOperation for relaxing vertex positions.
-     * @details Initializes the base operation. For 3D meshes it keeps a copy of the input
-     *          mesh (original_mesh_) and builds a GEO::MeshFacetsAABB over it so smoothed
-     *          vertices can be projected back onto the original surface. 2D meshes skip the
-     *          copy because no projection is needed.
-     * @param[in] mesh_element_manager The mesh element manager exposing the mesh and its
-     *                                 usage/fixed element attributes.
-     */
     SmoothOperation::SmoothOperation(
         MeshElementManager& mesh_element_manager
         ) : BaseOperation(mesh_element_manager)
@@ -28,16 +19,6 @@ namespace geolio
         }
     }
 
-    /**
-     * @brief Runs a number of smoothing iterations over the mesh vertices.
-     * @details Builds the one-ring adjacency of every used vertex from the used facets, and
-     *          optionally the set of vertices/edges adjacent to fixed edges. For each
-     *          iteration it computes each movable vertex's target position as the average of
-     *          its neighbours, projects it onto the original surface for 3D meshes, slides
-     *          it along adjacent fixed edges when allowed, and writes it back if
-     *          is_perform_valid() passes.
-     * @param[in] iterations_nb Number of smoothing iterations to execute.
-     */
     void SmoothOperation::perform_one_pass(
         const GEO::index_t iterations_nb
         ) const {
@@ -218,13 +199,6 @@ namespace geolio
         }
     }
 
-    /**
-     * @brief Checks whether vertex @p v is allowed to move during smoothing.
-     * @details Returns false when the vertex is no longer in use or is marked as fixed;
-     *          returns true otherwise.
-     * @param[in] v Index of the vertex to test.
-     * @return true if the vertex may be moved; false otherwise.
-     */
     bool SmoothOperation::is_perform_valid(
         const GEO::index_t v
         ) const {
