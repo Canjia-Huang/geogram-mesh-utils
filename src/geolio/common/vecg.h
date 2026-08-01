@@ -10,10 +10,12 @@
 namespace geolio
 {
     /**
-     * \brief Computes the dot product of 2 vectors
-     * \param[in] v1 the first vector
-     * \param[in] v2 the second vector
-     * \return the dot product (\p v1 . \p v2)
+     * @brief Computes the dot product of 2 vectors.
+     * @details Multiplies the corresponding components of the two vectors and
+     *          sums them, i.e. returns v1.x * v2.x + v1.y * v2.y.
+     * @param[in] v1 The first vector.
+     * @param[in] v2 The second vector.
+     * @return The dot product (v1 . v2).
      */
     inline double dot(
         const GEO::vec2& v1,
@@ -23,10 +25,13 @@ namespace geolio
     }
 
     /**
-     * \brief Computes the cross product of 2 vectors
-     * \param[in] v1 the first vector
-     * \param[in] v2 the second vector
-     * \return the cross product (\p v1 x \p v2)
+     * @brief Computes the cross product of 2 vectors.
+     * @details Returns the signed 2D cross product v1.x * v2.y - v1.y * v2.x,
+     *          whose magnitude equals the area of the parallelogram spanned by
+     *          the two vectors.
+     * @param[in] v1 The first vector.
+     * @param[in] v2 The second vector.
+     * @return The cross product (v1 x v2).
      */
     inline double cross(
         const GEO::vec2& v1,

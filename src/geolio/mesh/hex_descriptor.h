@@ -226,11 +226,11 @@ namespace geolio
     };
 
     /**
-     * Local-face triple to common-local-vertex lookup for a hexahedron.
-     *
-     * `HEX_LF_LF_LF_COMMON_LV(lf0, lf1, lf2)` returns the local vertex index
-     * (LV, 0-7) shared by the three given local faces (LF, 0-5).
-     *
+     * @brief Finds the local vertex shared by three hexahedron local faces.
+     * @details Combines the three face indices into a bitmask and matches it
+     *          against the three-face bitmask of each of the eight local
+     *          vertices (built from `HEX_LV_INCIDENT_LF`) using a switch.
+     *          Asserts that every face index lies in [0, 6).
      * @param[in] lf0 First local face index.
      * @param[in] lf1 Second local face index.
      * @param[in] lf2 Third local face index.

@@ -20,6 +20,15 @@ namespace geolio
      * containers (e.g., std::unordered_map or std::unordered_set).
      */
     struct PairHash {
+        /**
+         * @brief Computes the hash value of a pair.
+         * @details Packs the two 32-bit integers into a single 64-bit key by
+         *          shifting the first element into the high 32 bits and OR-ing
+         *          the second into the low 32 bits, then hashes that key with
+         *          std::hash<uint64_t>.
+         * @param[in] pair The pair to hash.
+         * @return The computed hash value.
+         */
         std::size_t operator () (std::pair<uint32_t, uint32_t> const& pair
             ) const {
             const uint64_t key = (static_cast<uint64_t>(pair.first) << 32) | pair.second;

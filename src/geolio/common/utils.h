@@ -9,6 +9,15 @@
 
 namespace geolio
 {
+    /**
+     * @brief Generates a random alphanumeric string of a given length.
+     * @details Uses a function-local static std::mt19937 generator seeded from
+     *          std::random_device. Each character is drawn uniformly at random
+     *          from the alphanumeric character set using a uniform integer
+     *          distribution and appended to the result.
+     * @param[in] length The number of characters in the generated string.
+     * @return The generated random string.
+     */
     inline std::string generate_random_string(
         const std::size_t length
         ) {

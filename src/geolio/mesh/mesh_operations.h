@@ -11,17 +11,14 @@ namespace geolio
 {
     /**
      * @brief Collect facets incident to a vertex in one-ring order.
-     *
-     * Starting from facet @p start_f and its local vertex slot @p start_lv, this function traverses
-     * the incident facets around the target vertex and outputs ordered pairs (facet index, local vertex index).
-     * The traversal is applicable to arbitrary polygonal meshes, including hybrid meshes with facets of
-     * different sizes, rather than being limited to triangular meshes. For interior vertices, the sequence
-     * forms a closed ring. For border vertices, the sequence is ordered from one border side to the other.
-     *
-     * For non-manifold vertices, only the connected component of incident facets reachable from the seed
-     * facet is explored. The resulting list is therefore not guaranteed to be complete for the full set of
-     * incident facets.
-     *
+     * @details Starting from the seed facet @p start_f and its local vertex slot @p start_lv,
+     *          the function walks facet-to-facet adjacency links around the target vertex,
+     *          recording ordered (facet, local vertex) pairs. For interior vertices the walk
+     *          forms a closed ring; for border vertices it stops at the border and then walks
+     *          in the opposite direction to order the list from one border side to the other.
+     *          The traversal handles arbitrary polygonal (including hybrid) meshes. For
+     *          non-manifold vertices, only the connected component reachable from the seed
+     *          facet is explored.
      * @param[in] M Input mesh.
      * @param[in] start_f Seed facet index incident to the target vertex.
      * @param[in] start_lv Local vertex index of the target vertex in @p start_f.
@@ -37,16 +34,15 @@ namespace geolio
         std::vector<std::pair<GEO::index_t, GEO::index_t>>& ordered_f_and_lv);
 
     /**
-     * Collects cells incident to a vertex from a seed cell.
-     *
-     * Starting from (@p start_c, @p start_lv), this function traverses neighboring
-     * cells that share the same global vertex and outputs pairs (cell index, local
-     * vertex index in that cell). The traversal currently supports tetrahedra and
-     * hexahedra.
-     *
-     * For non-manifold configurations, only the component reachable from the seed
-     * cell through adjacency links is collected.
-     *
+     * @brief Collect cells incident to a vertex from a seed cell.
+     * @details Starting from (@p start_c, @p start_lv), the function performs a
+     *          depth-first search over cells sharing the target global vertex,
+     *          using a stack and a processed-cell set. For each visited cell it
+     *          outputs (cell index, local vertex index) and pushes the neighbors
+     *          across every local facet that also contains the vertex. The traversal
+     *          currently supports tetrahedra and hexahedra. For non-manifold
+     *          configurations, only the component reachable from the seed cell is
+     *          collected.
      * @param[in] M Input mesh.
      * @param[in] start_c Seed cell index incident to the target vertex.
      * @param[in] start_lv Local vertex index of the target vertex in @p start_c.
@@ -62,17 +58,14 @@ namespace geolio
         std::vector<std::pair<GEO::index_t, GEO::index_t>>& c_and_lv);
 
     /**
-     * Collects edge-incident cells in ring/chain order from a seed local edge.
-     *
-     * The edge is identified by local edge index @p start_le in cell @p start_c.
-     * The output stores tuples (c, le, lf), where @p c is an incident cell, @p le
-     * is the corresponding local edge index in that cell, and @p lf is the local
-     * facet used by the traversal to move from @p c to the next cell in the ordered
-     * sequence.
-     *
-     * For interior edges, the sequence forms a closed loop. For border edges, the
-     * sequence is ordered from one border side to the other.
-     *
+     * @brief Collect edge-incident cells in ring/chain order from a seed local edge.
+     * @details The edge is identified by local edge index @p start_le in cell @p start_c.
+     *          The function walks cell-to-cell adjacency links across the local facets
+     *          adjacent to the edge, recording ordered (c, le, lf) tuples, where @p lf is
+     *          the facet used to move to the next cell. For interior edges the walk forms
+     *          a closed loop; for border edges it additionally walks in the opposite
+     *          direction to order the sequence from one border side to the other. Only
+     *          tetrahedral and hexahedral cells are currently supported.
      * @param[in] M Input mesh.
      * @param[in] start_c Seed cell containing the target edge.
      * @param[in] start_le Local edge index in @p start_c.
@@ -87,14 +80,12 @@ namespace geolio
         std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>>& ordered_c_le_lf);
 
     /**
-     * Collects edge-incident cells in ring/chain order from a facet edge seed.
-     *
-     * The target edge is derived from two consecutive facet vertices:
-     * `facet_vertex(start_c, start_lf, start_lv)` and
-     * `facet_vertex(start_c, start_lf, (start_lv+1)%N)`, where `N` is the number
-     * of vertices of the facet (3 for tetrahedra, 4 for hexahedra). The function
-     * then delegates to the local-edge overload.
-     *
+     * @brief Collect edge-incident cells in ring/chain order from a facet edge seed.
+     * @details The target edge is derived from two consecutive facet vertices:
+     *          `facet_vertex(start_c, start_lf, start_lv)` and
+     *          `facet_vertex(start_c, start_lf, (start_lv+1)%N)`, where `N` is the
+     *          number of vertices of the facet (3 for tetrahedra, 4 for hexahedra).
+     *          The function then delegates to the local-edge overload.
      * @param[in] M Input mesh.
      * @param[in] start_c Seed cell index.
      * @param[in] start_lf Local facet index in @p start_c.

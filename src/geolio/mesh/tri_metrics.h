@@ -11,10 +11,10 @@
 namespace geolio
 {
     /**
-     * @brief Compute the minimum interior angle of a triangle facet.
-     *
-     * The function evaluates the three corner angles of facet @p f and returns the smallest one.
-     *
+     * @brief Computes the minimum interior angle of a triangle facet.
+     * @details Evaluates the three corner angles of facet @p f using
+     *          `GEO::Geom::angle` at each vertex and returns the smallest one
+     *          via `std::min` over an initializer list of the three angles.
      * @param[in] M Input mesh.
      * @param[in] f Facet index of the target triangle.
      * @return Minimum interior angle of facet @p f (in radians, range: [0, pi], best: pi/3).

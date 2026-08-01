@@ -7,6 +7,15 @@
 
 namespace geolio
 {
+    /**
+     * @brief Constructs a MeshElementManager over the given triangle mesh.
+     * @details Records the mesh reference, whether it is 2D (vertex dimension 2), and
+     *          generates a random attribute name prefix via generate_random_string().
+     *          Binds and initializes the per-vertex, per-facet and per-corner usage/fixed
+     *          attributes under that prefix: vertices and facets start as used, boundary,
+     *          fixed and non-manifold flags start false.
+     * @param[in] _mesh The triangle mesh to manage; it must contain only simplex facets.
+     */
     MeshElementManager::MeshElementManager(
         GEO::Mesh& _mesh
         ) : mesh(_mesh),
@@ -30,6 +39,11 @@ namespace geolio
         mesh_fc_fixed.fill(false);
     }
 
+    /**
+     * @brief Destroys the MeshElementManager.
+     * @details Destroys all bound element attributes (boundary, fixed, non-manifold, used
+     *          and fixed-corner) if they are still bound, releasing their mesh storage.
+     */
     MeshElementManager::~MeshElementManager(
         ) {
         /* Destroy attributes */
@@ -47,6 +61,15 @@ namespace geolio
             mesh_fc_fixed.destroy();
     }
 
+    /**
+     * @brief Physically removes disused facets (and optionally isolated vertices) from the mesh.
+     * @details If both free pools are empty, returns immediately. Otherwise builds a delete
+     *          mask over the free-facet indices and calls mesh.facets.delete_elements(),
+     *          forwarding remove_isolated_vertices, then clears both free pools. Asserts that
+     *          all remaining used flags are consistent after deletion.
+     * @param[in] remove_isolated_vertices When true, vertices that become isolated after the
+     *                                     facet deletion are removed as well.
+     */
     void MeshElementManager::clean_unused_elements(
         const bool remove_isolated_vertices
         ) {
@@ -68,6 +91,12 @@ namespace geolio
         assert(std::ranges::all_of(mesh_f_used.get_vector(), [](const auto& b){ return b; }));
     }
 
+    /**
+     * @brief Computes the average edge length over all facets of the mesh.
+     * @details Iterates over every facet and accumulates the length of all three local edges
+     *          via get_edge_length(), then divides the sum by the total number of edges.
+     * @return The average mesh edge length.
+     */
     double MeshElementManager::compute_average_mesh_edge_length(
         ) const {
         double l = 0;
@@ -82,6 +111,12 @@ namespace geolio
         return l / edges_nb;
     }
 
+    /**
+     * @brief Allocates a batch of new mesh vertices for future reuse.
+     * @details Appends as many new vertices as the mesh currently has via create_vertices()
+     *          and pushes their indices onto the free-vertex pool so require_new_vertex()
+     *          can hand them out later.
+     */
     void MeshElementManager::allocate_new_vertices(
         ) {
         assert(mesh.vertices.nb() > 0);
@@ -95,6 +130,12 @@ namespace geolio
             free_vertices_.push_back(v);
     }
 
+    /**
+     * @brief Allocates a batch of new triangle facets for future reuse.
+     * @details Appends as many new triangles as the mesh currently has via create_triangles()
+     *          and pushes their indices onto the free-facet pool so require_new_facet()
+     *          can hand them out later.
+     */
     void MeshElementManager::allocate_new_facets(
         ) {
         assert(mesh.facets.nb() > 0);

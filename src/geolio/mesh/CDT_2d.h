@@ -13,10 +13,11 @@ namespace geolio
 {
     /**
      * @brief Appends a 2D constrained Delaunay triangulation to a mesh.
-     *
-     * The function copies all CDT vertices into the mesh, then creates one
-     * mesh triangle for each CDT triangle using the copied vertex indices.
-     *
+     * @details Creates new mesh vertices for every CDT vertex and copies their
+     *          coordinates from the triangulation, embedding 2D points as
+     *          (x, y, 0) when the mesh dimension is 3. It then creates one mesh
+     *          triangle per CDT triangle and fills each corner using the CDT
+     *          vertex indices remapped to the newly appended mesh vertices.
      * @param[in] CDT The source 2D constrained Delaunay triangulation.
      * @param[in, out] mesh The destination mesh.
      */

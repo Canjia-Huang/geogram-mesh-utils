@@ -12,8 +12,10 @@
 namespace geolio
 {
     /**
-     * Finds the local vertex index in a hexahedron from a global vertex index.
-     *
+     * @brief Find the local vertex index in a hexahedron from a global vertex index.
+     * @details Linearly scans the 8 vertices of cell @p c and returns the first local slot
+     *          whose global vertex matches @p v; returns GEO::NO_INDEX if the vertex is not
+     *          present.
      * @param[in] M  The hexahedral mesh to query
      * @param[in] c  Index of the hexahedral cell to search
      * @param[in] v  Global vertex index to locate in cell @p c
@@ -35,10 +37,10 @@ namespace geolio
     }
 
     /**
-     * Finds the local edge index in a hexahedron from two local endpoint vertices.
-     *
-     * Edge direction is ignored.
-     *
+     * @brief Find the local edge index in a hexahedron from two local endpoint vertices.
+     * @details Encodes the two local vertex indices as a bit mask `(1<<lv0)|(1<<lv1)` and
+     *          compares it against the precomputed HEX_ENCODED_LE table. Edge direction is
+     *          ignored, and a mask that matches no edge returns GEO::NO_INDEX.
      * @param[in] lv0 Local vertex index (0-7) of one endpoint
      * @param[in] lv1 Local vertex index (0-7) of the other endpoint
      * @return Local edge index (0-11) if @p lv0 and @p lv1 form a hexahedron edge; otherwise GEO::NO_INDEX
@@ -69,11 +71,11 @@ namespace geolio
     }
 
     /**
-     * Finds the local edge index in a hexahedron from two endpoint vertex.
-     *
-     * The search is performed in cell @p c using global vertex indices @p ev0 and @p ev1.
-     * Edge direction is ignored.
-     *
+     * @brief Find the local edge index in a hexahedron from two endpoint vertices.
+     * @details The search is performed in cell @p c using global vertex indices @p v0 and @p v1:
+     *          it scans the cell vertices for @p v0, checks each of its adjacent local vertices
+     *          for @p v1, and delegates to find_hex_edge_from_local_vertices(). Edge direction is
+     *          ignored.
      * @param[in] M    The hexahedral mesh to query
      * @param[in] c    Index of the hexahedral cell to search
      * @param[in] v0  Global vertex index of one endpoint
@@ -102,10 +104,11 @@ namespace geolio
     }
 
     /**
-     * Finds a local facet index from three local vertices of a hexahedron.
-     *
-     * The three local vertices can be provided in any order.
-     *
+     * @brief Find a local facet index from three local vertices of a hexahedron.
+     * @details The three local vertices can be provided in any order. The function returns
+     *          GEO::NO_INDEX if any two vertices coincide, then encodes the vertices as a bit
+     *          mask and checks whether it is a subset of one of the precomputed HEX_ENCODED_LF
+     *          facet masks.
      * @param[in] lv0 Local vertex index (0-7)
      * @param[in] lv1 Local vertex index (0-7)
      * @param[in] lv2 Local vertex index (0-7)
@@ -139,10 +142,11 @@ namespace geolio
     }
 
     /**
-     * Finds a local facet index from four local vertices of a hexahedron.
-     *
-     * The four local vertices can be provided in any order.
-     *
+     * @brief Find a local facet index from four local vertices of a hexahedron.
+     * @details The four local vertices can be provided in any order. The function encodes them
+     *          as a bit mask `(1<<lv0)|(1<<lv1)|(1<<lv2)|(1<<lv3)` and looks it up directly in
+     *          the precomputed HEX_ENCODED_LF table; a mask that matches no facet (for example
+     *          a set of vertices not coplanar on a single facet) returns GEO::NO_INDEX.
      * @param[in] lv0 Local vertex index (0-7)
      * @param[in] lv1 Local vertex index (0-7)
      * @param[in] lv2 Local vertex index (0-7)
@@ -173,10 +177,11 @@ namespace geolio
     }
 
     /**
-     * Finds the local facet index in a hexahedron from three global vertices.
-     *
-     * The three vertices can be provided in any order.
-     *
+     * @brief Find the local facet index in a hexahedron from three global vertices.
+     * @details The three vertices can be provided in any order. The function maps each global
+     *          vertex to its local slot in cell @p c via find_hex_vertex() and then delegates to
+     *          find_hex_facet_from_local_vertices(). If any vertex is absent from @p c, it returns
+     *          GEO::NO_INDEX.
      * @param[in] M   The hexahedral mesh to query
      * @param[in] c   Index of the hexahedral cell to search
      * @param[in] v0  Global vertex index on the target facet

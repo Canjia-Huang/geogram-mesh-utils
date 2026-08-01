@@ -15,10 +15,10 @@
 namespace geolio
 {
     /**
-     * Finds the local edge index in a tetrahedron from two local endpoint vertices.
-     *
-     * Edge direction is ignored.
-     *
+     * @brief Find the local edge index in a tetrahedron from two local endpoint vertices.
+     * @details Encodes the two local vertex indices as a bit mask `(1<<lv0)|(1<<lv1)` and
+     *          compares it against the precomputed TET_ENCODED_LE table. Edge direction is
+     *          ignored, and a mask that matches no edge returns GEO::NO_INDEX.
      * @param[in] lv0 Local vertex index (0-3) of one endpoint
      * @param[in] lv1 Local vertex index (0-3) of the other endpoint
      * @return Local edge index (0-5) if @p lv0 and @p lv1 form a tetrahedron edge; otherwise GEO::NO_INDEX
@@ -43,13 +43,13 @@ namespace geolio
     }
 
     /**
-     * Finds the local edge index in a tetrahedron from two endpoint vertex.
-     *
-     * The search is performed in cell @p c using global vertex indices @p ev0 and @p ev1.
-     * Edge direction is ignored.
-     *
+     * @brief Find the local edge index in a tetrahedron from two endpoint vertices.
+     * @details The search is performed in cell @p c using global vertex indices @p v0 and @p v1:
+     *          it scans the cell vertices for @p v0, checks each of its adjacent local vertices
+     *          for @p v1, and delegates to find_tet_edge_from_local_vertices(). Edge direction is
+     *          ignored.
      * @param[in] M    The mesh to query
-     * @param[in] c    Index of the hexahedral cell to search
+     * @param[in] c    Index of the tetrahedral cell to search
      * @param[in] v0  Global vertex index of one endpoint
      * @param[in] v1  Global vertex index of the other endpoint
      * @return Local edge index (0-5) in @p c if found; otherwise GEO::NO_INDEX
@@ -76,17 +76,17 @@ namespace geolio
     }
 
     /**
-     * Returns the third vertex of a tetrahedron facet from two known facet vertices.
-     *
+     * @brief Return the third vertex of a tetrahedron facet from two known facet vertices.
+     * @details XORs the three global vertex indices of facet (@p c, @p lf) together with @p v0
+     *          and @p v1. Since the facet has three distinct vertices, the XOR cancels the two
+     *          known vertices and leaves the third one. Preconditions (@p c, @p lf, and the
+     *          membership of @p v0 and @p v1 in the facet) are debug-checked with assertions.
      * @param[in] M  Input tetrahedral mesh.
      * @param[in] c  Cell index.
      * @param[in] lf Local facet index (0..3) in cell @p c.
      * @param[in] v0 First known vertex on facet (@p c, @p lf).
      * @param[in] v1 Second known vertex on facet (@p c, @p lf); must be different from @p v0.
      * @return The facet vertex in (@p c, @p lf) that is different from @p v0 and @p v1.
-     *
-     * @note Preconditions (debug-checked with assertions): @p c and @p lf are valid,
-     *       and both @p v0 and @p v1 belong to facet (@p c, @p lf).
      */
     inline GEO::index_t get_tet_facet_another_vertex(
         const GEO::Mesh& M,
@@ -117,13 +117,12 @@ namespace geolio
     }
 
     /**
-     * Splits one tetrahedron into four tetrahedra by inserting an interior vertex.
-     *
-     * The vertex index @p new_v is expected to be pre-allocated. Its position will be set
-     * to the barycenter of cell @p c. The original cell @p c is updated in-place and
-     * three additional tetrahedra (@p new_c0, @p new_c1, @p new_c2) are filled.
-     * Adjacency between the four resulting cells and neighboring cells is updated.
-     *
+     * @brief Split one tetrahedron into four tetrahedra by inserting an interior vertex.
+     * @details The vertex index @p new_v is expected to be pre-allocated; its position is set
+     *          to the barycenter of cell @p c. The original cell @p c is updated in place and
+     *          three additional tetrahedra (@p new_c0, @p new_c1, @p new_c2) are filled. Each of
+     *          the four resulting cells keeps three original vertices plus @p new_v, and the
+     *          cell-to-cell adjacency is relinked, including the neighboring cells of @p c.
      * @param[in,out] M      The tetrahedral mesh to modify
      * @param[in]     c      Index of the tetrahedron to split
      * @param[in]     new_v  Index of a pre-allocated vertex used as the split vertex
@@ -140,14 +139,13 @@ namespace geolio
         GEO::index_t new_c2);
 
     /**
-     * Splits a tetrahedral facet by inserting a new vertex on the facet.
-     *
-     * The vertex index @p new_v is expected to be pre-allocated. Its position will be set
-     * to the barycenter of facet @p lf in cell @p c. The incident tetrahedral connectivity
-     * is updated, and the resulting tetrahedra are written into the pre-allocated cells.
-     * For a boundary facet, only @p new_c0 and @p new_c1 are used. For an interior facet,
-     * @p new_c2 and @p new_c3 are also used.
-     *
+     * @brief Split a tetrahedral facet by inserting a new vertex on the facet.
+     * @details The vertex index @p new_v is expected to be pre-allocated; its position is set
+     *          to the barycenter of facet @p lf in cell @p c. The owning cell @p c is replaced by
+     *          two tetrahedra written into @p new_c0 and @p new_c1. If the facet is interior, the
+     *          adjacent tetrahedron is split symmetrically into @p new_c2 and @p new_c3, and all
+     *          cell-to-cell adjacencies (including neighbors of the original two cells) are
+     *          relinked. For a boundary facet only @p new_c0 and @p new_c1 are used.
      * @param[in,out] M      The tetrahedral mesh to modify.
      * @param[in]     c      Index of the tetrahedron that owns the target facet.
      * @param[in]     lf     Local facet index (0-3) in cell @p c.
@@ -168,18 +166,12 @@ namespace geolio
         GEO::index_t new_c3 = GEO::NO_CELL);
 
     /**
-     * Splits a tetrahedral edge by inserting one vertex and splitting all incident cells.
-     *
-     * The edge is identified by local edge index @p le in seed cell @p _c.
-     * The function traverses all tetrahedra incident to that edge, places @p new_v
-     * on the edge using interpolation ratio @p r, and splits each incident tetrahedron
-     * into two tetrahedra while updating adjacency relations.
-     *
-     * The newly created tetrahedra are provided through @p new_cs, which must point to
-     * an array large enough to store one cell index per tetrahedron incident to the edge.
-     * Each entry in that array must reference a pre-allocated tetrahedron slot; on return
-     * the function clears the entries by writing GEO::NO_CELL after they have been consumed.
-     *
+     * @brief Split a tetrahedral edge by inserting one vertex and splitting all incident cells.
+     * @details The edge is identified by local edge index @p le in seed cell @p _c. The function
+     *          first collects every tetrahedron incident to that edge in ring/chain order via
+     *          get_edge_incident_cells(), then places @p new_v on the edge at interpolation ratio
+     *          @p r and splits each incident tetrahedron into two along the edge, relinking the
+     *          cell-to-cell adjacencies.
      * @param[in,out] M      The tetrahedral mesh to modify.
      * @param[in]     _c     Seed cell that contains the edge to split.
      * @param[in]     le     Local edge index (0-5) in cell @p _c.
@@ -198,12 +190,12 @@ namespace geolio
         double r = 0.5);
 
     /**
-     * Checks whether collapsing a tetrahedral edge at interpolation ratio @p r is valid.
-     *
-     * The target point is computed on the edge identified by @p le in cell @p _c.
-     * The function virtually moves both edge endpoints to that target point and tests
-     * all incident tetrahedra to ensure no negative signed volume is produced.
-     *
+     * @brief Check whether collapsing a tetrahedral edge at interpolation ratio @p r is valid.
+     * @details The target point is computed on the edge identified by @p le in cell @p _c. The
+     *          function virtually moves both edge endpoints to that target point: it collects the
+     *          cells incident to each endpoint via get_vertex_incident_cells(), substitutes the
+     *          moved position into each cell, and rejects the collapse if any tetrahedron gets a
+     *          negative signed volume.
      * @param[in] M   The tetrahedral mesh to query.
      * @param[in] _c  Index of a seed cell containing the target edge.
      * @param[in] le  Local edge index (0-5) in cell @p _c.
@@ -217,14 +209,14 @@ namespace geolio
         double r = 0.5);
 
     /**
-     * Collapses a tetrahedral edge by moving one endpoint along the edge and
-     * updating the local cavity connectivity.
-     *
-     * The edge is identified by local edge index @p le in cell @p c.
-     * Parameter @p r controls the new endpoint position by interpolation on the
-     * edge segment (`0` keeps the first endpoint, `1` keeps the second endpoint).
-     * Collapsed cells/vertices are reported through optional output arguments.
-     *
+     * @brief Collapse a tetrahedral edge by moving one endpoint along the edge and updating the
+     *        local cavity connectivity.
+     * @details The edge is identified by local edge index @p _le in cell @p _c. Parameter @p r
+     *          controls the new endpoint position by interpolation on the edge segment (`0` keeps
+     *          the first endpoint, `1` keeps the second endpoint). The function collects the cells
+     *          incident to the edge and to the removed endpoint, relinks the adjacency of the
+     *          surviving cavity cells, rewrites the removed endpoint to the surviving vertex in all
+     *          remaining cells, and reports the removed vertex and cells through output arguments.
      * @param[in,out] M         The tetrahedral mesh to modify.
      * @param[in]     _c         Index of a cell containing the target edge.
      * @param[in]     _le        Local edge index (0-5) in cell @p c.
@@ -241,13 +233,12 @@ namespace geolio
         double r = 0.5);
 
     /**
-     * Checks whether a 2-3 tetrahedral swap can be applied on a facet.
-     *
-     * The facet is identified by local facet index @p lf in cell @p c. The function
-     * requires a valid adjacent tetrahedron across that facet and verifies that the
-     * three tetrahedra generated by the prospective flip would keep non-negative
-     * signed volume.
-     *
+     * @brief Check whether a 2-3 tetrahedral swap can be applied on a facet.
+     * @details The facet is identified by local facet index @p lf in cell @p c. The function
+     *          requires a valid adjacent tetrahedron across that facet, then computes the signed
+     *          volumes of the three tetrahedra that would be generated by the prospective flip
+     *          (the apex vertices of both cells against each side of the shared facet) and rejects
+     *          the swap if any of them is negative.
      * @param[in] M   The tetrahedral mesh to query.
      * @param[in] c   Index of the seed cell containing the candidate facet.
      * @param[in] lf  Local facet index (0-3) in cell @p c.
@@ -259,17 +250,16 @@ namespace geolio
         GEO::index_t lf);
 
     /**
-     * Performs a 2-3 facet swap operation on a tetrahedral mesh.
-     *
-     * This operation replaces two tetrahedra that share a common facet with
-     * three tetrahedra by flipping that facet. Given a seed cell @p c and its
-     * local facet @p lf, this function identifies the adjacent tetrahedron
-     * across the facet and updates the local connectivity accordingly.
-     *
+     * @brief Perform a 2-3 facet swap operation on a tetrahedral mesh.
+     * @details This operation replaces two tetrahedra that share a common facet with three
+     *          tetrahedra by flipping that facet. Given a seed cell @p c and its local facet @p lf,
+     *          the function identifies the adjacent tetrahedron across the facet, rewrites the
+     *          vertices of all three resulting cells (the original two plus the pre-allocated
+     *          @p new_c), and relinks every cell-to-cell adjacency around the transformed cavity.
      * @param[in,out] M      The tetrahedral mesh to modify.
      * @param[in]     c      Index of the seed cell containing the target facet.
      * @param[in]     lf     Local facet index (0-3) of cell @p c.
-     * @param[in,out] new_c  Index of the pre-allocated cell used to store the newly created tetrahedron.
+     * @param[in]     new_c  Index of the pre-allocated cell used to store the newly created tetrahedron.
      * @return true if the swap is performed successfully; false if the target facet is on the border or the operation cannot be applied.
      */
     bool tet_edge_swap_2_3(
@@ -279,13 +269,13 @@ namespace geolio
         GEO::index_t new_c);
 
     /**
-     * Performs a 3-2 edge swap operation on a tetrahedral mesh.
-     *
-     * This operation replaces 3 tetrahedra sharing a common edge with 2 tetrahedra
-     * by removing the shared edge. Given a cell @p _c with a local edge @p _le,
-     * this function identifies all incident cells (expected to be exactly 3),
-     * performs the topological transformation, and reports the removed cell.
-     *
+     * @brief Perform a 3-2 edge swap operation on a tetrahedral mesh.
+     * @details This operation replaces 3 tetrahedra sharing a common edge with 2 tetrahedra by
+     *          removing the shared edge. Given a cell @p _c with a local edge @p _le, the function
+     *          collects the cells incident to that edge in ring order via get_edge_incident_cells()
+     *          and requires exactly 3 non-border cells. It then rewrites the vertices of the two
+     *          surviving cells and relinks the adjacency of the cavity; the removed cell index is
+     *          reported through @p disuse_c.
      * @param[in,out] M        The tetrahedral mesh to modify.
      * @param[in]     _c       Index of a seed cell containing the target edge.
      * @param[in]     _le      Local edge index (0-5) in cell @p _c.

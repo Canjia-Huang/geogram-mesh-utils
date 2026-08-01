@@ -12,12 +12,13 @@ namespace geolio
 {
     /**
      * @brief Combines a value into an existing hash seed.
+     * @details Applies the standard boost-style mixing step
+     *          seed ^= hash(val) + 0x9e3779b9 + (seed << 6) + (seed >> 2),
+     *          so that multiple values can be folded into one hash result
+     *          in a well-distributed way.
      * @tparam T Type of the value to hash.
-     * @param seed The running hash seed to be updated.
-     * @param val The value to combine into the seed.
-     *
-     * This helper applies a standard hash-combine mixing step so multiple
-     * values can be folded into one hash result.
+     * @param[in, out] seed The running hash seed, updated in place.
+     * @param[in] val The value to combine into the seed.
      */
     template <typename T>
     void hash_combine(std::size_t& seed, const T& val) {
@@ -35,7 +36,9 @@ namespace geolio
     struct Array3Hash {
         /**
          * @brief Computes the hash value for a 3-element array.
-         * @param arr The sorted array to hash.
+         * @details Seeds a hash from zero and folds the three elements into it
+         *          one by one through hash_combine.
+         * @param[in] arr The sorted array to hash.
          * @return The combined hash value.
          */
         std::size_t operator()(const std::array<T, 3>& arr) const {
@@ -57,7 +60,9 @@ namespace geolio
     struct Array4Hash {
         /**
          * @brief Computes the hash value for a 4-element array.
-         * @param arr The sorted array to hash.
+         * @details Seeds a hash from zero and folds the four elements into it
+         *          one by one through hash_combine.
+         * @param[in] arr The sorted array to hash.
          * @return The combined hash value.
          */
         std::size_t operator()(const std::array<T, 4>& arr) const {
