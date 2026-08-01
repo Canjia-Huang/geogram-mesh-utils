@@ -3,6 +3,7 @@
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
 #include "detect_mesh_defects.h"
+#include <array>
 #include <ranges>
 #include <unordered_set>
 #include <geolio/common/array_hash.h>
