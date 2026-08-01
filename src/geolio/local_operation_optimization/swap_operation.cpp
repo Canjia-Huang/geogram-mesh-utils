@@ -4,8 +4,8 @@
 //
 #include "swap_operation.h"
 #include <cassert>
-
-#include "geolio/tri_operations.h"
+#include <geolio//mesh/tri_operations.h>
+#include <geolio/mesh/mesh_operations.h>
 
 namespace geolio
 {

@@ -2,8 +2,8 @@
 // Created by huangcanjia <huangcanjia0214@gmail.com> on 2026/4/20.
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
-#ifndef GEOGRAMMESHUTILS_PAIR_HASH_H
-#define GEOGRAMMESHUTILS_PAIR_HASH_H
+#ifndef GEOLIO_PAIR_HASH_H
+#define GEOLIO_PAIR_HASH_H
 
 #include <cstddef>
 #include <iostream>
@@ -28,4 +28,4 @@ namespace geolio
     };
 }
 
-#endif //GEOGRAMMESHUTILS_PAIR_HASH_H
+#endif //GEOLIO_PAIR_HASH_H

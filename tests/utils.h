@@ -8,8 +8,8 @@
 #include <gtest/gtest.h>
 #include <string>
 #include <geogram/delaunay/CDT_2d.h>
-#include "geolio/CDT_2d.h"
-#include "geolio/periodic_delaunay_3d.h"
+#include <geolio/mesh/CDT_2d.h>
+#include <geolio/mesh/periodic_delaunay_3d.h>
 #include <geogram/delaunay/periodic_delaunay_3d.h>
 
 namespace geolio::test

@@ -40,7 +40,7 @@ include(MyAddLibrary)
 ########################################################################################################################
 include(Dependencies)
 add_subdirectory(third_party)
-add_subdirectory(src)
+add_subdirectory(src/geolio)
 
 ########################################################################################################################
 # Add subdirectories
@@ -53,24 +53,4 @@ endif()
 ########################################################################################################################
 # Install
 ########################################################################################################################
-include(CMakePackageConfigHelpers)
-include(GNUInstallDirs)
-
-configure_package_config_file(
-        ${CMAKE_CURRENT_LIST_DIR}/cmake/GeolioConfig.cmake.in
-        ${CMAKE_CURRENT_BINARY_DIR}/GeolioConfig.cmake
-        INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Geolio
-)
-
-write_basic_package_version_file(
-        ${CMAKE_CURRENT_BINARY_DIR}/GeolioConfigVersion.cmake
-        VERSION ${PROJECT_VERSION}
-        COMPATIBILITY SameMajorVersion
-)
-
-install(FILES
-        ${CMAKE_CURRENT_BINARY_DIR}/GeolioConfig.cmake
-        ${CMAKE_CURRENT_BINARY_DIR}/GeolioConfigVersion.cmake
-        ${CMAKE_CURRENT_LIST_DIR}/cmake/FindGeogram.cmake
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Geolio
-)
+#include(Config)

@@ -2,8 +2,8 @@
 // Created by huangcanjia <huangcanjia0214@gmail.com> on 2026/5/16.
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
-#ifndef GEOGRAMMESHUTILS_MESH_OPERATIONS_H
-#define GEOGRAMMESHUTILS_MESH_OPERATIONS_H
+#ifndef GEOLIO_MESH_OPERATIONS_H
+#define GEOLIO_MESH_OPERATIONS_H
 
 #include <geogram/mesh/mesh.h>
 
@@ -112,4 +112,4 @@ namespace geolio
         std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>>& ordered_c_le_lf);
 }
 
-#endif //GEOGRAMMESHUTILS_MESH_OPERATIONS_H
+#endif //GEOLIO_MESH_OPERATIONS_H

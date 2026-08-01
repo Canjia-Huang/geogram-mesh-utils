@@ -3,7 +3,7 @@
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
 
-#include "geolio/hex_operations.h"
+#include "hex_operations.h"
 #include <cassert>
 
 namespace geolio

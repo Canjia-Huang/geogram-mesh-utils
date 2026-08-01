@@ -3,15 +3,15 @@
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
 #include "tri_local_operation_optimization.h"
-#include <ranges>
-#include <geogram/mesh/mesh_io.h>
-#include "geolio/log.h"
-#include "geolio/tri_operations.h"
-#include "geolio/utils.h"
 #include <unordered_set>
+#include <geogram/mesh/mesh_io.h>
 #include <geogram/numerics/exact_geometry.h>
-
-#include "geolio/detect_mesh_defects.h"
+#include <geolio/common//log.h>
+#include <geolio/common/utils.h>
+#include <geolio/mesh/detect_mesh_defects.h>
+#include "smooth_operation.h"
+#include "split_operation.h"
+#include "swap_operation.h"
 
 namespace geolio
 {

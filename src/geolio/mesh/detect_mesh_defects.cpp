@@ -2,11 +2,10 @@
 // Created by huangcanjia <huangcanjia0214@gmail.com> on 2026/7/30.
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
-#include "geolio/detect_mesh_defects.h"
-#include "geolio/array_hash.h"
+#include "detect_mesh_defects.h"
 #include <unordered_set>
-
-#include "geolio/mesh_operations.h"
+#include <geolio/common/array_hash.h>
+#include "mesh_operations.h"
 
 namespace geolio
 {

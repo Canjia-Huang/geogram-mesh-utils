@@ -5,18 +5,15 @@
 #ifndef GEOLIO_LOG_H
 #define GEOLIO_LOG_H
 
-#include <cstdint>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/base_sink.h>
 #include <spdlog/sinks/sink.h>
 
-namespace geolio
-{
 #ifdef ERROR
 #undef ERROR
 #endif
 
-namespace LOG {
+namespace geolio::LOG {
     namespace detail {
         class SourceLocation {
         public:
@@ -117,7 +114,5 @@ namespace LOG {
     template<typename... Args>
     CRITICAL(fmt::format_string<Args...> fmt, Args &&...args) -> CRITICAL<Args...>;
 } // namespace LOG
-
-}
 
 #endif //GEOLIO_LOG_H

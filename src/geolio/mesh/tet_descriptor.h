@@ -2,8 +2,8 @@
 // Created by huangcanjia <huangcanjia0214@gmail.com> on 2026/4/6.
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
-#ifndef GEOGRAMMESHUTILS_TET_DESCRIPTOR_H
-#define GEOGRAMMESHUTILS_TET_DESCRIPTOR_H
+#ifndef GEOLIO_TET_DESCRIPTOR_H
+#define GEOLIO_TET_DESCRIPTOR_H
 
 #include <array>
 #include <geogram/basic/numeric.h>
@@ -164,4 +164,4 @@ namespace geolio
     };
 }
 
-#endif //GEOGRAMMESHUTILS_TET_DESCRIPTOR_H
+#endif //GEOLIO_TET_DESCRIPTOR_H
