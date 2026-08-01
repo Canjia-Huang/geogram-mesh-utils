@@ -95,6 +95,26 @@ namespace geolio
         /* Make output mesh valid */
         manager_.clean_unused_elements(true);
         LOG::DEBUG("result mesh #V: {}, #F: {}", mesh_.vertices.nb(), mesh_.facets.nb());
+
+        /* Refactor original idx (if exist) */
+        if (mesh_v_original_idx_ != nullptr) {
+            for (const auto& v : mesh_.vertices) {
+                if (auto& idx = (*mesh_v_original_idx_)[v];
+                    idx == 0) // default, newly vertices
+                    idx = GEO::NO_INDEX;
+                else if (idx == FIRST_ELEMENT_IDX) // the idx of the first vertex of the original mesh
+                    idx = 0;
+            }
+        }
+        if (mesh_f_original_idx_ != nullptr) {
+            for (const auto& f : mesh_.facets) {
+                if (auto& idx = (*mesh_f_original_idx_)[f];
+                    idx == 0) // default, newly vertices
+                    idx = GEO::NO_INDEX;
+                else if (idx == FIRST_ELEMENT_IDX) // the idx of the first vertex of the original mesh
+                    idx = 0;
+            }
+        }
     }
 
     void TriLocalOperationOptimization::fix_boundary_elements(
@@ -176,7 +196,7 @@ namespace geolio
         LOG::WARN("Detected {} non-manifold vertices in the input mesh; "
                   "they have been fixed to prevent unexpected errors.", NON_MANIFOLD_VERTICES_NB);
     }
-    
+
     void TriLocalOperationOptimization::fix_vertices_based_on_fixed_edges(
         const double sharp_angle
         ) {
