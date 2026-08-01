@@ -295,5 +295,6 @@ namespace geolio
             }
             assert(0);
         }
+        return false;
     }
 }

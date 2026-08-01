@@ -5,6 +5,9 @@ set(CURRENT_LIB_ALIAS_NAME ${PROJECT_NAME}::local_operation_optimization)
 add_library(${CURRENT_LIB_NAME} OBJECT)
 add_library(${CURRENT_LIB_ALIAS_NAME} ALIAS ${CURRENT_LIB_NAME})
 
+# Objects are linked into the shared libGeolio, so they must be PIC.
+set_target_properties(${CURRENT_LIB_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 file(GLOB SOURCE_FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
