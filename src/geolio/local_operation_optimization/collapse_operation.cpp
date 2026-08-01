@@ -4,6 +4,8 @@
 //
 #include "collapse_operation.h"
 #include <cassert>
+#include <utility>
+#include <vector>
 #include <geogram/mesh/mesh_io.h>
 #include <geolio/common/log.h>
 #include <geolio/mesh/tri_operations.h>

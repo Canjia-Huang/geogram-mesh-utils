@@ -3,7 +3,11 @@
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
 #include "tet_operations.h"
+#include <array>
 #include <cassert>
+#include <tuple>
+#include <utility>
+#include <vector>
 #include "mesh_operations.h"
 
 namespace geolio

@@ -6,7 +6,10 @@
 #define GEOLIO_PAIR_HASH_H
 
 #include <cstddef>
+#include <cstdint>
+#include <functional>
 #include <iostream>
+#include <utility>
 
 namespace geolio
 {

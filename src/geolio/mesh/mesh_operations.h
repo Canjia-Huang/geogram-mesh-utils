@@ -6,6 +6,9 @@
 #define GEOLIO_MESH_OPERATIONS_H
 
 #include <geogram/mesh/mesh.h>
+#include <tuple>
+#include <utility>
+#include <vector>
 
 namespace geolio
 {

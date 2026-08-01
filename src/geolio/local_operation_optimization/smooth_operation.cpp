@@ -4,6 +4,8 @@
 //
 #include "smooth_operation.h"
 #include <cassert>
+#include <utility>
+#include <vector>
 
 namespace geolio
 {

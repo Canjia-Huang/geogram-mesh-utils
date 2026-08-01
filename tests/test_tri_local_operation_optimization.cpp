@@ -2,6 +2,7 @@
 // Created by huangcanjia <huangcanjia0214@gmail.com> on 2026/7/26.
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
+#include <string>
 #include <geogram/mesh/mesh_io.h>
 #include <gtest/gtest.h>
 #include <geolio/local_operation_optimization/tri_local_operation_optimization.h>

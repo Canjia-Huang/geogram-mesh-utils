@@ -5,7 +5,9 @@
 #ifndef GEOLIO_TUPLE_HASH_H
 #define GEOLIO_TUPLE_HASH_H
 
+#include <array>
 #include <cstddef>
+#include <functional>
 #include <iostream>
 
 namespace geolio

@@ -5,7 +5,9 @@
 #ifndef GEOLIO_UTILS_H
 #define GEOLIO_UTILS_H
 
+#include <cstddef>
 #include <random>
+#include <string>
 
 namespace geolio
 {

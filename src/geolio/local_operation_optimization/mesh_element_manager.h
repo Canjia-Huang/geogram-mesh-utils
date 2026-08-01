@@ -8,6 +8,8 @@
 #include <geogram/mesh/mesh.h>
 #include <geolio/common/utils.h>
 #include <cassert>
+#include <string>
+#include <vector>
 
 namespace geolio
 {

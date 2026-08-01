@@ -6,6 +6,7 @@
 #define GEOLIO_DETECT_MESH_DEFECTS_H
 
 #include <geogram/mesh/mesh.h>
+#include <vector>
 
 namespace geolio
 {

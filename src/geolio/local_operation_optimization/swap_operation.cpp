@@ -4,6 +4,8 @@
 //
 #include "swap_operation.h"
 #include <cassert>
+#include <utility>
+#include <vector>
 #include <geolio//mesh/tri_operations.h>
 #include <geolio/mesh/mesh_operations.h>
 

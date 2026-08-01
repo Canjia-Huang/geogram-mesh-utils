@@ -7,6 +7,7 @@
 
 #include <gtest/gtest.h>
 #include <string>
+#include <vector>
 #include <geogram/delaunay/CDT_2d.h>
 #include <geolio/mesh/CDT_2d.h>
 #include <geolio/mesh/periodic_delaunay_3d.h>

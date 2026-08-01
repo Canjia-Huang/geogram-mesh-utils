@@ -6,6 +6,7 @@
 #define GEOLIO_BASE_OPERATION_H
 
 #include "mesh_element_manager.h"
+#include <string>
 
 namespace geolio
 {

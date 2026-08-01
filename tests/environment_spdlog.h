@@ -6,6 +6,8 @@
 #define GEOLIO_TEST_ENVIRONMENT_SPDLOG_H
 
 #include <gtest/gtest.h>
+#include <memory>
+#include <vector>
 #include <geolio/common/log.h>
 #include "spdlog/sinks/basic_file_sink.h"
 #include "spdlog/sinks/stdout_color_sinks.h"

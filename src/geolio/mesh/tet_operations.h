@@ -8,8 +8,9 @@
 #include <geogram/mesh/mesh.h>
 #include <cassert>
 #include <ranges>
-#include <unordered_set>
 #include <stack>
+#include <unordered_set>
+#include <vector>
 #include "tet_descriptor.h"
 
 namespace geolio

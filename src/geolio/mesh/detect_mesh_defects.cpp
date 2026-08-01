@@ -6,6 +6,8 @@
 #include <array>
 #include <ranges>
 #include <unordered_set>
+#include <utility>
+#include <vector>
 #include <geolio/common/array_hash.h>
 #include "mesh_operations.h"
 

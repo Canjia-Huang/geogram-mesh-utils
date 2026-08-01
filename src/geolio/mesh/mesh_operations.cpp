@@ -4,6 +4,11 @@
 //
 #include "mesh_operations.h"
 #include <cassert>
+#include <stack>
+#include <tuple>
+#include <unordered_set>
+#include <utility>
+#include <vector>
 #include <geogram/mesh/mesh_io.h>
 #include "hex_operations.h"
 #include "tet_operations.h"

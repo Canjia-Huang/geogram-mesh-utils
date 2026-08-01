@@ -5,6 +5,8 @@
 #include "tri_operations.h"
 #include <cassert>
 #include <unordered_set>
+#include <utility>
+#include <vector>
 #include <geogram/mesh/mesh_io.h>
 #include <geolio/common/pair_hash.h>
 #include <geolio/common/vecg.h>

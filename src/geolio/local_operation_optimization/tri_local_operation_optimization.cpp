@@ -4,6 +4,8 @@
 //
 #include "tri_local_operation_optimization.h"
 #include <unordered_set>
+#include <utility>
+#include <vector>
 #include <geogram/mesh/mesh_io.h>
 #include <geogram/numerics/exact_geometry.h>
 #include <geolio/common//log.h>

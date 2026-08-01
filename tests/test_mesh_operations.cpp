@@ -3,7 +3,12 @@
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
 #include <ranges>
+#include <string>
+#include <tuple>
+#include <unordered_map>
 #include <unordered_set>
+#include <utility>
+#include <vector>
 #include <geogram/mesh/mesh_io.h>
 #include <geolio/common/pair_hash.h>
 #include <geolio/mesh/mesh_operations.h>

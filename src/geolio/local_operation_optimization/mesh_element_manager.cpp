@@ -4,6 +4,7 @@
 //
 #include "mesh_element_manager.h"
 #include <cassert>
+#include <ranges>
 
 namespace geolio
 {
