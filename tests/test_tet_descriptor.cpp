@@ -2,9 +2,8 @@
 // Created by huangcanjia <huangcanjia0214@gmail.com> on 2026/4/6.
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
-
 #include <gtest/gtest.h>
-#include "geolio/tet_descriptor.h"
+#include <geolio/mesh/tet_descriptor.h>
 #include <geogram/mesh/mesh.h>
 #include <unordered_set>
 

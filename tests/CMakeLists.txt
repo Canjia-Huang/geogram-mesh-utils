@@ -38,7 +38,7 @@ if(WIN32)
     # Copy them alongside the test executable so Windows can find them.
     add_custom_command(TARGET ${CURRENT_LIB_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "$<TARGET_FILE:geolio>"
+            "$<TARGET_FILE:${PROJECT_NAME}>"
             "$<TARGET_FILE_DIR:${CURRENT_LIB_NAME}>"
         COMMENT "Copying geolio.dll to test directory"
     )

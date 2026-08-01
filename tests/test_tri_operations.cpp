@@ -2,15 +2,14 @@
 // Created by huangcanjia <huangcanjia0214@gmail.com> on 2026/3/13.
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
-
 #include <numbers>
 #include <random>
 #include <ranges>
 #include <geogram/mesh/mesh_io.h>
 #include <gtest/gtest.h>
 #include "utils.h"
-#include "geolio/tri_operations.h"
-#include "geolio/log.h"
+#include <geolio/mesh/tri_operations.h>
+#include <geolio//common/log.h>
 
 namespace geolio::test
 {

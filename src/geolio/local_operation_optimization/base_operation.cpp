@@ -4,7 +4,7 @@
 //
 #include "base_operation.h"
 #include <geogram/mesh/mesh_io.h>
-#include "geolio/log.h"
+#include <geolio/common/log.h>
 
 namespace geolio
 {

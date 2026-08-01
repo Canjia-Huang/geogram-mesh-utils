@@ -2,16 +2,14 @@
 // Created by huangcanjia <huangcanjia0214@gmail.com> on 2026/7/25.
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
-
 #include <ranges>
 #include <unordered_set>
 #include <geogram/mesh/mesh_io.h>
+#include <geolio/common/pair_hash.h>
+#include <geolio/mesh/mesh_operations.h>
+#include <geolio/mesh/tet_descriptor.h>
 #include <gtest/gtest.h>
-
 #include "utils.h"
-#include "geolio/mesh_operations.h"
-#include "geolio/pair_hash.h"
-#include "geolio/tet_descriptor.h"
 
 namespace geolio::test
 {

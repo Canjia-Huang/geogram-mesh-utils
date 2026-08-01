@@ -2,16 +2,14 @@
 // Created by huangcanjia <huangcanjia0214@gmail.com> on 2026/3/23.
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
-
 #include <gtest/gtest.h>
 #include <numeric>
 #include <ranges>
 #include <unordered_set>
 #include <geogram/mesh/mesh_io.h>
-
 #include "utils.h"
-#include "geolio/mesh_operations.h"
-#include "geolio/tet_operations.h"
+#include <geolio/mesh/mesh_operations.h>
+#include <geolio/mesh/tet_operations.h>
 
 namespace geolio::test
 {

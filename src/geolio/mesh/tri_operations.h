@@ -2,12 +2,10 @@
 // Created by huangcanjia <huangcanjia0214@gmail.com> on 2026/3/13.
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
-#ifndef GEOGRAM_MESH_UTILS_TRIANGLE_OPERATIONS_H
-#define GEOGRAM_MESH_UTILS_TRIANGLE_OPERATIONS_H
+#ifndef GEOLIO_TRIANGLE_OPERATIONS_H
+#define GEOLIO_TRIANGLE_OPERATIONS_H
 
 #include <geogram/mesh/mesh.h>
-#include <cassert>
-#include "mesh_operations.h"
 
 namespace geolio
 {
@@ -171,4 +169,4 @@ namespace geolio
         GEO::index_t lv);
 }
 
-#endif //GEOGRAM_MESH_UTILS_TRIANGLE_OPERATIONS_H
+#endif //GEOLIO_TRIANGLE_OPERATIONS_H

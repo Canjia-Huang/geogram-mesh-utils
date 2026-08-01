@@ -3,7 +3,7 @@
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
 #include "split_operation.h"
-#include "geolio/tri_operations.h"
+#include <geolio//mesh/tri_operations.h>
 
 namespace geolio
 {

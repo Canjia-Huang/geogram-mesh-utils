@@ -19,6 +19,10 @@ else()
     set(BUILD_TESTS OFF)
 endif()
 
+# Location of the Geogram source tree. Defaults to the GEOGRAM_DIR environment
+# variable; overridable at configure time with -DGEOGRAM_DIR=...
+set(GEOGRAM_DIR "$ENV{GEOGRAM_DIR}" CACHE PATH "Path to the Geogram source directory (defaults to the GEOGRAM_DIR environment variable)")
+
 if(WIN32)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /utf-8")
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
@@ -40,7 +44,7 @@ include(MyAddLibrary)
 ########################################################################################################################
 include(Dependencies)
 add_subdirectory(third_party)
-add_subdirectory(src)
+add_subdirectory(src/geolio)
 
 ########################################################################################################################
 # Add subdirectories
@@ -53,24 +57,4 @@ endif()
 ########################################################################################################################
 # Install
 ########################################################################################################################
-include(CMakePackageConfigHelpers)
-include(GNUInstallDirs)
-
-configure_package_config_file(
-        ${CMAKE_CURRENT_LIST_DIR}/cmake/GeolioConfig.cmake.in
-        ${CMAKE_CURRENT_BINARY_DIR}/GeolioConfig.cmake
-        INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Geolio
-)
-
-write_basic_package_version_file(
-        ${CMAKE_CURRENT_BINARY_DIR}/GeolioConfigVersion.cmake
-        VERSION ${PROJECT_VERSION}
-        COMPATIBILITY SameMajorVersion
-)
-
-install(FILES
-        ${CMAKE_CURRENT_BINARY_DIR}/GeolioConfig.cmake
-        ${CMAKE_CURRENT_BINARY_DIR}/GeolioConfigVersion.cmake
-        ${CMAKE_CURRENT_LIST_DIR}/cmake/FindGeogram.cmake
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Geolio
-)
+#include(Config)

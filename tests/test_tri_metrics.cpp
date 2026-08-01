@@ -2,9 +2,8 @@
 // Created by huangcanjia <huangcanjia0214@gmail.com> on 2026/7/25.
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
-
 #include <gtest/gtest.h>
-#include "geolio/tri_metrics.h"
+#include <geolio//mesh/tri_metrics.h>
 
 namespace geolio::test
 {

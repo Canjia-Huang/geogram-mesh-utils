@@ -7,13 +7,8 @@
 
 #include <cassert>
 #include <geogram/mesh/mesh.h>
-#include <geogram/mesh/mesh_AABB.h>
-
 #include "collapse_operation.h"
 #include "mesh_element_manager.h"
-#include "smooth_operation.h"
-#include "split_operation.h"
-#include "swap_operation.h"
 
 namespace geolio
 {

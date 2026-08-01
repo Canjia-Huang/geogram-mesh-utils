@@ -2,15 +2,13 @@
 // Created by huangcanjia <huangcanjia0214@gmail.com> on 2026/6/25.
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
-
-#include "geolio/tri_operations.h"
+#include "tri_operations.h"
 #include <cassert>
-#include <ranges>
 #include <unordered_set>
 #include <geogram/mesh/mesh_io.h>
-
-#include "geolio/pair_hash.h"
-#include "geolio/vecg.h"
+#include <geolio/common/pair_hash.h>
+#include <geolio/common/vecg.h>
+#include "mesh_operations.h"
 
 namespace geolio
 {

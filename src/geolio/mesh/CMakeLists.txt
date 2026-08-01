@@ -1,9 +1,12 @@
 geolio_begin_file()
-set(CURRENT_LIB_NAME ${PROJECT_NAME}_local_operation_optimization)
-set(CURRENT_LIB_ALIAS_NAME ${PROJECT_NAME}::local_operation_optimization)
+set(CURRENT_LIB_NAME ${PROJECT_NAME}_mesh)
+set(CURRENT_LIB_ALIAS_NAME ${PROJECT_NAME}::mesh)
 
 add_library(${CURRENT_LIB_NAME} OBJECT)
 add_library(${CURRENT_LIB_ALIAS_NAME} ALIAS ${CURRENT_LIB_NAME})
+
+# Objects are linked into the shared libGeolio, so they must be PIC.
+set_target_properties(${CURRENT_LIB_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 file(GLOB SOURCE_FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp
@@ -14,15 +17,13 @@ target_sources(${CURRENT_LIB_NAME}
 )
 
 target_include_directories(${CURRENT_LIB_NAME}
-        PUBLIC
-        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+        PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../
 )
 
 target_link_libraries(${CURRENT_LIB_NAME}
         PUBLIC
         Geogram::geogram
-        ${PROJECT_NAME}::third_party
 )
 
 geolio_end_file()

@@ -2,13 +2,11 @@
 // Created by huangcanjia <huangcanjia0214@gmail.com> on 2026/6/25.
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
-
-#include "geolio/mesh_operations.h"
+#include "mesh_operations.h"
 #include <cassert>
 #include <geogram/mesh/mesh_io.h>
-
-#include "geolio/hex_operations.h"
-#include "geolio/tet_operations.h"
+#include "hex_operations.h"
+#include "tet_operations.h"
 
 namespace geolio
 {
@@ -295,5 +293,6 @@ namespace geolio
             }
             assert(0);
         }
+        return false;
     }
 }

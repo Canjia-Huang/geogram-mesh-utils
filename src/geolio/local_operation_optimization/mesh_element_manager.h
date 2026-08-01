@@ -6,7 +6,7 @@
 #define GEOLIO_MESH_ELEMENT_MANAGER_H
 
 #include <geogram/mesh/mesh.h>
-#include "geolio/utils.h"
+#include <geolio/common/utils.h>
 #include <cassert>
 
 namespace geolio
