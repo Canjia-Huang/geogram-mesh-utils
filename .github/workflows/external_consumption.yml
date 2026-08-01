@@ -17,13 +17,21 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
-      - name: Checkout repository
+      # ================================================================================================
+      # Checkout geolio into a consumer project at consumer/third_party/geolio — the exact location a
+      # parent repo would use after `git submodule add <geolio-url> third_party/geolio`.
+      # `submodules: recursive` mirrors `git submodule update --init --recursive`, pulling geolio's
+      # nested spdlog/CLI11 submodules that third_party/CMakeLists.txt references as include dirs.
+      # ================================================================================================
+
+      - name: Checkout geolio as a submodule
         uses: actions/checkout@v6
         with:
+          path: consumer/third_party/geolio
           submodules: 'recursive'
 
       # ================================================================================================
-      # Install Geogram (reused from ci.yml)
+      # Install Geogram. geolio locates it through the GEOGRAM_DIR environment variable.
       # ================================================================================================
 
       - name: Install Dependency Geogram (Linux)
@@ -61,77 +69,65 @@ jobs:
           make -j
 
       # ================================================================================================
-      # Build and install Geolio to a local prefix
-      # ================================================================================================
-
-      - name: Configure Geolio
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/install -DBUILD_TESTS=OFF
-
-      - name: Build Geolio
-        run: cmake --build build --config Release --parallel
-
-      - name: Install Geolio
-        run: cmake --install build --prefix ${{ github.workspace }}/install
-
-      # ================================================================================================
-      # Create a minimal external project that consumes Geolio via find_package
+      # Parent project that consumes geolio as a submodule:
+      #     add_subdirectory(third_party/geolio)
+      #     target_link_libraries(<app> PRIVATE Geolio::geolio)
       # ================================================================================================
 
       - name: Create consumer project
         shell: bash
         run: |
-          mkdir -p ${{ github.workspace }}/consumer
-          cat > ${{ github.workspace }}/consumer/CMakeLists.txt << 'CMAKEEOF'
+          cat > consumer/CMakeLists.txt << 'CMAKEEOF'
           cmake_minimum_required(VERSION 3.30)
           project(GeolioConsumer LANGUAGES CXX)
           set(CMAKE_CXX_STANDARD 20)
           set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-          find_package(Geolio REQUIRED)
+          add_subdirectory(third_party/geolio)
 
           add_executable(test_consumer main.cpp)
-          target_link_libraries(test_consumer PRIVATE Geolio::Geolio)
+          target_link_libraries(test_consumer PRIVATE Geolio::geolio)
           CMAKEEOF
 
-          cat > ${{ github.workspace }}/consumer/main.cpp << 'CEOF'
-          #include <geolio/tri_local_operation_optimization.h>
+          cat > consumer/main.cpp << 'CEOF'
+          #include <geolio/local_operation_optimization/tri_local_operation_optimization.h>
           #include <geogram/mesh/mesh.h>
 
           int main() {
               GEO::Mesh mesh(2);
               {
                   geolio::TriLocalOperationOptimization optimizer(mesh);
-                  optimizer.fix_boundary_edges();
+                  optimizer.fix_boundary_elements();
               }
               return 0;
           }
           CEOF
 
       - name: Configure consumer
-        run: cmake -B consumer/build -S consumer -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=${{ github.workspace }}/install
+        run: cmake -B consumer/build -S consumer -DCMAKE_BUILD_TYPE=Release
 
       - name: Build consumer
         run: cmake --build consumer/build --config Release --parallel
 
       # ================================================================================================
-      # Build succeeded — run the consumer to verify runtime linking
+      # Run the consumer to verify runtime linking of the geolio shared library and geogram
       # ================================================================================================
 
       - name: Run consumer (Linux)
         if: runner.os == 'Linux'
         run: |
-          LD_LIBRARY_PATH="${{ github.workspace }}/install/lib:$GEOGRAM_DIR/build/Linux64-gcc-dynamic-Release/lib" \
+          LD_LIBRARY_PATH="${{ github.workspace }}/consumer/build:$GEOGRAM_DIR/build/Linux64-gcc-dynamic-Release/lib" \
             consumer/build/test_consumer
 
       - name: Run consumer (macOS)
         if: runner.os == 'macOS'
         run: |
-          DYLD_LIBRARY_PATH="${{ github.workspace }}/install/lib:$GEOGRAM_DIR/build/Darwin-clang-dynamic-Release/lib" \
+          DYLD_LIBRARY_PATH="${{ github.workspace }}/consumer/build:$GEOGRAM_DIR/build/Darwin-clang-dynamic-Release/lib" \
             consumer/build/test_consumer
 
       - name: Run consumer (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $env:Path = "${{ github.workspace }}\install\bin;${{ env.GEOGRAM_DIR }}\build\Windows\bin\Release;$env:Path"
+          $env:Path = "${{ github.workspace }}\consumer\build\Release;${{ env.GEOGRAM_DIR }}\build\Windows\bin\Release;$env:Path"
           consumer\build\Release\test_consumer.exe
