@@ -33,6 +33,8 @@ namespace geolio
          */
         void perform_one_pass();
 
+        void perform_iteratively();
+
         /** @brief When true, splitting of fixed (locked) edges is allowed. */
         bool ALLOW_SPLIT_FIXED_EDGES = false;
 

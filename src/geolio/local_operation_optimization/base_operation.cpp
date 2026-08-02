@@ -15,15 +15,15 @@ namespace geolio
             attribute_name_(generate_random_string(22))
     {
         /* Bind attributes */
-        mesh_f_processed_.bind(mesh_.facets.attributes(), attribute_name_+":processed");
-        mesh_f_processed_.fill(false);
+        mesh_f_timestamping_.bind(mesh_.facets.attributes(), attribute_name_+":timestamping");
+        mesh_f_timestamping_.fill(false);
     }
 
     BaseOperation::~BaseOperation(
         ) {
         /* Destroy attributes */
-        if (mesh_f_processed_.is_bound())
-            mesh_f_processed_.destroy();
+        if (mesh_f_timestamping_.is_bound())
+            mesh_f_timestamping_.destroy();
     }
 
     bool BaseOperation::post_check(

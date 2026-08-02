@@ -84,10 +84,11 @@ namespace geolio
             const auto PREV_VERTICES_NB = mesh_.vertices.nb();
             const auto PREV_FACETS_NB = mesh_.facets.nb();
 
-            split_operation.perform_one_pass();
-            collapse_operation.perform_one_pass();
-            swap_operation.perform_one_pass();
-            smooth_operation.perform_one_pass(3);
+            split_operation.perform_iteratively();
+            // split_operation.perform_one_pass();
+            // collapse_operation.perform_one_pass();
+            // swap_operation.perform_one_pass();
+            // smooth_operation.perform_one_pass(3);
 
             LOG::DEBUG("#V: {} -> {}, #F: {} -> {}", PREV_VERTICES_NB, mesh_.vertices.nb(), PREV_FACETS_NB, mesh_.facets.nb());
         }

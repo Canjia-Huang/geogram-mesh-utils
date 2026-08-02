@@ -23,10 +23,10 @@ namespace geolio
 
     void CollapseOperation::perform_one_pass(
         ) {
-        mesh_f_processed_.fill(false);
+        mesh_f_timestamping_.fill(false);
 
         for (GEO::index_t f = 0, f_end = mesh_.facets.nb(); f < f_end; ++f) {
-            if (mesh_f_processed_[f])
+            if (mesh_f_timestamping_[f])
                 continue;
 
             for (GEO::index_t lv = 0; lv < 3; ++lv) {

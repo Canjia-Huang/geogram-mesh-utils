@@ -130,7 +130,7 @@ namespace geolio
             M.facet_corners.attributes().zero_item(M.facets.corner(nf0, nlv2));
         }
         else
-            M.facets.set_adjacent(new_f0, lv0, GEO::NO_VERTEX);
+            M.facets.set_adjacent(new_f0, lv0, GEO::NO_FACET);
     }
 
     bool is_tri_edge_collapse_valid(

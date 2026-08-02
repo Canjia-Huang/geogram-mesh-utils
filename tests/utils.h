@@ -34,7 +34,7 @@ namespace geolio::test
         GEO::CDT2d CDT;
         CDT.create_enclosing_quad(GEO::vec2(-w, -w), GEO::vec2(w, -w), GEO::vec2(w, w), GEO::vec2(-w, w));
         for (GEO::index_t i = 0; i < samples_nb; ++i)
-            CDT.insert(GEO::vec2(-w+1.8*w*GEO::Numeric::random_float32(), -w+1.8*w*GEO::Numeric::random_float32()));
+            CDT.insert(GEO::vec2(-0.8*w+1.6*w*GEO::Numeric::random_float32(), -0.8*w+1.6*w*GEO::Numeric::random_float32()));
 
         append_CDT2d_to_mesh(CDT, mesh);
         mesh.facets.connect();

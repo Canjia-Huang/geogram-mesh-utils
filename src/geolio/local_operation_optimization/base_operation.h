@@ -45,7 +45,7 @@ namespace geolio
         const std::string attribute_name_; // Prevent anyone from using these attributes externally (unsafety).
 
         GEO::Mesh& mesh_;
-        GEO::Attribute<bool> mesh_f_processed_; // f -> processed (just pre-allocated)
+        GEO::Attribute<GEO::index_t> mesh_f_timestamping_; // f -> processed (just pre-allocated)
     };
 }
 
