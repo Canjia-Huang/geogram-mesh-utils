@@ -29,9 +29,11 @@ namespace geolio
          */
         void perform_one_pass();
 
+        void perform_iteratively();
+
         enum SwapCriterion {
-            SWAP_BASED_ON_VALENCE   = 1<<0,
-            SWAP_BASED_ON_DELAUNAY  = 1<<1
+            SWAP_BASED_ON_VALENCE       = 1<<0,
+            SWAP_BASED_ON_DELAUNAY      = 1<<1
         };
 
         GEO::index_t SWAP_CRITERION = SWAP_BASED_ON_DELAUNAY;

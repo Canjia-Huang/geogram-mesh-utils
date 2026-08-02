@@ -49,24 +49,27 @@ namespace geolio
         }
     }
 
-    struct EdgeToSplit {
-        EdgeToSplit(
-            const GEO::index_t _f,
-            const GEO::index_t _lv,
-            const GEO::index_t _timestamping,
-            const double _length
+    namespace
+    {
+        struct EdgeToSplit {
+            EdgeToSplit(
+                const GEO::index_t _f,
+                const GEO::index_t _lv,
+                const GEO::index_t _timestamping,
+                const double _length
             ) : f(_f), lv(_lv), timestamping(_timestamping), length(_length)
-        {}
+            {}
 
-        GEO::index_t f = GEO::NO_FACET;
-        GEO::index_t lv = GEO::NO_INDEX;
-        GEO::index_t timestamping = GEO::NO_INDEX;
-        double length = -1.0;
+            GEO::index_t f = GEO::NO_FACET;
+            GEO::index_t lv = GEO::NO_INDEX;
+            GEO::index_t timestamping = GEO::NO_INDEX;
+            double length = -1.0;
 
-        bool operator<(const EdgeToSplit& other) const { // max-heap
-            return length < other.length;
-        }
-    };
+            bool operator<(const EdgeToSplit& other) const { // max-heap
+                return length < other.length;
+            }
+        };
+    }
 
     void SplitOperation::perform_iteratively(
         ) {
@@ -76,7 +79,7 @@ namespace geolio
 
         /* Init queue */
         {
-            std::vector<GEO::index_t> processed_edge(mesh_.facet_corners.nb(), false);
+            std::vector<bool> processed_edge(mesh_.facet_corners.nb(), false);
             for (const auto& f : mesh_.facets) {
                 if (!manager_.mesh_f_used[f])
                     continue;

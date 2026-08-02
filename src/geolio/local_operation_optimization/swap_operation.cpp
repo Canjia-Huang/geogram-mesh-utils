@@ -9,6 +9,9 @@
 #include <geolio//mesh/tri_operations.h>
 #include <geolio/mesh/mesh_operations.h>
 
+#include "geolio/common/log.h"
+#include "geolio/common/vecg.h"
+
 namespace geolio
 {
     SwapOperation::SwapOperation(
@@ -44,6 +47,103 @@ namespace geolio
         }
     }
 
+    namespace
+    {
+        struct EdgeToCollapse {
+            EdgeToCollapse(
+                const GEO::index_t _f,
+                const GEO::index_t _lv,
+                const GEO::index_t _timestamping
+            ) : f(_f), lv(_lv), timestamping(_timestamping)
+            {}
+
+            GEO::index_t f = GEO::NO_FACET;
+            GEO::index_t lv = GEO::NO_INDEX;
+            GEO::index_t timestamping = GEO::NO_INDEX;
+        };
+    }
+
+    void SwapOperation::perform_iteratively(
+        ) {
+        mesh_f_timestamping_.fill(0); // as version timestamping
+
+        std::vector<EdgeToCollapse> pq;
+
+        /* Init vector */
+        {
+            std::vector<bool> processed_edge(mesh_.facet_corners.nb(), false);
+            for (const auto& f : mesh_.facets) {
+                if (!manager_.mesh_f_used[f])
+                    continue;
+
+                for (GEO::index_t lv = 0; lv < 3; ++lv) {
+                    if (const auto& fc = mesh_.facets.corner(f, lv);
+                        processed_edge[fc])
+                        continue;
+                    else
+                        processed_edge[fc] = true;
+
+                    if (is_perform_valid(f, lv))
+                        pq.emplace_back(f, lv, 0);
+
+                    if (const auto& nf = mesh_.facets.adjacent(f, lv);
+                        nf != GEO::NO_FACET
+                        ) {
+                        const auto& nlv = mesh_.facets.find_vertex(nf, mesh_.facets.vertex(f, lv));
+                        assert(nlv != GEO::NO_INDEX);
+                        processed_edge[mesh_.facets.corner(nf, (nlv+2)%3)] = true;
+                    }
+                }
+            }
+        }
+
+        /* Iteratively perform */
+        while (!pq.empty()) {
+            const auto edge = pq.back();
+            pq.pop_back();
+            LOG::DEBUG("{}, {}, {}", edge.f, edge.lv, edge.timestamping);
+
+            /* Check validity */
+            if (const auto& f_timestamping = mesh_f_timestamping_[edge.f];
+                edge.timestamping < f_timestamping) { // This edge is not up-to-date. Push again.
+                pq.emplace_back(edge.f, edge.lv, f_timestamping);
+                continue;
+            }
+
+            if (!is_perform_valid(edge.f, edge.lv))
+                continue;
+
+            /* Swap */
+            const auto nf = mesh_.facets.adjacent(edge.f, edge.lv);
+            assert(nf != GEO::NO_FACET);
+            const auto prev_f_timestamping = mesh_f_timestamping_[edge.f];
+            const auto prev_nf_timestamping = mesh_f_timestamping_[nf];
+
+            perform(edge.f, edge.lv);
+
+            post_process(edge.f, edge.lv, nf);
+
+            assert(post_check());
+
+            /* Push new sub-edges */
+            {
+                auto& f_timestamping = mesh_f_timestamping_[edge.f];
+                f_timestamping = prev_f_timestamping+1;
+                pq.emplace_back(edge.f, edge.lv, f_timestamping);
+                pq.emplace_back(edge.f, (edge.lv+2)%3, f_timestamping);
+            }
+            {
+                auto& nf_timestamping = mesh_f_timestamping_[nf];
+                nf_timestamping = prev_nf_timestamping+1;
+                for (GEO::index_t lv = 0; lv < 3; ++lv) {
+                    if (mesh_.facets.adjacent(nf, lv) == edge.f)
+                        continue;
+                    pq.emplace_back(nf, lv, nf_timestamping);
+                }
+            }
+        }
+    }
+
     bool SwapOperation::is_perform_valid(
         const GEO::index_t f,
         const GEO::index_t lv
@@ -72,7 +172,7 @@ namespace geolio
         const auto v1 = mesh_.facets.vertex(f, lv1);
         const auto lv2 = (lv+2)%3;
         const auto v2 = mesh_.facets.vertex(f, lv2);
-        const auto nlv = (mesh_.facets.find_vertex(nf, v0) + 1)%3;
+        const auto nlv = (mesh_.facets.find_vertex(nf, v0)+1)%3;
         assert(nlv != GEO::NO_INDEX);
         const auto v3 = mesh_.facets.vertex(nf, nlv);
 
@@ -87,6 +187,7 @@ namespace geolio
         if (!is_tri_edge_swap_valid(mesh_, f, lv))
             return false;
 
+        /* Criterion */
         if (SWAP_CRITERION & SWAP_BASED_ON_VALENCE) { // The swap operation should help improve the overall valence.
             int valence0, valence1, valence2, valence3;
                 std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_f_and_lv;
@@ -124,7 +225,7 @@ namespace geolio
                                           std::pow(valence1-v1_ideal_valence, 2) +
                                           std::pow(valence2-v2_ideal_valence, 2) +
                                           std::pow(valence3-v3_ideal_valence, 2);
-                if (post_valence > prev_valence)
+                if (post_valence >= prev_valence)
                     return false;
         }
         if (SWAP_CRITERION & SWAP_BASED_ON_DELAUNAY) {
@@ -133,9 +234,13 @@ namespace geolio
                 const auto& p1 = mesh_.vertices.point<2>(v1);
                 const auto& p2 = mesh_.vertices.point<2>(v2);
                 const auto& p3 = mesh_.vertices.point<2>(v3);
-                const auto angle0 = GEO::Geom::angle(p0-p2, p1-p2);
-                const auto angle1 = GEO::Geom::angle(p0-p3, p1-p3);
-                if (angle0+angle1 < M_PI)
+                const auto p2p0 = p0-p2;
+                const auto p2p1 = p1-p2;
+                const auto p3p0 = p0-p3;
+                const auto p3p1 = p1-p3;
+                const auto cot_alpha = GEO::dot(p2p0, p2p1) / std::abs(geolio::cross(p2p0, p2p1));
+                const auto cot_beta  = GEO::dot(p3p0, p3p1) / std::abs(geolio::cross(p3p0, p3p1));
+                if (cot_alpha + cot_beta > -1e-5)
                     return false;
             }
             else {
@@ -143,12 +248,66 @@ namespace geolio
                 const auto& p1 = mesh_.vertices.point(v1);
                 const auto& p2 = mesh_.vertices.point(v2);
                 const auto& p3 = mesh_.vertices.point(v3);
-                const auto angle0 = GEO::Geom::angle(p0-p2, p1-p2);
-                const auto angle1 = GEO::Geom::angle(p0-p3, p1-p3);
-                if (angle0+angle1 < M_PI)
+                const auto p2p0 = p0-p2;
+                const auto p2p1 = p1-p2;
+                const auto p3p0 = p0-p3;
+                const auto p3p1 = p1-p3;
+                const auto cot_alpha = GEO::dot(p2p0, p2p1) / GEO::length(GEO::cross(p2p0, p2p1));
+                const auto cot_beta = GEO::dot(p3p0, p3p1) / GEO::length(GEO::cross(p3p0, p3p1));
+                if (cot_alpha + cot_beta > -1e-5)
                     return false;
             }
         }
+        // if (SWAP_CRITERION & SWAP_BASED_ON_MAX_MIN_ANGLE) { // not robust
+        //     if (manager_.mesh_2d) {
+        //         const auto& p0 = mesh_.vertices.point<2>(v0);
+        //         const auto& p1 = mesh_.vertices.point<2>(v1);
+        //         const auto& p2 = mesh_.vertices.point<2>(v2);
+        //         const auto& p3 = mesh_.vertices.point<2>(v3);
+        //         const std::array<double, 6> prev_angles = {
+        //             GEO::Geom::angle(p1-p0, p2-p0),
+        //             GEO::Geom::angle(p0-p1, p2-p1),
+        //             GEO::Geom::angle(p0-p2, p1-p2),
+        //             GEO::Geom::angle(p1-p0, p3-p0),
+        //             GEO::Geom::angle(p0-p1, p3-p1),
+        //             GEO::Geom::angle(p0-p3, p1-p3),
+        //         };
+        //         const std::array<double, 6> post_angles = {
+        //             GEO::Geom::angle(p2-p0, p3-p0),
+        //             GEO::Geom::angle(p0-p2, p3-p2),
+        //             GEO::Geom::angle(p0-p3, p2-p3),
+        //             GEO::Geom::angle(p2-p1, p3-p1),
+        //             GEO::Geom::angle(p1-p2, p3-p2),
+        //             GEO::Geom::angle(p1-p3, p2-p3),
+        //         };
+        //         if (std::ranges::min(post_angles) < std::ranges::min(prev_angles) + 1e-5)
+        //             return false;
+        //     }
+        //     else {
+        //         const auto& p0 = mesh_.vertices.point(v0);
+        //         const auto& p1 = mesh_.vertices.point(v1);
+        //         const auto& p2 = mesh_.vertices.point(v2);
+        //         const auto& p3 = mesh_.vertices.point(v3);
+        //         const std::array<double, 6> prev_angles = {
+        //             GEO::Geom::angle(p1-p0, p2-p0),
+        //             GEO::Geom::angle(p0-p1, p2-p1),
+        //             GEO::Geom::angle(p0-p2, p1-p2),
+        //             GEO::Geom::angle(p1-p0, p3-p0),
+        //             GEO::Geom::angle(p0-p1, p3-p1),
+        //             GEO::Geom::angle(p0-p3, p1-p3),
+        //         };
+        //         const std::array<double, 6> post_angles = {
+        //             GEO::Geom::angle(p2-p0, p3-p0),
+        //             GEO::Geom::angle(p0-p2, p3-p2),
+        //             GEO::Geom::angle(p0-p3, p2-p3),
+        //             GEO::Geom::angle(p2-p1, p3-p1),
+        //             GEO::Geom::angle(p1-p2, p3-p2),
+        //             GEO::Geom::angle(p1-p3, p2-p3),
+        //         };
+        //         if (std::ranges::min(post_angles) < std::ranges::min(prev_angles) + 1e-5)
+        //             return false;
+        //     }
+        // }
 
         return true;
     }
