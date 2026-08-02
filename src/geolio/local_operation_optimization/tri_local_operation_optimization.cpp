@@ -24,7 +24,8 @@ namespace
 
 namespace geolio
 {
-    TriLocalOperationOptimization::TriLocalOperationOptimization(
+    template <GEO::index_t DIM>
+    TriLocalOperationOptimization<DIM>::TriLocalOperationOptimization(
         GEO::Mesh& mesh,
         GEO::Attribute<GEO::index_t>* mesh_v_original_idx,
         GEO::Attribute<GEO::index_t>* mesh_f_original_idx
@@ -56,7 +57,8 @@ namespace geolio
         }
     }
 
-    void TriLocalOperationOptimization::optimize(
+    template <GEO::index_t DIM>
+    void TriLocalOperationOptimization<DIM>::optimize(
         GEO::index_t rounds_nb,
         double target_edge_length
         ) {
@@ -71,10 +73,6 @@ namespace geolio
         const double SPLIT_EDGE_LENGTH = 4.0/3.0 * target_edge_length;
         const double COLLAPSE_EDGE_LENGTH = 4.0/5.0 * target_edge_length;
 
-        /* Init */
-        SwapOperation swap_operation(manager_);
-        SmoothOperation smooth_operation(manager_);
-
         /* Let's go! */
         for (GEO::index_t round = 0; round < rounds_nb; ++round) {
             LOG::TRACE("round: {}/{}", round+1, rounds_nb);
@@ -82,20 +80,18 @@ namespace geolio
             const auto PREV_VERTICES_NB = mesh_.vertices.nb();
             const auto PREV_FACETS_NB = mesh_.facets.nb();
 
-            SplitOperation split_operation(manager_, SPLIT_EDGE_LENGTH, true);
+            SplitOperation<DIM> split_operation(manager_, SPLIT_EDGE_LENGTH, true);
             split_operation.run_through();
 
-            CollapseOperation collapse_operation(manager_, COLLAPSE_EDGE_LENGTH, true);
-            collapse_operation.run_through(false);
+            CollapseOperation<DIM> collapse_operation(manager_, COLLAPSE_EDGE_LENGTH, true);
+            collapse_operation.run_through();
 
-            // collapse_operation.run_iterative_loop();
-            // swap_operation.run_iterative_loop();
-            // smooth_operation.perform_iteratively();
+            SwapOperation<DIM> swap_operation(manager_);
+            swap_operation.run_through();
 
-            // split_operation.perform_one_pass();
-            // collapse_operation.perform_one_pass();
-            // swap_operation.perform_one_pass();
-            // smooth_operation.sweep_mesh(3);
+            SmoothOperation<DIM> smooth_operation(manager_);
+            smooth_operation.run_nb_times(3);
+            // smooth_operation.run_until();
 
             LOG::DEBUG("#V: {} -> {}, #F: {} -> {}", PREV_VERTICES_NB, mesh_.vertices.nb(), PREV_FACETS_NB, mesh_.facets.nb());
         }
@@ -125,7 +121,8 @@ namespace geolio
         }
     }
 
-    void TriLocalOperationOptimization::fix_boundary_elements(
+    template <GEO::index_t DIM>
+    void TriLocalOperationOptimization<DIM>::fix_boundary_elements(
         ) {
         LOG::TRACE(__FUNCTION__);
 
@@ -143,7 +140,8 @@ namespace geolio
         fix_vertices_based_on_fixed_edges();
     }
 
-    void TriLocalOperationOptimization::fix_sharp_elements(
+    template <GEO::index_t DIM>
+    void TriLocalOperationOptimization<DIM>::fix_sharp_elements(
         const double sharp_angle
         ) {
         LOG::TRACE(__FUNCTION__);
@@ -173,7 +171,8 @@ namespace geolio
         fix_vertices_based_on_fixed_edges();
     }
 
-    void TriLocalOperationOptimization::label_boundary_vertices(
+    template <GEO::index_t DIM>
+    void TriLocalOperationOptimization<DIM>::label_boundary_vertices(
         ) {
         LOG::TRACE(__FUNCTION__);
 
@@ -188,7 +187,8 @@ namespace geolio
         }
     }
 
-    void TriLocalOperationOptimization::label_non_manifold_vertices(
+    template <GEO::index_t DIM>
+    void TriLocalOperationOptimization<DIM>::label_non_manifold_vertices(
         ) {
         LOG::TRACE(__FUNCTION__);
 
@@ -205,7 +205,8 @@ namespace geolio
                   "they have been fixed to prevent unexpected errors.", NON_MANIFOLD_VERTICES_NB);
     }
 
-    void TriLocalOperationOptimization::fix_vertices_based_on_fixed_edges(
+    template <GEO::index_t DIM>
+    void TriLocalOperationOptimization<DIM>::fix_vertices_based_on_fixed_edges(
         const double sharp_angle
         ) {
         std::vector<std::pair<GEO::index_t, GEO::index_t>> mesh_v_adjacent_v(
@@ -249,22 +250,16 @@ namespace geolio
                 if (adj_v1 == GEO::NO_VERTEX)
                     manager_.mesh_v_fixed[v] = true; // fix vertex that adjacent to only one fixed edge
                 else {
-                    if (manager_.mesh_2d) {
-                        const auto& p = mesh_.vertices.point<2>(v);
-                        const auto& p0 = mesh_.vertices.point<2>(adj_v0);
-                        const auto& p1 = mesh_.vertices.point<2>(adj_v1);
-                        if (GEO::Geom::angle(p0-p, p1-p) < sharp_angle)
-                            manager_.mesh_v_fixed[v] = true; // fix vertex that adjacent fixed edges form a sharp angle
-                    }
-                    else {
-                        const auto& p = mesh_.vertices.point(v);
-                        const auto& p0 = mesh_.vertices.point(adj_v0);
-                        const auto& p1 = mesh_.vertices.point(adj_v1);
-                        if (GEO::Geom::angle(p0-p, p1-p) < sharp_angle)
-                            manager_.mesh_v_fixed[v] = true; // fix vertex that adjacent fixed edges form a sharp angle
-                    }
+                    const auto& p = mesh_.vertices.point<DIM>(v);
+                    const auto& p0 = mesh_.vertices.point<DIM>(adj_v0);
+                    const auto& p1 = mesh_.vertices.point<DIM>(adj_v1);
+                    if (GEO::Geom::angle(p0-p, p1-p) < sharp_angle)
+                        manager_.mesh_v_fixed[v] = true; // fix vertex that adjacent fixed edges form a sharp angle
                 }
             }
         }
     }
+
+    template class TriLocalOperationOptimization<2>;
+    template class TriLocalOperationOptimization<3>;
 }

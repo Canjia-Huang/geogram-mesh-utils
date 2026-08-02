@@ -9,8 +9,14 @@
 
 namespace geolio
 {
-    class SwapOperation : public BaseOperation {
+    template<GEO::index_t DIM>
+    class SwapOperation : public BaseOperation<DIM> {
     public:
+        enum SwapCriterion {
+            SWAP_BASED_ON_VALENCE       = 1<<0,
+            SWAP_BASED_ON_DELAUNAY      = 1<<1
+        };
+
         /**
          * @brief Constructs a SwapOperation for flipping edges to improve vertex valence.
          * @details Initializes the base operation; no additional state is required because
@@ -18,29 +24,17 @@ namespace geolio
          * @param[in] mesh_element_manager The mesh element manager exposing the mesh and its
          *                                 usage/fixed element attributes.
          */
-        explicit SwapOperation(MeshElementManager& mesh_element_manager);
+        explicit SwapOperation(
+            MeshElementManager<DIM>& mesh_element_manager,
+            GEO::index_t swap_criterion = SWAP_BASED_ON_DELAUNAY);
 
-        /**
-         * @brief Executes a single pass of edge-swapping over the whole mesh.
-         * @details Resets the per-facet "processed" flags, then iterates over every facet and
-         *          local edge; for each interior edge that passes is_perform_valid(), it swaps
-         *          the edge, applies post_process() bookkeeping, asserts post_check(), and marks
-         *          both incident facets as processed so they are not revisited in this pass.
-         */
-        void sweep_mesh();
+        bool do_once(bool iteratively = true);
 
-        void run_iterative_loop();
-
-        enum SwapCriterion {
-            SWAP_BASED_ON_VALENCE       = 1<<0,
-            SWAP_BASED_ON_DELAUNAY      = 1<<1
-        };
-
-        GEO::index_t SWAP_CRITERION = SWAP_BASED_ON_DELAUNAY;
+        void run_through(bool iteratively = true);
 
     private:
-        struct EdgeToCollapse {
-            EdgeToCollapse(
+        struct EdgeToSwap {
+            EdgeToSwap(
                 const GEO::index_t _f,
                 const GEO::index_t _lv,
                 const GEO::index_t _timestamping
@@ -83,7 +77,14 @@ namespace geolio
          * @param[in] nf Index of the adjacent facet involved in the swap.
          */
         void post_process(GEO::index_t f, GEO::index_t lv, GEO::index_t nf) const;
+
+        const GEO::index_t SWAP_CRITERION_;
+
+        std::vector<EdgeToSwap> pq_;
     };
+
+    extern template class SwapOperation<2>;
+    extern template class SwapOperation<3>;
 }
 
 #endif //GEOLIO_SWAP_OPERATION_H

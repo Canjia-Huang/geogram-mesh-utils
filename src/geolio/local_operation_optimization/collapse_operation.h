@@ -9,7 +9,8 @@
 
 namespace geolio
 {
-    class CollapseOperation : public BaseOperation {
+    template<GEO::index_t DIM>
+    class CollapseOperation : public BaseOperation<DIM> {
     public:
         /**
          * @brief Constructs a CollapseOperation for collapsing overly short edges.
@@ -20,7 +21,7 @@ namespace geolio
          * @param[in] limit_edge_length Edges longer than this threshold are never collapsed.
          */
         explicit CollapseOperation(
-            MeshElementManager& mesh_element_manager,
+            MeshElementManager<DIM>& mesh_element_manager,
             double limit_edge_length,
             bool allow_collapse_fixed_edges = true);
 
@@ -109,13 +110,16 @@ namespace geolio
 
         const double limit_edge_length_;
 
-        bool ALLOW_COLLAPSE_FIXED_EDGES_ = true; // When true, collapse of fixed (locked) edges is allowed.
+        const bool ALLOW_COLLAPSE_FIXED_EDGES_; // When true, collapse of fixed (locked) edges is allowed.
 
         std::priority_queue<EdgeToCollapse> pq_;
 
         std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_f_and_lv_0_; // just pre-allocated
         std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_f_and_lv_1_; // just pre-allocated
     };
+
+    extern template class CollapseOperation<2>;
+    extern template class CollapseOperation<3>;
 }
 
 #endif //GEOLIO_COLLAPSE_OPERATION_H

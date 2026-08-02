@@ -13,6 +13,7 @@
 
 namespace geolio
 {
+    template <GEO::index_t DIM>
     class MeshElementManager {
     public:
         /**
@@ -131,9 +132,7 @@ namespace geolio
         [[nodiscard]] double get_edge_length(const GEO::index_t f, const GEO::index_t lv) const {
             assert(f < mesh.facets.nb());
             assert(lv < 3);
-            if (mesh_2d)
-                return GEO::distance(mesh.facets.point<2>(f, lv), mesh.facets.point<2>(f, (lv+1)%3));
-            return GEO::distance(mesh.facets.point(f, lv), mesh.facets.point(f, (lv+1)%3));
+            return GEO::distance(mesh.facets.point<DIM>(f, lv), mesh.facets.point<DIM>(f, (lv+1)%3));
         }
 
         /**
@@ -145,7 +144,6 @@ namespace geolio
         [[nodiscard]] double compute_average_mesh_edge_length() const;
 
         GEO::Mesh& mesh;
-        const bool mesh_2d; // mesh.vertices.dimension() == 2
         GEO::Attribute<bool> mesh_v_boundary; // v -> on boundary
         GEO::Attribute<bool> mesh_v_fixed; // v -> fixed
         GEO::Attribute<bool> mesh_v_non_manifold; // v -> non manifold
@@ -175,6 +173,9 @@ namespace geolio
         std::vector<GEO::index_t> free_vertices_;
         std::vector<GEO::index_t> free_facets_;
     };
+
+    extern template class MeshElementManager<2>;
+    extern template class MeshElementManager<3>;
 }
 
 #endif //GEOLIO_MESH_ELEMENT_MANAGER_H

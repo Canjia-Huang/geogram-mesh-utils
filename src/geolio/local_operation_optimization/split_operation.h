@@ -9,7 +9,8 @@
 
 namespace geolio
 {
-    class SplitOperation : public BaseOperation {
+    template <GEO::index_t DIM>
+    class SplitOperation : public BaseOperation<DIM> {
     public:
         /**
          * @brief Constructs a SplitOperation for splitting overly long edges.
@@ -20,7 +21,7 @@ namespace geolio
          * @param[in] limit_edge_length Edges shorter than this threshold are never split.
          */
         explicit SplitOperation(
-            MeshElementManager& mesh_element_manager,
+            MeshElementManager<DIM>& mesh_element_manager,
             double limit_edge_length,
             bool allow_split_fixed_edges = true);
 
@@ -100,12 +101,15 @@ namespace geolio
 
         const double limit_edge_length_;
 
-        bool ALLOW_SPLIT_FIXED_EDGES_ = true; // When true, splitting of fixed (locked) edges is allowed.
+        const bool ALLOW_SPLIT_FIXED_EDGES_; // When true, splitting of fixed (locked) edges is allowed.
 
         std::priority_queue<EdgeToSplit> pq_;
 
         GEO::Attribute<bool> mesh_fc_locked_; // locked edge should not be split (only used when not allow to split fixed edges)
     };
+
+    extern template class SplitOperation<2>;
+    extern template class SplitOperation<3>;
 }
 
 #endif //GEOLIO_SPLIT_OPERATION_H

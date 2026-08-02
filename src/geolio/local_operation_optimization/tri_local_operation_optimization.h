@@ -12,6 +12,7 @@
 
 namespace geolio
 {
+    template <GEO::index_t DIM>
     class TriLocalOperationOptimization {
     public:
         /**
@@ -132,11 +133,14 @@ namespace geolio
         void fix_vertices_based_on_fixed_edges(double sharp_angle = 0.75*M_PI);
 
         GEO::Mesh& mesh_;
-        MeshElementManager manager_;
+        MeshElementManager<DIM> manager_;
 
         GEO::Attribute<GEO::index_t>* mesh_v_original_idx_ = nullptr;
         GEO::Attribute<GEO::index_t>* mesh_f_original_idx_ = nullptr;
     };
+
+    extern template class TriLocalOperationOptimization<2>;
+    extern template class TriLocalOperationOptimization<3>;
 }
 
 #endif //GEOLIO_TRI_LOCAL_OPERATION_OPTIMIZATION_H

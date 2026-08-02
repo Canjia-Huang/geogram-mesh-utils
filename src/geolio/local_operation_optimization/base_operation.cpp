@@ -8,8 +8,9 @@
 
 namespace geolio
 {
-    BaseOperation::BaseOperation(
-        MeshElementManager& mesh_element_manager
+    template <GEO::index_t DIM>
+    BaseOperation<DIM>::BaseOperation(
+        MeshElementManager<DIM>& mesh_element_manager
         ) : manager_(mesh_element_manager),
             mesh_(mesh_element_manager.mesh),
             attribute_name_(generate_random_string(22))
@@ -19,14 +20,16 @@ namespace geolio
         mesh_f_timestamping_.fill(false);
     }
 
-    BaseOperation::~BaseOperation(
+    template <GEO::index_t DIM>
+    BaseOperation<DIM>::~BaseOperation(
         ) {
         /* Destroy attributes */
         if (mesh_f_timestamping_.is_bound())
             mesh_f_timestamping_.destroy();
     }
 
-    bool BaseOperation::post_check(
+    template <GEO::index_t DIM>
+    bool BaseOperation<DIM>::post_check(
         ) {
         if constexpr (false) { // Check whether all used facets use the used vertices.
             for (const auto& f : mesh_.facets) {
@@ -70,4 +73,7 @@ namespace geolio
 
         return true;
     }
+
+    template class BaseOperation<2>;
+    template class BaseOperation<3>;
 }

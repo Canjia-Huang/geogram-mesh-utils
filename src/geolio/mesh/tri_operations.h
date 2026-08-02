@@ -33,6 +33,7 @@ namespace geolio
      * @param[in] r  Interpolation ratio in [0,1] controlling the new vertex placement along the edge
      *              (default: 0.5 places the vertex at the midpoint).
      */
+    template <GEO::index_t DIM>
     void tri_edge_split(
         GEO::Mesh& M,
         GEO::index_t f,
@@ -41,6 +42,13 @@ namespace geolio
         GEO::index_t new_f0,
         GEO::index_t new_f1,
         double r = 0.5);
+
+    extern template void tri_edge_split<2>(
+        GEO::Mesh& M, GEO::index_t f, GEO::index_t lv, GEO::index_t new_v, GEO::index_t new_f0, GEO::index_t new_f1,
+        double r);
+    extern template void tri_edge_split<3>(
+        GEO::Mesh& M, GEO::index_t f, GEO::index_t lv, GEO::index_t new_v, GEO::index_t new_f0, GEO::index_t new_f1,
+        double r);
 
     /**
      * @brief Check whether collapsing a triangle edge preserves local orientation.
@@ -79,6 +87,7 @@ namespace geolio
      *                      GEO::NO_FACET if the edge was on the boundary.
      * @param[in] r  Interpolation ratio in [0,1] controlling new position of the surviving vertex (default 0.5).
      */
+    template <GEO::index_t DIM>
     void tri_edge_collapse(
         GEO::Mesh& M,
         GEO::index_t f,
@@ -87,6 +96,13 @@ namespace geolio
         GEO::index_t& disuse_f0,
         GEO::index_t& disuse_f1,
         double r = 0.5);
+
+    extern template void tri_edge_collapse<2>(
+        GEO::Mesh& M, GEO::index_t f, GEO::index_t lv, GEO::index_t& disuse_v, GEO::index_t& disuse_f0,
+        GEO::index_t& disuse_f1, double r);
+    extern template void tri_edge_collapse<3>(
+        GEO::Mesh& M, GEO::index_t f, GEO::index_t lv, GEO::index_t& disuse_v, GEO::index_t& disuse_f0,
+        GEO::index_t& disuse_f1, double r);
 
     /**
      * @brief Check whether swapping a triangle edge is geometrically valid.

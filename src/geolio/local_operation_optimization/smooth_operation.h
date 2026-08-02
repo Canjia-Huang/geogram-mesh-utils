@@ -10,7 +10,8 @@
 
 namespace geolio
 {
-    class SmoothOperation : public BaseOperation {
+    template<GEO::index_t DIM>
+    class SmoothOperation : public BaseOperation<DIM> {
     public:
         /**
          * @brief Constructs a SmoothOperation for relaxing vertex positions.
@@ -21,32 +22,18 @@ namespace geolio
          * @param[in] mesh_element_manager The mesh element manager exposing the mesh and its
          *                                 usage/fixed element attributes.
          */
-        explicit SmoothOperation(MeshElementManager& mesh_element_manager);
+        explicit SmoothOperation(
+            MeshElementManager<DIM>& mesh_element_manager,
+            bool project_to_original_mesh = true,
+            bool allow_smooth_fixed_edge_vertices = false);
 
-        /**
-         * @brief Runs a number of smoothing iterations over the mesh vertices.
-         * @details Builds the one-ring adjacency of every used vertex from the used facets, and
-         *          optionally the set of vertices/edges adjacent to fixed edges. For each
-         *          iteration it computes each movable vertex's target position as the average of
-         *          its neighbours, projects it onto the original surface for 3D meshes, slides
-         *          it along adjacent fixed edges when allowed, and writes it back if
-         *          is_perform_valid() passes.
-         * @param[in] iterations_nb Number of smoothing iterations to execute.
-         */
-        void sweep_mesh(GEO::index_t iterations_nb) const;
+        double do_once();
 
-        void run_iterative_loop(double displacement_threshold = 1e-5);
+        void run_nb_times(GEO::index_t iterations_nb);
 
-        /** @brief When true, vertices lying on fixed edges are smoothed by sliding along those edges. */
-        bool ALLOW_SMOOTH_FIXED_EDGE_VERTICES = false;
+        void run_until(double displacement_threshold = 0.1);
 
     private:
-        void build_vertex_adjacent_vertices(std::vector<std::vector<GEO::index_t>>& mesh_v_adjacent_v) const;
-
-        void build_fixed_edge_adjacent_edges(std::vector<std::pair<GEO::index_t, GEO::index_t>>& mesh_fixed_edge_v_adjacent_v) const;
-
-        void build_vertex_on_fixed_edges(std::vector<char>& mesh_v_on_fixed_edges) const;
-
         /**
          * @brief Checks whether vertex @p v is allowed to move during smoothing.
          * @details Returns false when the vertex is no longer in use or is marked as fixed;
@@ -56,9 +43,24 @@ namespace geolio
          */
         [[nodiscard]] bool is_perform_valid(GEO::index_t v) const;
 
-        GEO::Mesh original_mesh_; // a copy of original input mesh
-        GEO::MeshFacetsAABB original_mesh_facet_AABB_;
+        bool PROJECT_TO_ORIGINAL_MESH_;
+        GEO::Mesh original_mesh_; // a copy of original input mesh, only used in 3D mesh
+        GEO::MeshFacetsAABB original_mesh_facet_AABB_; // only used in 3D mesh
+
+        bool ALLOW_SMOOTH_FIXED_EDGE_VERTICES_; // When true, vertices lying on fixed edges are smoothed by sliding along those edges.
+        std::vector<char> mesh_v_on_fixed_edges_; // used when ALLOW_SMOOTH_FIXED_EDGE_VERTICES_ == false
+        std::vector<std::pair<GEO::index_t, GEO::index_t>> mesh_fixed_edge_v_adjacent_v; /*
+            used when ALLOW_SMOOTH_FIXED_EDGE_VERTICES_ == true
+            v -> adjacent vertices along adjacent fixed edges
+        */
+
+        std::vector<std::vector<GEO::index_t>> mesh_v_adjacent_v; // v -> adjacent vertices
+
+        std::vector<GEO::vecng<DIM, GEO::Numeric::float64>> mesh_v_new_pos; // just pre-allocated
     };
+
+    extern template class SmoothOperation<2>;
+    extern template class SmoothOperation<3>;
 }
 
 #endif //GEOLIO_SMOOTH_OPERATION_H

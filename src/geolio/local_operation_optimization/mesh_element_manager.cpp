@@ -8,10 +8,10 @@
 
 namespace geolio
 {
-    MeshElementManager::MeshElementManager(
+    template <GEO::index_t DIM>
+    MeshElementManager<DIM>::MeshElementManager(
         GEO::Mesh& _mesh
         ) : mesh(_mesh),
-            mesh_2d(_mesh.vertices.dimension() == 2),
             attribute_name_(generate_random_string(22))
     {
         assert(mesh.facets.are_simplices());
@@ -31,7 +31,8 @@ namespace geolio
         mesh_fc_fixed.fill(false);
     }
 
-    MeshElementManager::~MeshElementManager(
+    template <GEO::index_t DIM>
+    MeshElementManager<DIM>::~MeshElementManager(
         ) {
         /* Destroy attributes */
         if (mesh_v_boundary.is_bound())
@@ -48,7 +49,8 @@ namespace geolio
             mesh_fc_fixed.destroy();
     }
 
-    void MeshElementManager::clean_unused_elements(
+    template <GEO::index_t DIM>
+    void MeshElementManager<DIM>::clean_unused_elements(
         const bool remove_isolated_vertices
         ) {
         if (free_facets_.empty() && free_vertices_.empty())
@@ -69,7 +71,8 @@ namespace geolio
         assert(std::ranges::all_of(mesh_f_used.get_vector(), [](const auto& b){ return b; }));
     }
 
-    double MeshElementManager::compute_average_mesh_edge_length(
+    template <GEO::index_t DIM>
+    double MeshElementManager<DIM>::compute_average_mesh_edge_length(
         ) const {
         double l = 0;
         GEO::index_t edges_nb = 0;
@@ -83,7 +86,8 @@ namespace geolio
         return l / edges_nb;
     }
 
-    void MeshElementManager::allocate_new_vertices(
+    template <GEO::index_t DIM>
+    void MeshElementManager<DIM>::allocate_new_vertices(
         ) {
         assert(mesh.vertices.nb() > 0);
 
@@ -96,7 +100,8 @@ namespace geolio
             free_vertices_.push_back(v);
     }
 
-    void MeshElementManager::allocate_new_facets(
+    template <GEO::index_t DIM>
+    void MeshElementManager<DIM>::allocate_new_facets(
         ) {
         assert(mesh.facets.nb() > 0);
 
@@ -108,4 +113,7 @@ namespace geolio
         for (GEO::index_t f = PREV_MESH_FACETS_NB, f_end = mesh.facets.nb(); f < f_end; ++f)
             free_facets_.push_back(f);
     }
+
+    template class MeshElementManager<2>;
+    template class MeshElementManager<3>;
 }

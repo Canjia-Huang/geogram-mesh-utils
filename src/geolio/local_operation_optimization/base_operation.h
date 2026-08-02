@@ -10,6 +10,7 @@
 
 namespace geolio
 {
+    template <GEO::index_t DIM>
     class BaseOperation {
     public:
         /**
@@ -21,7 +22,7 @@ namespace geolio
          * @param[in] mesh_element_manager The mesh element manager exposing the mesh and its
          *                                 usage/fixed element attributes.
          */
-        explicit BaseOperation(MeshElementManager& mesh_element_manager);
+        explicit BaseOperation(MeshElementManager<DIM>& mesh_element_manager);
 
         /**
          * @brief Destroys the BaseOperation.
@@ -68,12 +69,15 @@ namespace geolio
             }
         }
 
-        MeshElementManager& manager_;
+        MeshElementManager<DIM>& manager_;
         const std::string attribute_name_; // Prevent anyone from using these attributes externally (unsafety).
 
         GEO::Mesh& mesh_;
         GEO::Attribute<GEO::index_t> mesh_f_timestamping_; // f -> processed (just pre-allocated)
     };
+
+    extern template class BaseOperation<2>;
+    extern template class BaseOperation<3>;
 }
 
 #endif //GEOLIO_BASE_OPERATION_H
