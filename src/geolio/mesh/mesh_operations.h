@@ -25,7 +25,7 @@ namespace geolio
      * @param[in] M Input mesh.
      * @param[in] start_f Seed facet index incident to the target vertex.
      * @param[in] start_lv Local vertex index of the target vertex in @p start_f.
-     * @param[out] ordered_f_and_lv Output ordered one-ring list. Each element is (f, lv), where
+     * @param[out] ordered_f_lv Output ordered one-ring list. Each element is (f, lv), where
      *                              @p f is an incident facet and @p lv is the local index of the target
      *                              vertex inside that facet. Existing contents are cleared.
      * @return true if the target vertex is on the mesh border; false if it is an interior vertex.
@@ -34,7 +34,7 @@ namespace geolio
         const GEO::Mesh& M,
         GEO::index_t start_f,
         GEO::index_t start_lv,
-        std::vector<std::pair<GEO::index_t, GEO::index_t>>& ordered_f_and_lv);
+        std::vector<std::pair<GEO::index_t, GEO::index_t>>& ordered_f_lv);
 
     /**
      * @brief Collect cells incident to a vertex from a seed cell.

@@ -85,6 +85,8 @@ namespace geolio
             const auto PREV_FACETS_NB = mesh_.facets.nb();
 
             split_operation.perform_iteratively();
+            collapse_operation.perform_iteratively();
+
             // split_operation.perform_one_pass();
             // collapse_operation.perform_one_pass();
             // swap_operation.perform_one_pass();

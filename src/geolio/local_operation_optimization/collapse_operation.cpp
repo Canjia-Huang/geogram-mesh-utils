@@ -33,14 +33,111 @@ namespace geolio
                 if (!is_perform_valid(f, lv))
                     continue;
 
-                const auto v = mesh_.facets.vertex(f, lv);
-
                 GEO::index_t disuse_v0, disuse_v1, disuse_v2, disuse_f0, disuse_f1;
                 perform(f, lv, disuse_v0, disuse_v1, disuse_v2, disuse_f0, disuse_f1);
 
                 post_process(f, lv, disuse_v0, disuse_v1, disuse_v2, disuse_f0, disuse_f1);
 
                 assert(post_check());
+            }
+        }
+    }
+
+    struct EdgeToCollapse {
+        EdgeToCollapse(
+            const GEO::index_t _f,
+            const GEO::index_t _lv,
+            const GEO::index_t _timestamping,
+            const double _length
+            ) : f(_f), lv(_lv), timestamping(_timestamping), length(_length)
+        {}
+
+        GEO::index_t f = GEO::NO_FACET;
+        GEO::index_t lv = GEO::NO_INDEX;
+        GEO::index_t timestamping = GEO::NO_INDEX;
+        double length = -1.0;
+
+        bool operator<(const EdgeToCollapse& other) const { // min-heap
+            return length > other.length;
+        }
+    };
+
+    void CollapseOperation::perform_iteratively(
+        ) {
+        mesh_f_timestamping_.fill(0); // as version timestamping
+
+        std::priority_queue<EdgeToCollapse> pq;
+
+        /* Init queue */
+        {
+            std::vector<GEO::index_t> processed_edge(mesh_.facet_corners.nb(), false);
+            for (const auto& f : mesh_.facets) {
+                if (!manager_.mesh_f_used[f])
+                    continue;
+
+                for (GEO::index_t lv = 0; lv < 3; ++lv) {
+                    if (const auto& fc = mesh_.facets.corner(f, lv);
+                        processed_edge[fc])
+                        continue;
+                    else
+                        processed_edge[fc] = true;
+
+                    if (is_perform_valid(f, lv))
+                        pq.emplace(f, lv, 0, manager_.get_edge_length(f, lv));
+
+                    if (const auto& nf = mesh_.facets.adjacent(f, lv);
+                        nf != GEO::NO_FACET
+                        ) {
+                        const auto& nlv = mesh_.facets.find_vertex(nf, mesh_.facets.vertex(f, lv));
+                        assert(nlv != GEO::NO_INDEX);
+                        processed_edge[mesh_.facets.corner(nf, (nlv+2)%3)] = true;
+                    }
+                }
+            }
+        }
+
+        /* Iteratively perform */
+        std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_f_and_lv_0; // just pre-allocated
+        std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_f_and_lv_1; // just pre-allocated
+        while (!pq.empty()) {
+            const auto edge = pq.top();
+            pq.pop();
+
+            /* Check validity */
+            if (const auto& f_timestamping = mesh_f_timestamping_[edge.f];
+                edge.timestamping < f_timestamping) { // This edge is not up-to-date. Push again.
+                pq.emplace(edge.f, edge.lv, f_timestamping, manager_.get_edge_length(edge.f, edge.lv));
+                continue;
+            }
+
+            if (!is_perform_valid(edge.f, edge.lv))
+                continue;
+
+            /* Collapse */
+            get_vertex_incident_facets(mesh_, edge.f, edge.lv, ordered_f_and_lv_0); // before collapse
+            get_vertex_incident_facets(mesh_, edge.f, (edge.lv+1)%3, ordered_f_and_lv_1); // before collapse
+
+            GEO::index_t disuse_v0, disuse_v1, disuse_v2, disuse_f0, disuse_f1;
+            perform(edge.f, edge.lv, disuse_v0, disuse_v1, disuse_v2, disuse_f0, disuse_f1);
+
+            post_process(edge.f, edge.lv, disuse_v0, disuse_v1, disuse_v2, disuse_f0, disuse_f1);
+
+            assert(post_check());
+
+            /* Push new sub-edges */
+            for (const auto& [f, lv] : ordered_f_and_lv_0) {
+                if (f == disuse_f0 || f == disuse_f1)
+                    continue;
+                auto& f_timestamping = mesh_f_timestamping_[f];
+                ++f_timestamping;
+                pq.emplace(f, lv, f_timestamping, manager_.get_edge_length(f, lv));
+            }
+            for (const auto& [f, lv] : ordered_f_and_lv_1) {
+                if (f == disuse_f0 || f == disuse_f1)
+                    continue;
+                auto& f_timestamping = mesh_f_timestamping_[f];
+                ++f_timestamping;
+                pq.emplace(f, lv, f_timestamping, manager_.get_edge_length(f, lv));
             }
         }
     }

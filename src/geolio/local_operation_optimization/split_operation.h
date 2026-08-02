@@ -36,7 +36,7 @@ namespace geolio
         void perform_iteratively();
 
         /** @brief When true, splitting of fixed (locked) edges is allowed. */
-        bool ALLOW_SPLIT_FIXED_EDGES = false;
+        bool ALLOW_SPLIT_FIXED_EDGES = true;
 
     private:
         /**

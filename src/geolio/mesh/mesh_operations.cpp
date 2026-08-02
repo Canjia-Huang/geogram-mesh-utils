@@ -19,7 +19,7 @@ namespace geolio
         const GEO::Mesh& M,
         const GEO::index_t start_f,
         const GEO::index_t start_lv,
-        std::vector<std::pair<GEO::index_t, GEO::index_t>>& ordered_f_and_lv
+        std::vector<std::pair<GEO::index_t, GEO::index_t>>& ordered_f_lv
         ) {
         assert(start_f < M.facets.nb());
         assert(start_lv < M.facets.nb_vertices(start_f));
@@ -62,12 +62,12 @@ namespace geolio
         }
 
         /* Output */
-        ordered_f_and_lv.clear();
-        ordered_f_and_lv.reserve(next_ordered_f_and_lv.size() + prev_ordered_f_and_lv.size());
+        ordered_f_lv.clear();
+        ordered_f_lv.reserve(next_ordered_f_and_lv.size() + prev_ordered_f_and_lv.size());
         for (GEO::index_t i = 0, i_end = prev_ordered_f_and_lv.size(); i < i_end; ++i)
-            ordered_f_and_lv.push_back(prev_ordered_f_and_lv[i_end-i-1]);
+            ordered_f_lv.push_back(prev_ordered_f_and_lv[i_end-i-1]);
         for (const auto& f_lv : next_ordered_f_and_lv)
-            ordered_f_and_lv.push_back(f_lv);
+            ordered_f_lv.push_back(f_lv);
 
         return is_on_border;
     }
