@@ -35,10 +35,18 @@ namespace geolio
          */
         void perform_one_pass(GEO::index_t iterations_nb) const;
 
+        void perform_iteratively(double displacement_threshold = 1e-5);
+
         /** @brief When true, vertices lying on fixed edges are smoothed by sliding along those edges. */
         bool ALLOW_SMOOTH_FIXED_EDGE_VERTICES = false;
 
     private:
+        void build_vertex_adjacent_vertices(std::vector<std::vector<GEO::index_t>>& mesh_v_adjacent_v) const;
+
+        void build_fixed_edge_adjacent_edges(std::vector<std::pair<GEO::index_t, GEO::index_t>>& mesh_fixed_edge_v_adjacent_v) const;
+
+        void build_vertex_on_fixed_edges(std::vector<char>& mesh_v_on_fixed_edges) const;
+
         /**
          * @brief Checks whether vertex @p v is allowed to move during smoothing.
          * @details Returns false when the vertex is no longer in use or is marked as fixed;

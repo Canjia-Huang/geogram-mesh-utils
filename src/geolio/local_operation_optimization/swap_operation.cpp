@@ -101,7 +101,6 @@ namespace geolio
         while (!pq.empty()) {
             const auto edge = pq.back();
             pq.pop_back();
-            LOG::DEBUG("{}, {}, {}", edge.f, edge.lv, edge.timestamping);
 
             /* Check validity */
             if (const auto& f_timestamping = mesh_f_timestamping_[edge.f];
