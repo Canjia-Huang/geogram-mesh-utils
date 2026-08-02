@@ -27,9 +27,9 @@ namespace geolio
          *          the edge, applies post_process() bookkeeping, asserts post_check(), and marks
          *          both incident facets as processed so they are not revisited in this pass.
          */
-        void perform_one_pass();
+        void sweep_mesh();
 
-        void perform_iteratively();
+        void run_iterative_loop();
 
         enum SwapCriterion {
             SWAP_BASED_ON_VALENCE       = 1<<0,

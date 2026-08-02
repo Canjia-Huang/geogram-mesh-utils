@@ -31,9 +31,9 @@ namespace geolio
          *          original facet, the newly created facets and the adjacent facet as processed
          *          so they are not revisited in this pass.
          */
-        void perform_one_pass();
+        void sweep_mesh();
 
-        void perform_iteratively();
+        void run_iterative_loop();
 
         /** @brief When true, splitting of fixed (locked) edges is allowed. */
         bool ALLOW_SPLIT_FIXED_EDGES = true;

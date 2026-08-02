@@ -41,6 +41,33 @@ namespace geolio
         bool post_check();
 
     protected:
+        template <typename Func>
+        void for_each_edge(Func func) {
+            std::vector<bool> processed_edge(mesh_.facet_corners.nb(), false);
+            for (const auto& f : mesh_.facets) {
+                if (!manager_.mesh_f_used[f])
+                    continue;
+
+                for (GEO::index_t lv = 0; lv < 3; ++lv) {
+                    if (const auto& fc = mesh_.facets.corner(f, lv);
+                        processed_edge[fc])
+                        continue;
+                    else
+                        processed_edge[fc] = true;
+
+                    func(f, lv);
+
+                    if (const auto& nf = mesh_.facets.adjacent(f, lv);
+                        nf != GEO::NO_FACET
+                        ) {
+                        const auto& nlv = mesh_.facets.find_vertex(nf, mesh_.facets.vertex(f, lv));
+                        assert(nlv != GEO::NO_INDEX);
+                        processed_edge[mesh_.facets.corner(nf, (nlv+2)%3)] = true;
+                    }
+                }
+            }
+        }
+
         MeshElementManager& manager_;
         const std::string attribute_name_; // Prevent anyone from using these attributes externally (unsafety).
 

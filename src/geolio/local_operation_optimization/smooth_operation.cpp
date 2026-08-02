@@ -21,7 +21,7 @@ namespace geolio
         }
     }
 
-    void SmoothOperation::perform_one_pass(
+    void SmoothOperation::sweep_mesh(
         const GEO::index_t iterations_nb
         ) const {
         /* Build vertex adjacency */
@@ -137,7 +137,7 @@ namespace geolio
         }
     }
 
-    void SmoothOperation::perform_iteratively(
+    void SmoothOperation::run_iterative_loop(
         const double displacement_threshold
         ) {
         /* Build vertex adjacency */

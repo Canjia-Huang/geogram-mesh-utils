@@ -33,9 +33,9 @@ namespace geolio
          *          is_perform_valid() passes.
          * @param[in] iterations_nb Number of smoothing iterations to execute.
          */
-        void perform_one_pass(GEO::index_t iterations_nb) const;
+        void sweep_mesh(GEO::index_t iterations_nb) const;
 
-        void perform_iteratively(double displacement_threshold = 1e-5);
+        void run_iterative_loop(double displacement_threshold = 1e-5);
 
         /** @brief When true, vertices lying on fixed edges are smoothed by sliding along those edges. */
         bool ALLOW_SMOOTH_FIXED_EDGE_VERTICES = false;

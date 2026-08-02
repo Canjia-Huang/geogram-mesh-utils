@@ -31,9 +31,9 @@ namespace geolio
          *          Processed flags are not set after a collapse because the collapsed facet is
          *          marked disused, so a later re-scan of that facet is safely rejected.
          */
-        void perform_one_pass();
+        void sweep_mesh();
 
-        void perform_iteratively();
+        void run_iterative_loop();
 
         /** @brief When true, collapse of fixed (locked) edges is allowed. */
         bool ALLOW_COLLAPSE_FIXED_EDGES = true;

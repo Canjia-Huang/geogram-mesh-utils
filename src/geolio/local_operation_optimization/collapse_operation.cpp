@@ -21,7 +21,7 @@ namespace geolio
             limit_edge_length_(limit_edge_length)
     {}
 
-    void CollapseOperation::perform_one_pass(
+    void CollapseOperation::sweep_mesh(
         ) {
         mesh_f_timestamping_.fill(false);
 
@@ -65,39 +65,18 @@ namespace geolio
         };
     }
 
-    void CollapseOperation::perform_iteratively(
+    void CollapseOperation::run_iterative_loop(
         ) {
         mesh_f_timestamping_.fill(0); // as version timestamping
 
         std::priority_queue<EdgeToCollapse> pq;
 
         /* Init queue */
-        {
-            std::vector<bool> processed_edge(mesh_.facet_corners.nb(), false);
-            for (const auto& f : mesh_.facets) {
-                if (!manager_.mesh_f_used[f])
-                    continue;
-
-                for (GEO::index_t lv = 0; lv < 3; ++lv) {
-                    if (const auto& fc = mesh_.facets.corner(f, lv);
-                        processed_edge[fc])
-                        continue;
-                    else
-                        processed_edge[fc] = true;
-
-                    if (is_perform_valid(f, lv))
-                        pq.emplace(f, lv, 0, manager_.get_edge_length(f, lv));
-
-                    if (const auto& nf = mesh_.facets.adjacent(f, lv);
-                        nf != GEO::NO_FACET
-                        ) {
-                        const auto& nlv = mesh_.facets.find_vertex(nf, mesh_.facets.vertex(f, lv));
-                        assert(nlv != GEO::NO_INDEX);
-                        processed_edge[mesh_.facets.corner(nf, (nlv+2)%3)] = true;
-                    }
-                }
-            }
-        }
+        auto init_func = [&](const GEO::index_t f, const GEO::index_t lv) {
+            if (is_perform_valid(f, lv))
+                pq.emplace(f, lv, 0, manager_.get_edge_length(f, lv));
+        };
+        for_each_edge(init_func);
 
         /* Iteratively perform */
         std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_f_and_lv_0; // just pre-allocated
