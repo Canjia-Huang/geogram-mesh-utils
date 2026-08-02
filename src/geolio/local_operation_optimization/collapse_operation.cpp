@@ -16,90 +16,84 @@ namespace geolio
 {
     CollapseOperation::CollapseOperation(
         MeshElementManager& mesh_element_manager,
-        const double limit_edge_length
+        const double limit_edge_length,
+        const bool allow_collapse_fixed_edges
         ) : BaseOperation(mesh_element_manager),
-            limit_edge_length_(limit_edge_length)
-    {}
-
-    void CollapseOperation::sweep_mesh(
-        ) {
-        mesh_f_timestamping_.fill(false);
-
-        for (GEO::index_t f = 0, f_end = mesh_.facets.nb(); f < f_end; ++f) {
-            if (mesh_f_timestamping_[f])
-                continue;
-
-            for (GEO::index_t lv = 0; lv < 3; ++lv) {
-                if (!is_perform_valid(f, lv))
-                    continue;
-
-                GEO::index_t disuse_v0, disuse_v1, disuse_v2, disuse_f0, disuse_f1;
-                perform(f, lv, disuse_v0, disuse_v1, disuse_v2, disuse_f0, disuse_f1);
-
-                post_process(f, lv, disuse_v0, disuse_v1, disuse_v2, disuse_f0, disuse_f1);
-
-                assert(post_check());
-            }
-        }
-    }
-
-    void CollapseOperation::run_iterative_loop(
-        ) {
-        mesh_f_timestamping_.fill(0); // as version timestamping
-
-        std::priority_queue<EdgeToCollapse> pq;
+            limit_edge_length_(limit_edge_length),
+            ALLOW_COLLAPSE_FIXED_EDGES_(allow_collapse_fixed_edges)
+    {
+        /* Init timestamping */
+        mesh_f_timestamping_.fill(0);
 
         /* Init queue */
         auto emplace_to_pq = [&](const GEO::index_t f, const GEO::index_t lv) {
             if (is_perform_valid(f, lv))
-                pq.emplace(f, lv, 0, manager_.get_edge_length(f, lv));
+                pq_.emplace(f, lv, 0, manager_.get_edge_length(f, lv));
         };
         for_each_edge(emplace_to_pq);
+    }
 
-        /* Iteratively perform */
-        std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_f_and_lv_0; // just pre-allocated
-        std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_f_and_lv_1; // just pre-allocated
-        while (!pq.empty()) {
-            const auto edge = pq.top();
-            pq.pop();
+    bool CollapseOperation::do_once(
+        const bool iteratively
+        ) {
+        if (pq_.empty())
+            return false;
 
-            /* Check validity */
-            if (const auto& f_timestamping = mesh_f_timestamping_[edge.f];
-                edge.timestamping < f_timestamping) { // This edge is not up-to-date. Push again.
-                pq.emplace(edge.f, edge.lv, f_timestamping, manager_.get_edge_length(edge.f, edge.lv));
-                continue;
-            }
+        const auto edge = pq_.top();
+        pq_.pop();
 
-            if (!is_perform_valid(edge.f, edge.lv))
-                continue;
-
-            /* Collapse */
-            get_vertex_incident_facets(mesh_, edge.f, edge.lv, ordered_f_and_lv_0); // before collapse
-            get_vertex_incident_facets(mesh_, edge.f, (edge.lv+1)%3, ordered_f_and_lv_1); // before collapse
-
-            GEO::index_t disuse_v0, disuse_v1, disuse_v2, disuse_f0, disuse_f1;
-            perform(edge.f, edge.lv, disuse_v0, disuse_v1, disuse_v2, disuse_f0, disuse_f1);
-
-            post_process(edge.f, edge.lv, disuse_v0, disuse_v1, disuse_v2, disuse_f0, disuse_f1);
-
-            assert(post_check());
-
-            /* Push new sub-edges */
-            for (const auto& [f, lv] : ordered_f_and_lv_0) {
-                if (f == disuse_f0 || f == disuse_f1)
-                    continue;
-                auto& f_timestamping = mesh_f_timestamping_[f];
-                ++f_timestamping;
-                pq.emplace(f, lv, f_timestamping, manager_.get_edge_length(f, lv));
-            }
-            for (const auto& [f, lv] : ordered_f_and_lv_1) {
-                if (f == disuse_f0 || f == disuse_f1)
-                    continue;
-                auto& f_timestamping = mesh_f_timestamping_[f];
-                ++f_timestamping;
-                pq.emplace(f, lv, f_timestamping, manager_.get_edge_length(f, lv));
-            }
+        /* Check validity */
+        if (const auto& f_timestamping = mesh_f_timestamping_[edge.f];
+            edge.timestamping < f_timestamping
+            ) { // This edge is not up-to-date. Push again.
+            if (iteratively)
+                pq_.emplace(edge.f, edge.lv, f_timestamping, manager_.get_edge_length(edge.f, edge.lv));
+            return true;
         }
+
+        if (!is_perform_valid(edge.f, edge.lv))
+            return true;
+
+        /* Collapse */
+        get_vertex_incident_facets(mesh_, edge.f, edge.lv, ordered_f_and_lv_0_); // before collapse
+        get_vertex_incident_facets(mesh_, edge.f, (edge.lv+1)%3, ordered_f_and_lv_1_); // before collapse
+
+        GEO::index_t disuse_v0, disuse_v1, disuse_v2, disuse_f0, disuse_f1;
+        perform(edge.f, edge.lv, disuse_v0, disuse_v1, disuse_v2, disuse_f0, disuse_f1);
+
+        post_process(edge.f, edge.lv, disuse_v0, disuse_v1, disuse_v2, disuse_f0, disuse_f1);
+
+        assert(post_check());
+
+        /* Push new sub-edges */
+        for (const auto& [f, lv] : ordered_f_and_lv_0_) {
+            if (f == disuse_f0 || f == disuse_f1)
+                continue;
+
+            auto& f_timestamping = mesh_f_timestamping_[f];
+            ++f_timestamping;
+
+            if (iteratively)
+                pq_.emplace(f, lv, f_timestamping, manager_.get_edge_length(f, lv));
+        }
+        for (const auto& [f, lv] : ordered_f_and_lv_1_) {
+            if (f == disuse_f0 || f == disuse_f1)
+                continue;
+
+            auto& f_timestamping = mesh_f_timestamping_[f];
+            ++f_timestamping;
+
+            if (iteratively)
+                pq_.emplace(f, lv, f_timestamping, manager_.get_edge_length(f, lv));
+        }
+
+        return true;
+    }
+
+    void CollapseOperation::run_through(
+        const bool iteratively
+        ) {
+        while (do_once(iteratively)) {}
     }
 
     bool CollapseOperation::is_perform_valid(
@@ -129,7 +123,7 @@ namespace geolio
             }
         }
 
-        if (!ALLOW_COLLAPSE_FIXED_EDGES) {
+        if (!ALLOW_COLLAPSE_FIXED_EDGES_) {
             if (const auto& fc = mesh_.facets.corner(f, lv);
                 manager_.mesh_fc_fixed[fc]) // Do not collapse the fixed edge.
                     return false;

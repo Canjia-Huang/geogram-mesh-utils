@@ -21,7 +21,10 @@ namespace geolio
          */
         explicit CollapseOperation(
             MeshElementManager& mesh_element_manager,
-            double limit_edge_length);
+            double limit_edge_length,
+            bool allow_collapse_fixed_edges = true);
+
+        bool do_once(bool iteratively = true);
 
         /**
          * @brief Executes a single pass of edge-collapse over the whole mesh.
@@ -31,12 +34,7 @@ namespace geolio
          *          Processed flags are not set after a collapse because the collapsed facet is
          *          marked disused, so a later re-scan of that facet is safely rejected.
          */
-        void sweep_mesh();
-
-        void run_iterative_loop();
-
-        /** @brief When true, collapse of fixed (locked) edges is allowed. */
-        bool ALLOW_COLLAPSE_FIXED_EDGES = true;
+        void run_through(bool iteratively = true);
 
     private:
         struct EdgeToCollapse {
@@ -110,6 +108,13 @@ namespace geolio
                           GEO::index_t disuse_f0, GEO::index_t disuse_f1) const;
 
         const double limit_edge_length_;
+
+        bool ALLOW_COLLAPSE_FIXED_EDGES_ = true; // When true, collapse of fixed (locked) edges is allowed.
+
+        std::priority_queue<EdgeToCollapse> pq_;
+
+        std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_f_and_lv_0_; // just pre-allocated
+        std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_f_and_lv_1_; // just pre-allocated
     };
 }
 

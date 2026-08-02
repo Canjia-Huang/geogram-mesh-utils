@@ -72,7 +72,6 @@ namespace geolio
         const double COLLAPSE_EDGE_LENGTH = 4.0/5.0 * target_edge_length;
 
         /* Init */
-        CollapseOperation collapse_operation(manager_, COLLAPSE_EDGE_LENGTH);
         SwapOperation swap_operation(manager_);
         SmoothOperation smooth_operation(manager_);
 
@@ -85,6 +84,9 @@ namespace geolio
 
             SplitOperation split_operation(manager_, SPLIT_EDGE_LENGTH, true);
             split_operation.run_through();
+
+            CollapseOperation collapse_operation(manager_, COLLAPSE_EDGE_LENGTH, true);
+            collapse_operation.run_through(false);
 
             // collapse_operation.run_iterative_loop();
             // swap_operation.run_iterative_loop();
