@@ -36,7 +36,7 @@ namespace geolio
         void perform_iteratively();
 
         /** @brief When true, collapse of fixed (locked) edges is allowed. */
-        bool ALLOW_COLLAPSE_FIXED_EDGES = false;
+        bool ALLOW_COLLAPSE_FIXED_EDGES = true;
 
     private:
         /**

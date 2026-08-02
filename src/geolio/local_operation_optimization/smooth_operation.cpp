@@ -7,6 +7,8 @@
 #include <utility>
 #include <vector>
 
+#include "geolio/common/log.h"
+
 namespace geolio
 {
     SmoothOperation::SmoothOperation(
@@ -61,8 +63,8 @@ namespace geolio
                             assert(mesh_fixed_edge_v_adjacent_v.size() == mesh_.vertices.nb());
                             assert(!manager_.mesh_v_fixed[v]);
                             const auto& [v0, v1] = mesh_fixed_edge_v_adjacent_v[v];
-                            assert(v0 != GEO::NO_VERTEX);
-                            assert(v1 != GEO::NO_VERTEX);
+                            if (v0 == GEO::NO_VERTEX || v1 == GEO::NO_VERTEX)
+                                continue;
                             const auto& p0 = mesh_.vertices.point<2>(v0);
                             const auto& p1 = mesh_.vertices.point<2>(v1);
                             const auto p1p0 = GEO::normalize(p1-p0);
@@ -114,14 +116,13 @@ namespace geolio
                         if (ALLOW_SMOOTH_FIXED_EDGE_VERTICES) {
                             assert(mesh_fixed_edge_v_adjacent_v.size() == mesh_.vertices.nb());
                             assert(!manager_.mesh_v_fixed[v]);
-                            if (const auto& [v0, v1] = mesh_fixed_edge_v_adjacent_v[v];
-                                v0 != GEO::NO_VERTEX && v1 != GEO::NO_VERTEX
-                                ) {
-                                const auto& p0 = mesh_.vertices.point(v0);
-                                const auto& p1 = mesh_.vertices.point(v1);
-                                const auto p1p0 = GEO::normalize(p1-p0);
-                                target_p = p0 + GEO::dot(target_p-p0, p1p0) * p1p0;
-                            }
+                            const auto& [v0, v1] = mesh_fixed_edge_v_adjacent_v[v];
+                            if (v0 == GEO::NO_VERTEX || v1 == GEO::NO_VERTEX)
+                                continue;
+                            const auto& p0 = mesh_.vertices.point(v0);
+                            const auto& p1 = mesh_.vertices.point(v1);
+                            const auto p1p0 = GEO::normalize(p1-p0);
+                            target_p = p0 + GEO::dot(target_p-p0, p1p0) * p1p0;
                         }
                         else {
                             assert(mesh_v_on_fixed_edges.size() == mesh_.vertices.nb());
@@ -139,7 +140,7 @@ namespace geolio
     void SmoothOperation::perform_iteratively(
         const double displacement_threshold
         ) {
-/* Build vertex adjacency */
+        /* Build vertex adjacency */
         std::vector<std::vector<GEO::index_t>> mesh_v_adjacent_v(mesh_.vertices.nb());
         build_vertex_adjacent_vertices(mesh_v_adjacent_v);
 
@@ -179,8 +180,8 @@ namespace geolio
                             assert(mesh_fixed_edge_v_adjacent_v.size() == mesh_.vertices.nb());
                             assert(!manager_.mesh_v_fixed[v]);
                             const auto& [v0, v1] = mesh_fixed_edge_v_adjacent_v[v];
-                            assert(v0 != GEO::NO_VERTEX);
-                            assert(v1 != GEO::NO_VERTEX);
+                            if (v0 == GEO::NO_VERTEX || v1 == GEO::NO_VERTEX)
+                                continue;
                             const auto& p0 = mesh_.vertices.point<2>(v0);
                             const auto& p1 = mesh_.vertices.point<2>(v1);
                             const auto p1p0 = GEO::normalize(p1-p0);
@@ -237,14 +238,13 @@ namespace geolio
                         if (ALLOW_SMOOTH_FIXED_EDGE_VERTICES) {
                             assert(mesh_fixed_edge_v_adjacent_v.size() == mesh_.vertices.nb());
                             assert(!manager_.mesh_v_fixed[v]);
-                            if (const auto& [v0, v1] = mesh_fixed_edge_v_adjacent_v[v];
-                                v0 != GEO::NO_VERTEX && v1 != GEO::NO_VERTEX
-                                ) {
-                                const auto& p0 = mesh_.vertices.point(v0);
-                                const auto& p1 = mesh_.vertices.point(v1);
-                                const auto p1p0 = GEO::normalize(p1-p0);
-                                target_p = p0 + GEO::dot(target_p-p0, p1p0) * p1p0;
-                            }
+                            const auto& [v0, v1] = mesh_fixed_edge_v_adjacent_v[v];
+                            if (v0 == GEO::NO_VERTEX || v1 == GEO::NO_VERTEX)
+                                continue;
+                            const auto& p0 = mesh_.vertices.point(v0);
+                            const auto& p1 = mesh_.vertices.point(v1);
+                            const auto p1p0 = GEO::normalize(p1-p0);
+                            target_p = p0 + GEO::dot(target_p-p0, p1p0) * p1p0;
                         }
                         else {
                             assert(mesh_v_on_fixed_edges.size() == mesh_.vertices.nb());
@@ -253,10 +253,11 @@ namespace geolio
                         }
 
                         max_displacement = std::max(max_displacement, GEO::distance(mesh_.vertices.point(v), target_p));
-                        mesh_.vertices.point(v) = mesh_v_new_pos[v];
+                        mesh_.vertices.point(v) = target_p;
                     }
                 }
 
+                LOG::DEBUG("max_displacement: {}/{}", max_displacement, displacement_threshold);
                 if (max_displacement < displacement_threshold)
                     break;
             }

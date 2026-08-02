@@ -172,12 +172,11 @@ namespace geolio
             }
         }
 
-        if (ALLOW_COLLAPSE_FIXED_EDGES) {
-            // TODO: Sliding along collinear edges is permitted.
-        }
-        else if (const auto& fc = mesh_.facets.corner(f, lv);
+        if (!ALLOW_COLLAPSE_FIXED_EDGES) {
+            if (const auto& fc = mesh_.facets.corner(f, lv);
                 manager_.mesh_fc_fixed[fc]) // Do not collapse the fixed edge.
-            return false;
+                    return false;
+        }
 
         if (manager_.mesh_v_non_manifold[ev0] ||
             manager_.mesh_v_non_manifold[ev1]) // After collapse, non-manifold vertices will be retained.

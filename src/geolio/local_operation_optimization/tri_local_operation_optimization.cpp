@@ -87,12 +87,12 @@ namespace geolio
             split_operation.perform_iteratively();
             collapse_operation.perform_iteratively();
             swap_operation.perform_iteratively();
-            smooth_operation.perform_iteratively();
+            // smooth_operation.perform_iteratively();
 
             // split_operation.perform_one_pass();
             // collapse_operation.perform_one_pass();
             // swap_operation.perform_one_pass();
-            // smooth_operation.perform_one_pass(3);
+            smooth_operation.perform_one_pass(3);
 
             LOG::DEBUG("#V: {} -> {}, #F: {} -> {}", PREV_VERTICES_NB, mesh_.vertices.nb(), PREV_FACETS_NB, mesh_.facets.nb());
         }
