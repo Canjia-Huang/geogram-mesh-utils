@@ -39,6 +39,25 @@ namespace geolio
         bool ALLOW_COLLAPSE_FIXED_EDGES = true;
 
     private:
+        struct EdgeToCollapse {
+            EdgeToCollapse(
+                const GEO::index_t _f,
+                const GEO::index_t _lv,
+                const GEO::index_t _timestamping,
+                const double _length
+            ) : f(_f), lv(_lv), timestamping(_timestamping), length(_length)
+            {}
+
+            GEO::index_t f = GEO::NO_FACET;
+            GEO::index_t lv = GEO::NO_INDEX;
+            GEO::index_t timestamping = GEO::NO_INDEX;
+            double length = -1.0;
+
+            bool operator<(const EdgeToCollapse& other) const { // min-heap
+                return length > other.length;
+            }
+        };
+
         /**
          * @brief Checks whether the edge of facet @p f at local vertex @p lv may be collapsed.
          * @details Verifies that the facet is still in use, that the edge endpoint v1 is not

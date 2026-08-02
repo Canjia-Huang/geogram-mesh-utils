@@ -43,28 +43,6 @@ namespace geolio
         }
     }
 
-    namespace
-    {
-        struct EdgeToCollapse {
-            EdgeToCollapse(
-                const GEO::index_t _f,
-                const GEO::index_t _lv,
-                const GEO::index_t _timestamping,
-                const double _length
-            ) : f(_f), lv(_lv), timestamping(_timestamping), length(_length)
-            {}
-
-            GEO::index_t f = GEO::NO_FACET;
-            GEO::index_t lv = GEO::NO_INDEX;
-            GEO::index_t timestamping = GEO::NO_INDEX;
-            double length = -1.0;
-
-            bool operator<(const EdgeToCollapse& other) const { // min-heap
-                return length > other.length;
-            }
-        };
-    }
-
     void CollapseOperation::run_iterative_loop(
         ) {
         mesh_f_timestamping_.fill(0); // as version timestamping
@@ -72,11 +50,11 @@ namespace geolio
         std::priority_queue<EdgeToCollapse> pq;
 
         /* Init queue */
-        auto init_func = [&](const GEO::index_t f, const GEO::index_t lv) {
+        auto emplace_to_pq = [&](const GEO::index_t f, const GEO::index_t lv) {
             if (is_perform_valid(f, lv))
                 pq.emplace(f, lv, 0, manager_.get_edge_length(f, lv));
         };
-        for_each_edge(init_func);
+        for_each_edge(emplace_to_pq);
 
         /* Iteratively perform */
         std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_f_and_lv_0; // just pre-allocated

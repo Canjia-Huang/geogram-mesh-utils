@@ -72,7 +72,6 @@ namespace geolio
         const double COLLAPSE_EDGE_LENGTH = 4.0/5.0 * target_edge_length;
 
         /* Init */
-        SplitOperation split_operation(manager_, SPLIT_EDGE_LENGTH);
         CollapseOperation collapse_operation(manager_, COLLAPSE_EDGE_LENGTH);
         SwapOperation swap_operation(manager_);
         SmoothOperation smooth_operation(manager_);
@@ -84,15 +83,17 @@ namespace geolio
             const auto PREV_VERTICES_NB = mesh_.vertices.nb();
             const auto PREV_FACETS_NB = mesh_.facets.nb();
 
-            split_operation.run_iterative_loop();
-            collapse_operation.run_iterative_loop();
-            swap_operation.run_iterative_loop();
+            SplitOperation split_operation(manager_, SPLIT_EDGE_LENGTH, true);
+            split_operation.run_through();
+
+            // collapse_operation.run_iterative_loop();
+            // swap_operation.run_iterative_loop();
             // smooth_operation.perform_iteratively();
 
             // split_operation.perform_one_pass();
             // collapse_operation.perform_one_pass();
             // swap_operation.perform_one_pass();
-            smooth_operation.sweep_mesh(3);
+            // smooth_operation.sweep_mesh(3);
 
             LOG::DEBUG("#V: {} -> {}, #F: {} -> {}", PREV_VERTICES_NB, mesh_.vertices.nb(), PREV_FACETS_NB, mesh_.facets.nb());
         }

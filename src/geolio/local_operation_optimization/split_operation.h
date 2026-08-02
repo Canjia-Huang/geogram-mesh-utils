@@ -21,7 +21,12 @@ namespace geolio
          */
         explicit SplitOperation(
             MeshElementManager& mesh_element_manager,
-            double limit_edge_length);
+            double limit_edge_length,
+            bool allow_split_fixed_edges = true);
+
+        ~SplitOperation();
+
+        bool do_once(bool iteratively = true);
 
         /**
          * @brief Executes a single pass of edge-splitting over the whole mesh.
@@ -31,14 +36,28 @@ namespace geolio
          *          original facet, the newly created facets and the adjacent facet as processed
          *          so they are not revisited in this pass.
          */
-        void sweep_mesh();
-
-        void run_iterative_loop();
-
-        /** @brief When true, splitting of fixed (locked) edges is allowed. */
-        bool ALLOW_SPLIT_FIXED_EDGES = true;
+        void run_through(bool iteratively = true);
 
     private:
+        struct EdgeToSplit {
+            EdgeToSplit(
+                const GEO::index_t _f,
+                const GEO::index_t _lv,
+                const GEO::index_t _timestamping,
+                const double _length
+            ) : f(_f), lv(_lv), timestamping(_timestamping), length(_length)
+            {}
+
+            GEO::index_t f = GEO::NO_FACET;
+            GEO::index_t lv = GEO::NO_INDEX;
+            GEO::index_t timestamping = GEO::NO_INDEX;
+            double length = -1.0;
+
+            bool operator<(const EdgeToSplit& other) const { // max-heap
+                return length < other.length;
+            }
+        };
+
         /**
          * @brief Checks whether the edge of facet @p f at local vertex @p lv may be split.
          * @details Verifies that the facet is still in use, that the edge is not fixed unless
@@ -80,6 +99,12 @@ namespace geolio
                           GEO::index_t new_v, GEO::index_t new_f0, GEO::index_t new_f1) const;
 
         const double limit_edge_length_;
+
+        bool ALLOW_SPLIT_FIXED_EDGES_ = true; // When true, splitting of fixed (locked) edges is allowed.
+
+        std::priority_queue<EdgeToSplit> pq_;
+
+        GEO::Attribute<bool> mesh_fc_locked_; // locked edge should not be split (only used when not allow to split fixed edges)
     };
 }
 

@@ -39,6 +39,19 @@ namespace geolio
         GEO::index_t SWAP_CRITERION = SWAP_BASED_ON_DELAUNAY;
 
     private:
+        struct EdgeToCollapse {
+            EdgeToCollapse(
+                const GEO::index_t _f,
+                const GEO::index_t _lv,
+                const GEO::index_t _timestamping
+            ) : f(_f), lv(_lv), timestamping(_timestamping)
+            {}
+
+            GEO::index_t f = GEO::NO_FACET;
+            GEO::index_t lv = GEO::NO_INDEX;
+            GEO::index_t timestamping = GEO::NO_INDEX;
+        };
+
         /**
          * @brief Checks whether the edge of facet @p f at local vertex @p lv may be swapped.
          * @details Rejects edges whose facet is disused, fixed edges, boundary edges, edges with
