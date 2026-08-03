@@ -6,6 +6,8 @@
 #define GEOLIO_COLLAPSE_OPERATION_H
 
 #include "base_operation.h"
+#include <queue>
+#include <vector>
 
 namespace geolio
 {

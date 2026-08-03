@@ -6,6 +6,7 @@
 #define GEOLIO_SPLIT_OPERATION_H
 
 #include "base_operation.h"
+#include <queue>
 
 namespace geolio
 {
