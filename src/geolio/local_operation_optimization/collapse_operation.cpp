@@ -115,8 +115,25 @@ namespace geolio
         const auto ev0 = this->mesh_.facets.vertex(f, lv);
         const auto ev1 = this->mesh_.facets.vertex(f, (lv+1)%3);
 
-        if (this->manager_.mesh_v_fixed[ev1]) /* Collapse pulls v1 toward v0, no operation is performed when v1
-                        is fixed, so that the vertex indices remain unchanged. */
+        /* Non‑manifold vertices might not collect all adjacent facets, which can lead to errors; hence fixed */
+        if (this->manager_.mesh_v_non_manifold[ev0] ||
+            this->manager_.mesh_v_non_manifold[ev1])
+            return false;
+
+        /* Do not collapse the fixed edge. */
+        if (!ALLOW_COLLAPSE_FIXED_EDGES_) {
+            if (const auto& fc = this->mesh_.facets.corner(f, lv);
+                this->manager_.mesh_fc_fixed[fc])
+                return false;
+        }
+
+        /* Do not collapse edges greater than the limit length. */
+        if (const auto edge_length = this->manager_.get_edge_length(f, lv);
+            edge_length > limit_edge_length_)
+            return false;
+
+        /* Collapse pulls v1 toward v0, no operation is performed when v1 is fixed, so that the vertex indices remain unchanged. */
+        if (this->manager_.mesh_v_fixed[ev1])
             return false;
         { // The fixed edge involving ev1 also prevents collapse (because it would remove ev1).
             std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_f_and_lv;
@@ -127,21 +144,21 @@ namespace geolio
             }
         }
 
-        if (!ALLOW_COLLAPSE_FIXED_EDGES_) {
-            if (const auto& fc = this->mesh_.facets.corner(f, lv);
-                this->manager_.mesh_fc_fixed[fc]) // Do not collapse the fixed edge.
+        if (this->mesh_.facets.adjacent(f, 0) == GEO::NO_FACET &&
+            this->mesh_.facets.adjacent(f, 1) == GEO::NO_FACET &&
+            this->mesh_.facets.adjacent(f, 2) == GEO::NO_FACET
+            ) { // Isolated facet: collapse removes the facet and all three of its vertices.
+                // A vertex shared by other facets (non-manifold) or marked fixed must not be disposed.
+            for (GEO::index_t llv = 0; llv < 3; ++llv) {
+                const auto& v = this->mesh_.facets.vertex(f, llv);
+                if (this->manager_.mesh_v_fixed[v] ||
+                    this->manager_.mesh_v_non_manifold[v])
                     return false;
+            }
         }
 
-        if (this->manager_.mesh_v_non_manifold[ev0] ||
-            this->manager_.mesh_v_non_manifold[ev1]) // After collapse, non-manifold vertices will be retained.
-            return false;
-
-        if (const auto edge_length = this->manager_.get_edge_length(f, lv);
-            edge_length > limit_edge_length_) // Do not collapse edges greater than the limit length.
-            return false;
-
-        if (!is_tri_edge_collapse_valid(this->mesh_, f, lv)) // Collapse operation is not valid.
+        /* Collapse operation is not valid. */
+        if (!is_tri_edge_collapse_valid(this->mesh_, f, lv))
             return false;
 
         return true;
@@ -171,8 +188,8 @@ namespace geolio
             this->mesh_.facets.adjacent(f, 2) == GEO::NO_FACET
             ) { // For an isolated facet, collapse will directly remove it.
             disuse_v0 = this->mesh_.facets.vertex(f, 0);
-            disuse_v1 = this->mesh_.facets.vertex(f, 1);
-            disuse_v2 = this->mesh_.facets.vertex(f, 2);
+            disuse_v1 = this->mesh_.facets.vertex(f, 0);
+            disuse_v2 = this->mesh_.facets.vertex(f, 0);
             disuse_f0 = f;
             return;
         }

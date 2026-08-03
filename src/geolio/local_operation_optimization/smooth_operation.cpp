@@ -244,7 +244,7 @@ namespace geolio
         const GEO::index_t v
         ) const {
         assert(v < this->mesh_.vertices.nb());
-
+        assert(mesh_v_adjacent_v.size() == this->mesh_.vertices.nb());
 
         if (!this->manager_.mesh_v_used[v]) // This vertex should not yet exist.
             return false;
@@ -257,6 +257,9 @@ namespace geolio
             if (mesh_v_on_fixed_edges_[v])
                 return false;
         }
+
+        if (mesh_v_adjacent_v[v].empty()) // Not referenced by any used facet, nothing to smooth (for the isolated vertices in the original mesh).
+            return false;
 
         return true;
     }
