@@ -191,76 +191,6 @@ namespace geolio
                 return false; // Identical triangles in an adjacent face group or two adjacent face group.
         }
 
-        /* Check inversion */
-        // if (M.vertices.dimension() == 2) {
-        //     const auto& p0 = M.facets.point<2>(f, lv0);
-        //     const auto& p1 = M.facets.point<2>(f, lv1);
-        //     const auto& p2 = M.facets.point<2>(f, lv2);
-        //     const auto target_p = (1-r)*p0 + r*p1;
-        //
-        //     const auto normal = cross(p1-p0, p2-p0);
-        //     for (const auto& [nf, nlv] : v0_ordered_f_and_lv) {
-        //         std::array<GEO::vec2, 3> fps = {
-        //             M.facets.point<2>(nf, 0),
-        //             M.facets.point<2>(nf, 1),
-        //             M.facets.point<2>(nf, 2)
-        //         };
-        //         fps[nlv] = target_p;
-        //         if (cross(fps[1]-fps[0], fps[2]-fps[0]) * normal < 0)
-        //             return false;
-        //     }
-        //     for (const auto& [nf, nlv] : v1_ordered_f_and_lv) {
-        //         std::array<GEO::vec2, 3> fps = {
-        //             M.facets.point<2>(nf, 0),
-        //             M.facets.point<2>(nf, 1),
-        //             M.facets.point<2>(nf, 2)
-        //         };
-        //         fps[nlv] = target_p;
-        //         if (cross(fps[1]-fps[0], fps[2]-fps[0]) * normal < 0)
-        //             return false;
-        //     }
-        // }
-        // else {
-        //     assert(M.vertices.dimension() == 3);
-        //
-        //     const auto& p0 = M.facets.point(f, lv0);
-        //     const auto& p1 = M.facets.point(f, lv1);
-        //     const auto& p2 = M.facets.point(f, lv2);
-        //     const auto target_p = (1-r)*p0 + r*p1;
-        //
-        //     const auto normal = cross(p1-p0, p2-p0);
-        //     for (const auto& [nf, nlv] : v0_ordered_f_and_lv) {
-        //         std::array<GEO::vec3, 3> fps = {
-        //             M.facets.point(nf, 0),
-        //             M.facets.point(nf, 1),
-        //             M.facets.point(nf, 2)
-        //         };
-        //         fps[nlv] = target_p;
-        //         if (GEO::dot(GEO::cross(fps[1]-fps[0], fps[2]-fps[0]), normal) < 0)
-        //             return false;
-        //     }
-        //     for (const auto& [nf, nlv] : v1_ordered_f_and_lv) {
-        //         std::array<GEO::vec3, 3> fps = {
-        //             M.facets.point(nf, 0),
-        //             M.facets.point(nf, 1),
-        //             M.facets.point(nf, 2)
-        //         };
-        //         fps[nlv] = target_p;
-        //         if (GEO::dot(GEO::cross(fps[1]-fps[0], fps[2]-fps[0]), normal) < 0)
-        //             return false;
-        //     }
-        //
-        //     /* Check whether there are any co-edge facets other than f and nf */
-        //     const GEO::index_t nf = M.facets.adjacent(f, lv);
-        //     for (const auto& nf0: v0_ordered_f_and_lv | std::views::keys) {
-        //         for (const auto& nf1: v1_ordered_f_and_lv | std::views::keys) {
-        //             if (nf0 == nf1 &&
-        //                 nf0 != f && nf0 != nf)
-        //                 return false;
-        //         }
-        //     }
-        // }
-
         return true;
     }
 
@@ -278,9 +208,6 @@ namespace geolio
         assert(M.facets.nb_vertices(f) == 3);
         assert(lv < 3);
         assert(r >= 0 && r <= 1);
-
-        GEO::Mesh debug_mesh;
-        debug_mesh.copy(M);
 
         /*
          *  v0 --------+            ++
