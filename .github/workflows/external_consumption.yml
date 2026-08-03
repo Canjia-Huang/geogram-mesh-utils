@@ -71,7 +71,8 @@ jobs:
       # ================================================================================================
       # Parent project that consumes geolio as a submodule:
       #     add_subdirectory(third_party/geolio)
-      #     target_link_libraries(<app> PRIVATE Geolio::geolio)
+      # geolio's unit tests link Geolio::geolio, so building them inside the consumer
+      # both verifies submodule consumption and runs the full test suite via CTest.
       # ================================================================================================
 
       - name: Create consumer project
@@ -80,63 +81,25 @@ jobs:
           cat > consumer/CMakeLists.txt << 'CMAKEEOF'
           cmake_minimum_required(VERSION 3.30)
           project(GeolioConsumer LANGUAGES CXX)
-          set(CMAKE_CXX_STANDARD 20)
-          set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-          # Centralize build outputs so runtime artifacts (exe + shared libs/DLLs)
-          # are co-located and easy to find at runtime.
-          set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-          set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-          set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-
+          # Run geolio's own unit tests against the submodule build: they link
+          # Geolio::geolio, so this verifies external consumption while exercising
+          # the full test suite instead of a hand-written main() smoke test.
+          enable_testing()
+          set(BUILD_TESTS ON CACHE BOOL "" FORCE)
           add_subdirectory(third_party/geolio)
-
-          add_executable(test_consumer main.cpp)
-          target_link_libraries(test_consumer PRIVATE Geolio::geolio)
           CMAKEEOF
-
-          cat > consumer/main.cpp << 'CEOF'
-          #include <geolio/local_operation_optimization/tri_local_operation_optimization.h>
-          #include <geogram/mesh/mesh.h>
-
-          int main() {
-              GEO::Mesh mesh(2);
-              {
-                  geolio::TriLocalOperationOptimization optimizer(mesh);
-                  optimizer.fix_boundary_elements();
-              }
-              return 0;
-          }
-          CEOF
 
       - name: Configure consumer
         run: cmake -B consumer/build -S consumer -DCMAKE_BUILD_TYPE=Release
 
-      - name: Build consumer
+      - name: Build consumer (geolio + tests)
         run: cmake --build consumer/build --config Release --parallel
 
       # ================================================================================================
-      # Run the consumer to verify runtime linking of the geolio shared library and geogram
+      # Run geolio's unit tests (built from the submodule) via CTest
       # ================================================================================================
 
-      - name: Run consumer (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          LD_LIBRARY_PATH="${{ github.workspace }}/consumer/build/lib:$GEOGRAM_DIR/build/Linux64-gcc-dynamic-Release/lib" \
-            consumer/build/bin/test_consumer
-
-      - name: Run consumer (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          DYLD_LIBRARY_PATH="${{ github.workspace }}/consumer/build/lib:$GEOGRAM_DIR/build/Darwin-clang-dynamic-Release/lib" \
-            consumer/build/bin/test_consumer
-
-      - name: Run consumer (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          # Runtime outputs are centralized in consumer\build\bin\<config> (see
-          # CMAKE_RUNTIME_OUTPUT_DIRECTORY in the consumer CMakeLists), so the exe
-          # and Geolio.dll sit side by side; geogram.dll comes from its own build.
-          $env:Path = "${{ github.workspace }}\consumer\build\bin\Release;${{ env.GEOGRAM_DIR }}\build\Windows\bin\Release;$env:Path"
-          consumer\build\bin\Release\test_consumer.exe
+      - name: Test
+        working-directory: consumer/build
+        run: ctest --output-on-failure -C Release

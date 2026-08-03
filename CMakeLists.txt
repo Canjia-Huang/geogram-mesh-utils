@@ -10,13 +10,12 @@ project(Geolio
 )
 
 # == Options ==
-option(BUILD_TESTS "Build tests" ON)
-
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
-    # standalone
+    # standalone: tests on by default
+    option(BUILD_TESTS "Build tests" ON)
 else()
-    # as submodule
-    set(BUILD_TESTS OFF)
+    # as submodule: tests off by default, but a parent project may opt in
+    option(BUILD_TESTS "Build tests" OFF)
 endif()
 
 # Location of the Geogram source tree. Defaults to the GEOGRAM_DIR environment
