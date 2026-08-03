@@ -13,6 +13,11 @@ namespace geolio
     template<GEO::index_t DIM>
     class SmoothOperation : public BaseOperation<DIM> {
     public:
+        enum SmoothGeometricConstraint {
+            PROJECT_TO_ORIGINAL_MESH,
+            TANGENTIAL_SMOOTHING
+        };
+
         /**
          * @brief Constructs a SmoothOperation for relaxing vertex positions.
          * @details Initializes the base operation. For 3D meshes it keeps a copy of the input
@@ -24,7 +29,7 @@ namespace geolio
          */
         explicit SmoothOperation(
             MeshElementManager<DIM>& mesh_element_manager,
-            bool project_to_original_mesh = true,
+            GEO::index_t geometric_constraint = PROJECT_TO_ORIGINAL_MESH,
             bool allow_smooth_fixed_edge_vertices = false);
 
         double do_once();
@@ -43,7 +48,7 @@ namespace geolio
          */
         [[nodiscard]] bool is_perform_valid(GEO::index_t v) const;
 
-        bool PROJECT_TO_ORIGINAL_MESH_;
+        GEO::index_t geometric_constraint_;
         GEO::Mesh original_mesh_; // a copy of original input mesh, only used in 3D mesh
         GEO::MeshFacetsAABB original_mesh_facet_AABB_; // only used in 3D mesh
 
@@ -53,6 +58,8 @@ namespace geolio
             used when ALLOW_SMOOTH_FIXED_EDGE_VERTICES_ == true
             v -> adjacent vertices along adjacent fixed edges
         */
+
+        double damping_factor_ = 0.5;
 
         std::vector<std::vector<GEO::index_t>> mesh_v_adjacent_v; // v -> adjacent vertices
 

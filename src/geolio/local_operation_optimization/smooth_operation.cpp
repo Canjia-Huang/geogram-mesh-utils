@@ -14,10 +14,10 @@ namespace geolio
     template<GEO::index_t DIM>
     SmoothOperation<DIM>::SmoothOperation(
         MeshElementManager<DIM>& mesh_element_manager,
-        const bool project_to_original_mesh,
+        const GEO::index_t geometric_constraint,
         const bool allow_smooth_fixed_edge_vertices
         ) : BaseOperation<DIM>(mesh_element_manager),
-            PROJECT_TO_ORIGINAL_MESH_(project_to_original_mesh),
+            geometric_constraint_(geometric_constraint),
             ALLOW_SMOOTH_FIXED_EDGE_VERTICES_(allow_smooth_fixed_edge_vertices)
     {
         /* Collect the adjacent vertices of a vertex. */
@@ -98,7 +98,7 @@ namespace geolio
 
         /* Init AABB tree (for 3D mesh). */
         if constexpr (DIM == 3) {
-            if (PROJECT_TO_ORIGINAL_MESH_) {
+            if (geometric_constraint_ == PROJECT_TO_ORIGINAL_MESH) {
                 original_mesh_.copy(this->mesh_);
                 {
                     GEO::vector<GEO::index_t> facets_to_delete(original_mesh_.facets.nb(), 0);
@@ -129,21 +129,62 @@ namespace geolio
             target_p /= mesh_v_adjacent_v[v].size();
         }
 
+        /* Compute vertex normal */
+        std::vector<GEO::vec3> mesh_v_normal; // normalized
+        if constexpr (DIM == 3) {
+            if (geometric_constraint_ == TANGENTIAL_SMOOTHING) {
+                mesh_v_normal.assign(this->mesh_.vertices.nb(), GEO::vec3());
+                for (const auto& f : this->mesh_.facets) {
+                    if (!this->manager_.mesh_f_used[f])
+                        continue;
+
+                    const auto normal = GEO::normalize(
+                        GEO::Geom::triangle_normal(
+                            this->mesh_.facets.point(f, 0),
+                            this->mesh_.facets.point(f, 1),
+                            this->mesh_.facets.point(f, 2)));
+                    for (GEO::index_t lv = 0; lv < 3; ++lv) {
+                        const auto& v = this->mesh_.facets.vertex(f, lv);
+                        mesh_v_normal[v] += normal;
+                    }
+                }
+
+                for (const auto& v : this->mesh_.vertices) {
+                    if (!this->manager_.mesh_v_used[v])
+                        continue;
+
+                    mesh_v_normal[v] = GEO::normalize(mesh_v_normal[v]);
+                }
+            }
+        }
+
         /* Update */
         double max_displacement = -std::numeric_limits<double>::max();
         for (const auto& v : this->mesh_.vertices) {
             if (!is_perform_valid(v))
                 continue;
 
+            auto& original_p = this->mesh_.vertices.template point<DIM>(v);
             auto& target_p = mesh_v_new_pos[v];
 
-            if constexpr (DIM == 3) { /* Project to original mesh */
-                if (PROJECT_TO_ORIGINAL_MESH_) {
+            /* Damping */
+            target_p = damping_factor_ * original_p + (1-damping_factor_) * target_p;
+
+            /* Project to original mesh */
+            if constexpr (DIM == 3) {
+                if (geometric_constraint_ == PROJECT_TO_ORIGINAL_MESH) {
                     GEO::vec3 nearest_pos;
                     double sq_dist;
                     original_mesh_facet_AABB_.nearest_facet(target_p, nearest_pos, sq_dist);
 
                     target_p = nearest_pos;
+                }
+                else if (geometric_constraint_ == TANGENTIAL_SMOOTHING) {
+                    assert(v < mesh_v_normal.size());
+
+                    auto dir = target_p - original_p;
+                    dir = dir - GEO::dot(dir, mesh_v_normal[v]) * mesh_v_normal[v];
+                    target_p = original_p + dir;
                 }
             }
 
@@ -168,9 +209,9 @@ namespace geolio
             /* Record max displacement */
             max_displacement = std::max(
                 max_displacement,
-                GEO::distance(this->mesh_.vertices.template point<DIM>(v), target_p));
+                GEO::distance(original_p, target_p));
 
-            this->mesh_.vertices.template point<DIM>(v) = target_p;
+            original_p = target_p;
         }
 
         return true;
