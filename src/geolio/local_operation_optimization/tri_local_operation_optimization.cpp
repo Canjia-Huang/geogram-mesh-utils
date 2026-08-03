@@ -71,7 +71,12 @@ namespace geolio
         }
         assert(target_edge_length > 0);
         const double SPLIT_EDGE_LENGTH = 4.0/3.0 * target_edge_length;
+        const bool ALLOW_SPLIT_FIXED_EDGES = true;
         const double COLLAPSE_EDGE_LENGTH = 4.0/5.0 * target_edge_length;
+        const bool ALLOW_COLLAPSE_FIXED_EDGES = true;
+        const GEO::index_t SWAP_CRITERION = SwapOperation<DIM>::SWAP_BASED_ON_DELAUNAY;
+        const GEO::index_t SMOOTH_GEOMETRIC_CONSTRAINT = SmoothOperation<DIM>::PROJECT_TO_ORIGINAL_MESH;
+        const bool ALLOW_SMOOTH_FIXED_EDGES_VERTICES = true;
 
         /* Let's go! */
         for (GEO::index_t round = 0; round < rounds_nb; ++round) {
@@ -80,18 +85,17 @@ namespace geolio
             const auto PREV_VERTICES_NB = mesh_.vertices.nb();
             const auto PREV_FACETS_NB = mesh_.facets.nb();
 
-            SplitOperation<DIM> split_operation(manager_, SPLIT_EDGE_LENGTH, true);
+            SplitOperation<DIM> split_operation(manager_, SPLIT_EDGE_LENGTH, ALLOW_SPLIT_FIXED_EDGES);
             split_operation.run_through();
 
-            CollapseOperation<DIM> collapse_operation(manager_, COLLAPSE_EDGE_LENGTH, true);
+            CollapseOperation<DIM> collapse_operation(manager_, COLLAPSE_EDGE_LENGTH, ALLOW_COLLAPSE_FIXED_EDGES);
             collapse_operation.run_through();
 
-            SwapOperation<DIM> swap_operation(manager_);
+            SwapOperation<DIM> swap_operation(manager_, SWAP_CRITERION);
             swap_operation.run_through();
 
-            SmoothOperation<DIM> smooth_operation(manager_);
+            SmoothOperation<DIM> smooth_operation(manager_, SMOOTH_GEOMETRIC_CONSTRAINT, ALLOW_SMOOTH_FIXED_EDGES_VERTICES);
             smooth_operation.run_nb_times(3);
-            // smooth_operation.run_until();
 
             LOG::DEBUG("#V: {} -> {}, #F: {} -> {}", PREV_VERTICES_NB, mesh_.vertices.nb(), PREV_FACETS_NB, mesh_.facets.nb());
         }

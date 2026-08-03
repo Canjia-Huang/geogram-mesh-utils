@@ -17,7 +17,7 @@ namespace geolio
         const GEO::index_t geometric_constraint,
         const bool allow_smooth_fixed_edge_vertices
         ) : BaseOperation<DIM>(mesh_element_manager),
-            geometric_constraint_(geometric_constraint),
+            GEOMETRIC_CONSTRAINT_(geometric_constraint),
             ALLOW_SMOOTH_FIXED_EDGE_VERTICES_(allow_smooth_fixed_edge_vertices)
     {
         /* Collect the adjacent vertices of a vertex. */
@@ -93,12 +93,19 @@ namespace geolio
             }
         }
 
+        /* Predetermine which vertices are involved in smoothing. */
+        mesh_v_perform_.assign(this->mesh_.vertices.nb(), true);
+        for (const auto& v : this->mesh_.vertices) {
+            if (!is_perform_valid(v))
+                mesh_v_perform_[v] = false;
+        }
+
         /* Pre-allocated */
         mesh_v_new_pos.resize(this->mesh_.vertices.nb());
 
         /* Init AABB tree (for 3D mesh). */
         if constexpr (DIM == 3) {
-            if (geometric_constraint_ == PROJECT_TO_ORIGINAL_MESH) {
+            if (GEOMETRIC_CONSTRAINT_ == PROJECT_TO_ORIGINAL_MESH) {
                 original_mesh_.copy(this->mesh_);
                 {
                     GEO::vector<GEO::index_t> facets_to_delete(original_mesh_.facets.nb(), 0);
@@ -116,23 +123,10 @@ namespace geolio
     template<GEO::index_t DIM>
     double SmoothOperation<DIM>::do_once(
         ) {
-        /* Compute average position */
-        for (const auto& v : this->mesh_.vertices) {
-            if (!this->manager_.mesh_v_used[v])
-                continue;
-
-            auto& target_p = mesh_v_new_pos[v];
-            target_p = GEO::vecng<DIM, GEO::Numeric::float64>();
-            for (const auto& nv : mesh_v_adjacent_v[v])
-                target_p += this->mesh_.vertices.template point<DIM>(nv);
-            assert(!mesh_v_adjacent_v[v].empty());
-            target_p /= mesh_v_adjacent_v[v].size();
-        }
-
         /* Compute vertex normal */
         std::vector<GEO::vec3> mesh_v_normal; // normalized
         if constexpr (DIM == 3) {
-            if (geometric_constraint_ == TANGENTIAL_SMOOTHING) {
+            if (GEOMETRIC_CONSTRAINT_ == TANGENTIAL_SMOOTHING) {
                 mesh_v_normal.assign(this->mesh_.vertices.nb(), GEO::vec3());
                 for (const auto& f : this->mesh_.facets) {
                     if (!this->manager_.mesh_f_used[f])
@@ -150,43 +144,29 @@ namespace geolio
                 }
 
                 for (const auto& v : this->mesh_.vertices) {
-                    if (!this->manager_.mesh_v_used[v])
+                    if (!mesh_v_perform_[v])
                         continue;
-
                     mesh_v_normal[v] = GEO::normalize(mesh_v_normal[v]);
                 }
             }
         }
 
-        /* Update */
-        double max_displacement = -std::numeric_limits<double>::max();
+        /* Compute target position */
         for (const auto& v : this->mesh_.vertices) {
-            if (!is_perform_valid(v))
+            if (!mesh_v_perform_[v])
                 continue;
 
             auto& original_p = this->mesh_.vertices.template point<DIM>(v);
+
+            /* Average */
             auto& target_p = mesh_v_new_pos[v];
+            target_p = GEO::vecng<DIM, GEO::Numeric::float64>();
+            for (const auto& nv : mesh_v_adjacent_v[v])
+                target_p += this->mesh_.vertices.template point<DIM>(nv);
+            assert(!mesh_v_adjacent_v[v].empty());
+            target_p /= mesh_v_adjacent_v[v].size();
 
-            /* Damping */
-            target_p = damping_factor_ * original_p + (1-damping_factor_) * target_p;
-
-            /* Project to original mesh */
-            if constexpr (DIM == 3) {
-                if (geometric_constraint_ == PROJECT_TO_ORIGINAL_MESH) {
-                    GEO::vec3 nearest_pos;
-                    double sq_dist;
-                    original_mesh_facet_AABB_.nearest_facet(target_p, nearest_pos, sq_dist);
-
-                    target_p = nearest_pos;
-                }
-                else if (geometric_constraint_ == TANGENTIAL_SMOOTHING) {
-                    assert(v < mesh_v_normal.size());
-
-                    auto dir = target_p - original_p;
-                    dir = dir - GEO::dot(dir, mesh_v_normal[v]) * mesh_v_normal[v];
-                    target_p = original_p + dir;
-                }
-            }
+            /* == Constraints ====================================================================================== */
 
             /* Slide along fixed edge */
             if (ALLOW_SMOOTH_FIXED_EDGE_VERTICES_) {
@@ -197,14 +177,41 @@ namespace geolio
                     continue;
                 const auto& p0 = this->mesh_.vertices.template point<DIM>(v0);
                 const auto& p1 = this->mesh_.vertices.template point<DIM>(v1);
-                const auto p1p0 = GEO::normalize(p1-p0);
-                target_p = p0 + GEO::dot(target_p-p0, p1p0) * p1p0;
+                // const auto p1p0 = GEO::normalize(p1-p0);
+                // target_p = p0 + GEO::dot(target_p-p0, p1p0) * p1p0;
+                target_p = 0.5*(p0+p1);
             }
-            else {
-                assert(mesh_v_on_fixed_edges_.size() == this->mesh_.vertices.nb());
-                if (mesh_v_on_fixed_edges_[v])
-                    continue;
+
+            /* Project to original mesh */
+            if constexpr (DIM == 3) {
+                if (GEOMETRIC_CONSTRAINT_ == PROJECT_TO_ORIGINAL_MESH) {
+                    GEO::vec3 nearest_pos;
+                    double sq_dist;
+                    original_mesh_facet_AABB_.nearest_facet(target_p, nearest_pos, sq_dist);
+
+                    target_p = nearest_pos;
+                }
+                else if (GEOMETRIC_CONSTRAINT_ == TANGENTIAL_SMOOTHING) {
+                    assert(v < mesh_v_normal.size());
+
+                    auto dir = target_p - original_p;
+                    dir = dir - GEO::dot(dir, mesh_v_normal[v]) * mesh_v_normal[v];
+                    target_p = original_p + dir;
+                }
             }
+
+            /* Damping */
+            target_p = damping_factor_ * original_p + (1-damping_factor_) * target_p;
+        }
+
+        /* Update */
+        double max_displacement = -std::numeric_limits<double>::max();
+        for (const auto& v : this->mesh_.vertices) {
+            if (!mesh_v_perform_[v])
+                continue;
+
+            auto& original_p = this->mesh_.vertices.template point<DIM>(v);
+            auto& target_p = mesh_v_new_pos[v];
 
             /* Record max displacement */
             max_displacement = std::max(
@@ -238,11 +245,18 @@ namespace geolio
         ) const {
         assert(v < this->mesh_.vertices.nb());
 
+
         if (!this->manager_.mesh_v_used[v]) // This vertex should not yet exist.
             return false;
 
         if (this->manager_.mesh_v_fixed[v]) // Cannot move fixed vertex.
             return false;
+
+        if (!ALLOW_SMOOTH_FIXED_EDGE_VERTICES_) {
+            assert(mesh_v_on_fixed_edges_.size() == this->mesh_.vertices.nb());
+            if (mesh_v_on_fixed_edges_[v])
+                return false;
+        }
 
         return true;
     }

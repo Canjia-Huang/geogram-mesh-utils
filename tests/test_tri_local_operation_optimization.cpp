@@ -44,7 +44,7 @@ namespace geolio::test
 
         {
             TriLocalOperationOptimization<3> TLOO(mesh);
-            // TLOO.fix_sharp_elements();
+            TLOO.fix_sharp_elements();
             GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
 
             TLOO.optimize();

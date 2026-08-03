@@ -14,6 +14,7 @@ namespace geolio
     class SmoothOperation : public BaseOperation<DIM> {
     public:
         enum SmoothGeometricConstraint {
+            NONE,
             PROJECT_TO_ORIGINAL_MESH,
             TANGENTIAL_SMOOTHING
         };
@@ -29,8 +30,8 @@ namespace geolio
          */
         explicit SmoothOperation(
             MeshElementManager<DIM>& mesh_element_manager,
-            GEO::index_t geometric_constraint = PROJECT_TO_ORIGINAL_MESH,
-            bool allow_smooth_fixed_edge_vertices = false);
+            GEO::index_t geometric_constraint = NONE,
+            bool allow_smooth_fixed_edge_vertices = true);
 
         double do_once();
 
@@ -48,11 +49,11 @@ namespace geolio
          */
         [[nodiscard]] bool is_perform_valid(GEO::index_t v) const;
 
-        GEO::index_t geometric_constraint_;
+        const GEO::index_t GEOMETRIC_CONSTRAINT_;
         GEO::Mesh original_mesh_; // a copy of original input mesh, only used in 3D mesh
         GEO::MeshFacetsAABB original_mesh_facet_AABB_; // only used in 3D mesh
 
-        bool ALLOW_SMOOTH_FIXED_EDGE_VERTICES_; // When true, vertices lying on fixed edges are smoothed by sliding along those edges.
+        const bool ALLOW_SMOOTH_FIXED_EDGE_VERTICES_; // When true, vertices lying on fixed edges are smoothed by sliding along those edges.
         std::vector<char> mesh_v_on_fixed_edges_; // used when ALLOW_SMOOTH_FIXED_EDGE_VERTICES_ == false
         std::vector<std::pair<GEO::index_t, GEO::index_t>> mesh_fixed_edge_v_adjacent_v; /*
             used when ALLOW_SMOOTH_FIXED_EDGE_VERTICES_ == true
@@ -61,6 +62,7 @@ namespace geolio
 
         double damping_factor_ = 0.5;
 
+        std::vector<char> mesh_v_perform_; // v -> to process
         std::vector<std::vector<GEO::index_t>> mesh_v_adjacent_v; // v -> adjacent vertices
 
         std::vector<GEO::vecng<DIM, GEO::Numeric::float64>> mesh_v_new_pos; // just pre-allocated
