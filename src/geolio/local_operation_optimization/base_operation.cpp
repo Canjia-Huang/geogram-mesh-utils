@@ -8,46 +8,28 @@
 
 namespace geolio
 {
-    /**
-     * @brief Constructs a BaseOperation bound to the given mesh element manager.
-     * @details Stores references to the manager and the underlying mesh, generates a random
-     *          attribute name via generate_random_string(), and binds a per-facet "processed"
-     *          attribute under that name on the mesh facets, pre-filling it with false.
-     * @param[in] mesh_element_manager The mesh element manager exposing the mesh and its
-     *                                 usage/fixed element attributes.
-     */
-    BaseOperation::BaseOperation(
-        MeshElementManager& mesh_element_manager
+    template <GEO::index_t DIM>
+    BaseOperation<DIM>::BaseOperation(
+        MeshElementManager<DIM>& mesh_element_manager
         ) : manager_(mesh_element_manager),
             mesh_(mesh_element_manager.mesh),
             attribute_name_(generate_random_string(22))
     {
         /* Bind attributes */
-        mesh_f_processed_.bind(mesh_.facets.attributes(), attribute_name_+":processed");
-        mesh_f_processed_.fill(false);
+        mesh_f_timestamping_.bind(mesh_.facets.attributes(), attribute_name_+":timestamping");
+        mesh_f_timestamping_.fill(false);
     }
 
-    /**
-     * @brief Destroys the BaseOperation.
-     * @details Destroys the bound "processed" facet attribute if it is still bound,
-     *          releasing the underlying mesh attribute storage.
-     */
-    BaseOperation::~BaseOperation(
+    template <GEO::index_t DIM>
+    BaseOperation<DIM>::~BaseOperation(
         ) {
         /* Destroy attributes */
-        if (mesh_f_processed_.is_bound())
-            mesh_f_processed_.destroy();
+        if (mesh_f_timestamping_.is_bound())
+            mesh_f_timestamping_.destroy();
     }
 
-    /**
-     * @brief Validates the consistency of the mesh element usage state.
-     * @details Runs a set of consistency checks that are currently disabled at compile
-     *          time (if constexpr(false)): used facets must only reference used vertices,
-     *          the adjacent facets of a used facet must be used, and fixed facet corners
-     *          must appear in matching pairs. In the current build it always returns true.
-     * @return true if the mesh passes all checks (always true in the current build).
-     */
-    bool BaseOperation::post_check(
+    template <GEO::index_t DIM>
+    bool BaseOperation<DIM>::post_check(
         ) {
         if constexpr (false) { // Check whether all used facets use the used vertices.
             for (const auto& f : mesh_.facets) {
@@ -91,4 +73,7 @@ namespace geolio
 
         return true;
     }
+
+    template class BaseOperation<2>;
+    template class BaseOperation<3>;
 }

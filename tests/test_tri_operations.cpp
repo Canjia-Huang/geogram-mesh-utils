@@ -93,7 +93,7 @@ namespace geolio::test
                 new_f0 = mesh.facets.create_triangles(2);
                 new_f1 = new_f0+1;
             }
-            tri_edge_split(mesh, f, lv, new_v, new_f0, new_f1, GEO::Numeric::random_float32());
+            tri_edge_split<3>(mesh, f, lv, new_v, new_f0, new_f1, GEO::Numeric::random_float32());
         }
     };
 
@@ -137,7 +137,7 @@ namespace geolio::test
         const GEO::index_t new_v = mesh.vertices.create_vertices(1);
         const GEO::index_t new_f0 = mesh.facets.create_triangles(2);
         const GEO::index_t new_f1 = new_f0+1;
-        tri_edge_split(mesh, 3, 0, new_v, new_f0, new_f1, 0.4);
+        tri_edge_split<3>(mesh, 3, 0, new_v, new_f0, new_f1, 0.4);
         EXPECT_EQ(mesh_f_idx[3], 3);
         EXPECT_EQ(mesh_f_idx[2], 2);
         EXPECT_EQ(mesh_f_idx[new_f0], 3);
@@ -180,7 +180,7 @@ namespace geolio::test
             const bool EDGE_ON_BORDER = original_mesh.facets.adjacent(f, lv) == GEO::NO_FACET;
 
             GEO::index_t disuse_v, disuse_f0, disuse_f1;
-            tri_edge_collapse(mesh, f, lv, disuse_v, disuse_f0, disuse_f1, r);
+            tri_edge_collapse<3>(mesh, f, lv, disuse_v, disuse_f0, disuse_f1, r);
 
             /* Clean disuse vertices and facets */
             GEO::vector<GEO::index_t> facets_to_delete(mesh.facets.nb(), 0);
@@ -197,48 +197,6 @@ namespace geolio::test
 
     TEST_F(TriEdgeCollapseTest, tri_edge_collapse) {
         for_each_f_lv();
-    }
-
-    TEST_F(TriEdgeCollapseTest, manage_attributes) {
-        mesh.clear();
-
-        GEO::Attribute<double> mesh_v_idx(mesh.vertices.attributes(), "idx");
-
-        const std::array<GEO::vec3, 8> vertices = {
-            GEO::vec3(0, 2, 0), GEO::vec3(1, 2, 0), GEO::vec3(2, 2, 0),
-            GEO::vec3(0, 1, 0), GEO::vec3(2, 1, 0),
-            GEO::vec3(0, 0, 0), GEO::vec3(1, 0, 0), GEO::vec3(2, 0, 0),
-        };
-        const std::array<GEO::index_t, 3*6> facets = {
-            0, 3, 1,
-            1, 4, 2, 1, 3, 6, 1, 6, 4,
-            3, 5, 6, 4, 6, 7
-        };
-        mesh.vertices.create_vertices(vertices.size());
-        for (const auto& v : mesh.vertices) {
-            mesh.vertices.point(v) = vertices[v];
-            mesh_v_idx[v] = v;
-        }
-        mesh.facets.create_triangles(facets.size()/3);
-        for (const auto& f : mesh.facets) {
-            for (GEO::index_t lv = 0; lv < 3; ++lv)
-                mesh.facets.set_vertex(f, lv, facets[3*f+lv]);
-        }
-        mesh.facets.connect();
-        GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
-
-        /* Split */
-        GEO::index_t disuse_v, disuse_f0, disuse_f1;
-        tri_edge_collapse(mesh, 3, 0, disuse_v, disuse_f0, disuse_f1, 0.3);
-        EXPECT_NEAR(mesh_v_idx[1], 0.7*1 + 0.3*6, 1e-10);
-
-        { // Clean unused elements
-            GEO::vector<GEO::index_t> facets_to_delete(mesh.facets.nb(), 0);
-            facets_to_delete[disuse_f0] = 1;
-            facets_to_delete[disuse_f1] = 1;
-            mesh.facets.delete_elements(facets_to_delete);
-        }
-        GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
     }
 
     TEST_F(TriEdgeCollapseTest, degenerate_2d) {
@@ -272,7 +230,7 @@ namespace geolio::test
         constexpr GEO::index_t lv = 1;
 
         GEO::index_t disuse_v, disuse_f0, disuse_f1;
-        tri_edge_collapse(mesh, f, lv, disuse_v, disuse_f0, disuse_f1);
+        tri_edge_collapse<2>(mesh, f, lv, disuse_v, disuse_f0, disuse_f1);
         { // clean up
             GEO::vector<GEO::index_t> facets_to_delete(mesh.facets.nb(), 0);
             ASSERT_NE(disuse_f0, GEO::NO_FACET);
@@ -322,7 +280,7 @@ namespace geolio::test
                         continue;
 
                     GEO::index_t disuse_v, disuse_f0, disuse_f1;
-                    tri_edge_collapse(mesh, f, lv, disuse_v, disuse_f0, disuse_f1);
+                    tri_edge_collapse<2>(mesh, f, lv, disuse_v, disuse_f0, disuse_f1);
                     { // clean up
                         GEO::vector<GEO::index_t> facets_to_delete(mesh.facets.nb(), 0);
                         ASSERT_NE(disuse_f0, GEO::NO_FACET);
@@ -375,7 +333,7 @@ namespace geolio::test
         constexpr GEO::index_t lv = 1;
 
         GEO::index_t disuse_v, disuse_f0, disuse_f1;
-        tri_edge_collapse(mesh, f, lv, disuse_v, disuse_f0, disuse_f1);
+        tri_edge_collapse<3>(mesh, f, lv, disuse_v, disuse_f0, disuse_f1);
         { // clean up
             GEO::vector<GEO::index_t> facets_to_delete(mesh.facets.nb(), 0);
             ASSERT_NE(disuse_f0, GEO::NO_FACET);

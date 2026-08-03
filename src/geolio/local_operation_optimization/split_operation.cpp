@@ -5,153 +5,226 @@
 #include "split_operation.h"
 #include <geolio//mesh/tri_operations.h>
 
+#include "geolio/common/log.h"
+
 namespace geolio
 {
-    /**
-     * @brief Constructs a SplitOperation for splitting overly long edges.
-     * @details Initializes the base operation and stores the minimum edge length above
-     *          which an edge is eligible for splitting.
-     * @param[in] mesh_element_manager The mesh element manager exposing the mesh and its
-     *                                 usage/fixed element attributes.
-     * @param[in] limit_edge_length Edges shorter than this threshold are never split.
-     */
-    SplitOperation::SplitOperation(
-        MeshElementManager& mesh_element_manager,
-        const double limit_edge_length
-        ) : BaseOperation(mesh_element_manager),
-            limit_edge_length_(limit_edge_length)
-    {}
-
-    /**
-     * @brief Executes a single pass of edge-splitting over the whole mesh.
-     * @details Resets the per-facet "processed" flags, then iterates over every facet and
-     *          local edge; for each edge that passes is_perform_valid(), it performs the
-     *          split, applies post_process() bookkeeping, asserts post_check(), and marks the
-     *          original facet, the newly created facets and the adjacent facet as processed
-     *          so they are not revisited in this pass.
-     */
-    void SplitOperation::perform_one_pass(
-        ) {
-        mesh_f_processed_.fill(false);
-
-        for (GEO::index_t f = 0, f_end = mesh_.facets.nb(); f < f_end; ++f) {
-            if (mesh_f_processed_[f])
-                continue;
-
-            for (GEO::index_t lv = 0; lv < 3; ++lv) {
-                if (!is_perform_valid(f, lv))
-                    continue;
-
-                GEO::index_t new_v, new_f0, new_f1;
-                perform(f, lv, new_v, new_f0, new_f1);
-
-                post_process(f, lv, new_v, new_f0, new_f1);
-
-                assert(post_check());
-
-                /* Label processed facets */
-                mesh_f_processed_[f] = true;
-                mesh_f_processed_[new_f0] = true;
-                if (const auto& nf = mesh_.facets.adjacent(f, lv);
-                    nf != GEO::NO_FACET
-                    ) {
-                    mesh_f_processed_[nf] = true;
-                    assert(new_f1 != GEO::NO_FACET);
-                    mesh_f_processed_[new_f1] = true;
-                }
+    template <GEO::index_t DIM>
+    SplitOperation<DIM>::SplitOperation(
+        MeshElementManager<DIM>& mesh_element_manager,
+        const double limit_edge_length,
+        const bool allow_split_fixed_edges
+        ) : BaseOperation<DIM>(mesh_element_manager),
+            limit_edge_length_(limit_edge_length),
+            ALLOW_SPLIT_FIXED_EDGES_(allow_split_fixed_edges)
+    {
+        /* Bind attribute */
+        if (!ALLOW_SPLIT_FIXED_EDGES_) {
+            mesh_fc_locked_.bind(this->mesh_.facet_corners.attributes(), this->attribute_name_+"locked");
+            mesh_fc_locked_.fill(false);
+            for (const auto& fc : this->mesh_.facet_corners) {
+                if (this->manager_.mesh_fc_fixed[fc])
+                    mesh_fc_locked_[fc] = true;
             }
         }
+
+        /* Init timestamping */
+        this->mesh_f_timestamping_.fill(0);
+
+        /* Init queue */
+        auto emplace_to_pq = [&](const GEO::index_t f, const GEO::index_t lv) {
+            if (is_perform_valid(f, lv))
+                pq_.emplace(f, lv, 0, this->manager_.get_edge_length(f, lv));
+        };
+        this->for_each_edge(emplace_to_pq);
     }
 
-    /**
-     * @brief Checks whether the edge of facet @p f at local vertex @p lv may be split.
-     * @details Verifies that the facet is still in use, that the edge is not fixed unless
-     *          ALLOW_SPLIT_FIXED_EDGES is set, and that the edge is at least as long as
-     *          limit_edge_length_.
-     * @param[in] f Index of the facet adjacent to the candidate edge.
-     * @param[in] lv Local vertex index identifying the oriented edge (lv -> lv+1).
-     * @return true if the edge may be split; false otherwise.
-     */
-    bool SplitOperation::is_perform_valid(
+    template <GEO::index_t DIM>
+    SplitOperation<DIM>::~SplitOperation(
+        ) {
+        /* Destroy attributes */
+        if (mesh_fc_locked_.is_bound())
+            mesh_fc_locked_.destroy();
+    }
+
+    template <GEO::index_t DIM>
+    bool SplitOperation<DIM>::do_once(
+        const bool iteratively
+        ) {
+        if (pq_.empty())
+            return false;
+
+        const auto edge = pq_.top();
+        pq_.pop();
+
+        /* Check validity */
+        if (const auto& f_timestamping = this->mesh_f_timestamping_[edge.f];
+            edge.timestamping < f_timestamping
+            ) { // This edge is not up-to-date. Push again.
+            if (iteratively)
+                pq_.emplace(edge.f, edge.lv, f_timestamping, this->manager_.get_edge_length(edge.f, edge.lv));
+            return true;
+        }
+        assert(std::abs(edge.length - this->manager_.get_edge_length(edge.f, edge.lv)) < 1e-10); // because at least one adj_facet is unchange
+
+        /* In the current triangle, if there exist a longer edge that cannot be split; splitting is prohibited,
+             * otherwise it will cause an infinite loop. */
+        if (!ALLOW_SPLIT_FIXED_EDGES_) {
+            assert(mesh_fc_locked_.is_bound());
+
+            const auto& cur_fc = this->mesh_.facets.corner(edge.f, edge.lv);
+            for (const auto llv : {(edge.lv+1)%3, (edge.lv+2)%3}) {
+                if (const auto& fc = this->mesh_.facets.corner(edge.f, llv);
+                    mesh_fc_locked_[fc] &&
+                    this->manager_.get_edge_length(edge.f, llv) > edge.length
+                    ) {
+                    mesh_fc_locked_[cur_fc] = true;
+                    break;
+                }
+            }
+            if (mesh_fc_locked_[cur_fc])
+                return true;
+
+            if (const auto& nf = this->mesh_.facets.adjacent(edge.f, edge.lv);
+                nf != GEO::NO_FACET) {
+                for (GEO::index_t llv = 0; llv < 3; ++llv) {
+                    if (this->mesh_.facets.adjacent(nf, llv) == edge.f)
+                        continue;
+                    if (const auto& fc = this->mesh_.facets.corner(nf, llv);
+                        mesh_fc_locked_[fc] &&
+                        this->manager_.get_edge_length(nf, llv) > edge.length
+                        ) {
+                        mesh_fc_locked_[cur_fc] = true;
+                        break;
+                    }
+                }
+            }
+            if (mesh_fc_locked_[cur_fc])
+                return true;
+        }
+
+        /* Check validity */
+        if (!is_perform_valid(edge.f, edge.lv))
+            return true;
+
+        /* Split */
+        GEO::index_t new_v, new_f0, new_f1;
+        perform(edge.f, edge.lv, new_v, new_f0, new_f1);
+
+        post_process(edge.f, edge.lv, new_v, new_f0, new_f1);
+
+        assert(this->post_check());
+
+        /* Push new sub-edges */
+        {
+            auto& f_timestamping = this->mesh_f_timestamping_[edge.f]; // mesh_f_timestamping_ may re-allocated before
+            ++f_timestamping;
+            auto& new_f0_timestamping = this->mesh_f_timestamping_[new_f0];
+            new_f0_timestamping = f_timestamping;
+
+            if (iteratively) {
+                pq_.emplace(edge.f, edge.lv, f_timestamping, 0.5*edge.length);
+
+                const auto lv = this->mesh_.facets.find_vertex(new_f0, new_v);
+                assert(lv != GEO::NO_INDEX);
+                pq_.emplace(new_f0, lv, new_f0_timestamping, 0.5*edge.length);
+                pq_.emplace(new_f0, (lv+1)%3, new_f0_timestamping, this->manager_.get_edge_length(new_f0, (lv+1)%3));
+                pq_.emplace(new_f0, (lv+2)%3, new_f0_timestamping, this->manager_.get_edge_length(new_f0, (lv+2)%3));
+            }
+        }
+
+        if (const auto& nf = this->mesh_.facets.adjacent(edge.f, edge.lv);
+            nf != GEO::NO_FACET
+            ) {
+            assert(new_f1 != GEO::NO_FACET);
+
+            auto& nf_timestamping = this->mesh_f_timestamping_[nf];
+            ++nf_timestamping;
+            auto& new_f1_timestamping = this->mesh_f_timestamping_[new_f1];
+            new_f1_timestamping = nf_timestamping;
+
+            if (iteratively) {
+                const auto lv = this->mesh_.facets.find_vertex(new_f1, new_v);
+                assert(lv != GEO::NO_INDEX);
+                pq_.emplace(new_f1, lv, new_f1_timestamping, this->manager_.get_edge_length(new_f1, lv));
+                pq_.emplace(new_f1, (lv+1)%3, new_f1_timestamping, this->manager_.get_edge_length(new_f1, (lv+1)%3));
+            }
+        }
+
+        return true;
+    }
+
+    template <GEO::index_t DIM>
+    void SplitOperation<DIM>::run_through(
+        const bool iteratively
+        ) {
+        while (do_once(iteratively)) {}
+    }
+
+    template <GEO::index_t DIM>
+    bool SplitOperation<DIM>::is_perform_valid(
         const GEO::index_t f,
         const GEO::index_t lv
         ) const {
-        assert(f < mesh_.facets.nb());
+        assert(f < this->mesh_.facets.nb());
         assert(lv < 3);
 
-        if (!manager_.mesh_f_used[f]) // This facet should not yet exist.
+        if (!this->manager_.mesh_f_used[f]) // This facet should not yet exist.
             return false;
 
-        if (const auto& fc = mesh_.facets.corner(f, lv);
-            !ALLOW_SPLIT_FIXED_EDGES
-            && manager_.mesh_fc_fixed[fc]) // Splitting fixed edges is not allowed.
-            return false;
+        if (!ALLOW_SPLIT_FIXED_EDGES_) {
+            if (const auto& fc = this->mesh_.facets.corner(f, lv);
+                this->manager_.mesh_fc_fixed[fc]) // Splitting fixed edges is not allowed.
+                return false;
+        }
 
-        if (const auto edge_length = manager_.get_edge_length(f, lv);
+        if (const auto edge_length = this->manager_.get_edge_length(f, lv);
             edge_length < limit_edge_length_) // Do not split edges lesser than the limit length.
             return false;
 
         return true;
     }
 
-    /**
-     * @brief Performs the edge split on the mesh topology.
-     * @details Determines whether the edge is on the boundary, requests a new vertex and new
-     *          facets from the manager (two facets for an interior edge, one for a boundary
-     *          edge), and calls tri_edge_split() to insert the new vertex at the edge
-     *          midpoint and rewire the incident triangles.
-     * @param[in] f Index of the facet adjacent to the edge to split.
-     * @param[in] lv Local vertex index identifying the oriented edge (lv -> lv+1).
-     * @param[out] new_v Receives the index of the newly created vertex.
-     * @param[out] new_f0 Receives the index of the first newly created facet.
-     * @param[out] new_f1 Receives the index of the second newly created facet, or
-     *                     GEO::NO_FACET when the edge is on the boundary.
-     */
-    void SplitOperation::perform(
+    template <GEO::index_t DIM>
+    void SplitOperation<DIM>::perform(
         const GEO::index_t f,
         const GEO::index_t lv,
         GEO::index_t& new_v,
         GEO::index_t& new_f0,
         GEO::index_t& new_f1
         ) const {
-        assert(f < mesh_.facets.nb());
+        assert(f < this->mesh_.facets.nb());
         assert(lv < 3);
 
-        const bool EDGE_ON_BOUNDARY = mesh_.facets.adjacent(f, lv) == GEO::NO_FACET;
+        const bool EDGE_ON_BOUNDARY = this->mesh_.facets.adjacent(f, lv) == GEO::NO_FACET;
 
         /* Split */
-        new_v = manager_.require_new_vertex();
-        new_f0 = manager_.require_new_facet();
-        new_f1 = EDGE_ON_BOUNDARY ? GEO::NO_FACET : manager_.require_new_facet();
-        tri_edge_split(mesh_, f, lv, new_v, new_f0, new_f1);
+        new_v = this->manager_.require_new_vertex();
+        new_f0 = this->manager_.require_new_facet();
+        new_f1 = EDGE_ON_BOUNDARY ? GEO::NO_FACET : this->manager_.require_new_facet();
+        tri_edge_split<DIM>(this->mesh_, f, lv, new_v, new_f0, new_f1);
     }
 
-    /**
-     * @brief Applies post-split bookkeeping to the manager's element attributes.
-     * @details If the split edge lies on the boundary, marks the newly created vertex as a
-     *          boundary vertex so the boundary attribute is inherited by the new vertex.
-     * @param[in] f Index of the facet that contained the split edge.
-     * @param[in] lv Local vertex index that identified the split edge.
-     * @param[in] new_v Index of the newly created vertex.
-     * @param[in] new_f0 Index of the first newly created facet.
-     * @param[in] new_f1 Index of the second newly created facet, or GEO::NO_FACET.
-     */
-    void SplitOperation::post_process(
+    template <GEO::index_t DIM>
+    void SplitOperation<DIM>::post_process(
         const GEO::index_t f,
         const GEO::index_t lv,
         const GEO::index_t new_v,
         const GEO::index_t new_f0,
         const GEO::index_t new_f1
         ) const {
-        assert(f < mesh_.facets.nb());
+        assert(f < this->mesh_.facets.nb());
         assert(lv < 3);
-        assert(new_v < mesh_.vertices.nb());
-        assert(new_f0 < mesh_.facets.nb());
+        assert(new_v < this->mesh_.vertices.nb());
+        assert(new_f0 < this->mesh_.facets.nb());
 
-        const auto nf = mesh_.facets.adjacent(f, lv);
+        const auto nf = this->mesh_.facets.adjacent(f, lv);
         const bool EDGE_ON_BOUNDARY = (nf == GEO::NO_FACET);
 
         if (EDGE_ON_BOUNDARY) // Split edge inherits boundary attribute.
-            manager_.mesh_v_boundary[new_v] = true;
+            this->manager_.mesh_v_boundary[new_v] = true;
     }
+
+    template class SplitOperation<2>;
+    template class SplitOperation<3>;
 }

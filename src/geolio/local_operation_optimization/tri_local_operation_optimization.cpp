@@ -15,40 +15,50 @@
 #include "split_operation.h"
 #include "swap_operation.h"
 
+namespace
+{
+    constexpr GEO::index_t FIRST_ELEMENT_IDX = static_cast<GEO::index_t>(-2); /*
+        Because the default value of GEO::index_t is 0, this would make it impossible to identify which one is the
+        original first element after optimization; therefore, a special index is assigned to the first element. */
+}
+
 namespace geolio
 {
-    /**
-     * @brief Constructs a TriLocalOperationOptimization over the given triangle mesh.
-     * @details Stores the mesh reference, builds the internal MeshElementManager, and
-     *          labels boundary and non-manifold vertices so subsequent operations can
-     *          preserve or fix them.
-     * @param[in] mesh The triangle mesh to optimize; only simplex facets are supported.
-     */
-    TriLocalOperationOptimization::TriLocalOperationOptimization(
-        GEO::Mesh& mesh
+    template <GEO::index_t DIM>
+    TriLocalOperationOptimization<DIM>::TriLocalOperationOptimization(
+        GEO::Mesh& mesh,
+        GEO::Attribute<GEO::index_t>* mesh_v_original_idx,
+        GEO::Attribute<GEO::index_t>* mesh_f_original_idx
         ) : mesh_(mesh),
-            manager_(mesh)
+            manager_(mesh),
+            mesh_v_original_idx_(mesh_v_original_idx),
+            mesh_f_original_idx_(mesh_f_original_idx)
     {
+        assert(mesh_.vertices.nb() > 0);
+        assert(mesh_.facets.nb() > 0);
+
         label_boundary_vertices();
         label_non_manifold_vertices();
+
+        /* Init original idx attributes */
+        if (mesh_v_original_idx_ != nullptr) {
+            assert(mesh_v_original_idx_->is_bound());
+            assert(mesh_v_original_idx_->size() == mesh_.vertices.nb());
+            for (const auto& v : mesh_.vertices)
+                (*mesh_v_original_idx_)[v] = v;
+            (*mesh_v_original_idx_)[0] = FIRST_ELEMENT_IDX;
+        }
+        if (mesh_f_original_idx_ != nullptr) {
+            assert(mesh_f_original_idx_->is_bound());
+            assert(mesh_f_original_idx_->size() == mesh_.facets.nb());
+            for (const auto& f : mesh_.facets)
+                (*mesh_f_original_idx_)[f] = f;
+            (*mesh_f_original_idx_)[0] = FIRST_ELEMENT_IDX;
+        }
     }
 
-    /**
-     * @brief Runs the local optimization pipeline.
-     * @details If target_edge_length is negative it is derived automatically from
-     *          compute_average_mesh_edge_length(). The split and collapse thresholds are
-     *          then set to 4/3 and 4/5 of that target. A SplitOperation, CollapseOperation,
-     *          SwapOperation and SmoothOperation are created once, and for each round their
-     *          perform_one_pass() methods are invoked in split, collapse, swap, smooth order
-     *          (smooth runs 3 iterations). After all rounds, clean_unused_elements() removes
-     *          the disused facets and isolated vertices.
-     * @param[in] rounds_nb Number of optimization rounds to execute. Each round runs split,
-     *                      collapse, swap and smooth passes in that order.
-     * @param[in] target_edge_length Desired target edge length used to guide split/collapse
-     *                               decisions. If negative, the optimizer computes an
-     *                               automatic target via compute_average_mesh_edge_length().
-     */
-    void TriLocalOperationOptimization::optimize(
+    template <GEO::index_t DIM>
+    void TriLocalOperationOptimization<DIM>::optimize(
         GEO::index_t rounds_nb,
         double target_edge_length
         ) {
@@ -61,13 +71,12 @@ namespace geolio
         }
         assert(target_edge_length > 0);
         const double SPLIT_EDGE_LENGTH = 4.0/3.0 * target_edge_length;
+        const bool ALLOW_SPLIT_FIXED_EDGES = true;
         const double COLLAPSE_EDGE_LENGTH = 4.0/5.0 * target_edge_length;
-
-        /* Init */
-        SplitOperation split_operation(manager_, SPLIT_EDGE_LENGTH);
-        CollapseOperation collapse_operation(manager_, COLLAPSE_EDGE_LENGTH);
-        SwapOperation swap_operation(manager_);
-        SmoothOperation smooth_operation(manager_);
+        const bool ALLOW_COLLAPSE_FIXED_EDGES = true;
+        const GEO::index_t SWAP_CRITERION = SwapOperation<DIM>::SWAP_BASED_ON_DELAUNAY;
+        const GEO::index_t SMOOTH_GEOMETRIC_CONSTRAINT = SmoothOperation<DIM>::PROJECT_TO_ORIGINAL_MESH;
+        const bool ALLOW_SMOOTH_FIXED_EDGES_VERTICES = true;
 
         /* Let's go! */
         for (GEO::index_t round = 0; round < rounds_nb; ++round) {
@@ -76,10 +85,21 @@ namespace geolio
             const auto PREV_VERTICES_NB = mesh_.vertices.nb();
             const auto PREV_FACETS_NB = mesh_.facets.nb();
 
-            split_operation.perform_one_pass();
-            collapse_operation.perform_one_pass();
-            swap_operation.perform_one_pass();
-            smooth_operation.perform_one_pass(3);
+            LOG::TRACE("splitting...");
+            SplitOperation<DIM> split_operation(manager_, SPLIT_EDGE_LENGTH, ALLOW_SPLIT_FIXED_EDGES);
+            split_operation.run_through();
+
+            LOG::TRACE("collapsing...");
+            CollapseOperation<DIM> collapse_operation(manager_, COLLAPSE_EDGE_LENGTH, ALLOW_COLLAPSE_FIXED_EDGES);
+            collapse_operation.run_through();
+
+            LOG::TRACE("swapping...");
+            SwapOperation<DIM> swap_operation(manager_, SWAP_CRITERION);
+            swap_operation.run_through();
+
+            LOG::TRACE("smoothing...");
+            SmoothOperation<DIM> smooth_operation(manager_, SMOOTH_GEOMETRIC_CONSTRAINT, ALLOW_SMOOTH_FIXED_EDGES_VERTICES);
+            smooth_operation.run_nb_times(3);
 
             LOG::DEBUG("#V: {} -> {}, #F: {} -> {}", PREV_VERTICES_NB, mesh_.vertices.nb(), PREV_FACETS_NB, mesh_.facets.nb());
         }
@@ -87,15 +107,30 @@ namespace geolio
         /* Make output mesh valid */
         manager_.clean_unused_elements(true);
         LOG::DEBUG("result mesh #V: {}, #F: {}", mesh_.vertices.nb(), mesh_.facets.nb());
+
+        /* Refactor original idx (if exist) */
+        if (mesh_v_original_idx_ != nullptr) {
+            for (const auto& v : mesh_.vertices) {
+                if (auto& idx = (*mesh_v_original_idx_)[v];
+                    idx == 0) // default, newly vertices
+                    idx = GEO::NO_INDEX;
+                else if (idx == FIRST_ELEMENT_IDX) // the idx of the first vertex of the original mesh
+                    idx = 0;
+            }
+        }
+        if (mesh_f_original_idx_ != nullptr) {
+            for (const auto& f : mesh_.facets) {
+                if (auto& idx = (*mesh_f_original_idx_)[f];
+                    idx == 0) // default, newly vertices
+                    idx = GEO::NO_INDEX;
+                else if (idx == FIRST_ELEMENT_IDX) // the idx of the first vertex of the original mesh
+                    idx = 0;
+            }
+        }
     }
 
-    /**
-     * @brief Fixes (locks) all boundary edges of the mesh.
-     * @details Iterates over every facet corner and fixes each edge that has no adjacent
-     *          facet (a boundary edge), skipping corners already fixed. Afterwards calls
-     *          fix_vertices_based_on_fixed_edges() so that boundary vertices are fixed too.
-     */
-    void TriLocalOperationOptimization::fix_boundary_elements(
+    template <GEO::index_t DIM>
+    void TriLocalOperationOptimization<DIM>::fix_boundary_elements(
         ) {
         LOG::TRACE(__FUNCTION__);
 
@@ -113,16 +148,8 @@ namespace geolio
         fix_vertices_based_on_fixed_edges();
     }
 
-    /**
-     * @brief Fixes (locks) edges whose dihedral angle is sharp.
-     * @details Pre-computes the normal of every facet, then fixes each interior edge whose
-     *          adjacent facets form a dihedral angle smaller than @p sharp_angle (measured
-     *          as the angle between the facet normals). Finally calls
-     *          fix_vertices_based_on_fixed_edges() to fix the associated vertices.
-     * @param[in] sharp_angle Dihedral angle threshold in radians; edges sharper than this
-     *                        value are fixed. Defaults to 0.75*M_PI (135 degrees).
-     */
-    void TriLocalOperationOptimization::fix_sharp_elements(
+    template <GEO::index_t DIM>
+    void TriLocalOperationOptimization<DIM>::fix_sharp_elements(
         const double sharp_angle
         ) {
         LOG::TRACE(__FUNCTION__);
@@ -152,12 +179,8 @@ namespace geolio
         fix_vertices_based_on_fixed_edges();
     }
 
-    /**
-     * @brief Labels all vertices that lie on a boundary edge.
-     * @details Resets the boundary flag on every vertex, then scans all facets and marks the
-     *          two endpoints of each boundary (adjacent-free) edge as boundary vertices.
-     */
-    void TriLocalOperationOptimization::label_boundary_vertices(
+    template <GEO::index_t DIM>
+    void TriLocalOperationOptimization<DIM>::label_boundary_vertices(
         ) {
         LOG::TRACE(__FUNCTION__);
 
@@ -172,14 +195,8 @@ namespace geolio
         }
     }
 
-    /**
-     * @brief Labels non-manifold vertices and fixes them.
-     * @details Runs detect_non_manifold_vertices() to collect all non-manifold vertices,
-     *          marks them in the manager's non-manifold attribute, and calls fix_vertex()
-     *          on each so that collapse operations touching them cannot corrupt the mesh.
-     *          Logs a warning with the number of detected vertices.
-     */
-    void TriLocalOperationOptimization::label_non_manifold_vertices(
+    template <GEO::index_t DIM>
+    void TriLocalOperationOptimization<DIM>::label_non_manifold_vertices(
         ) {
         LOG::TRACE(__FUNCTION__);
 
@@ -196,16 +213,8 @@ namespace geolio
                   "they have been fixed to prevent unexpected errors.", NON_MANIFOLD_VERTICES_NB);
     }
 
-    /**
-     * @brief Fixes vertices whose incident fixed edges make them unsafe to move.
-     * @details Collects the (up to two) fixed-edge neighbours of every vertex. A vertex is
-     *          fixed when it touches more than two fixed edges, touches exactly one fixed
-     *          edge, or when its two fixed-edge neighbours form an angle smaller than
-     *          @p sharp_angle (a sharp corner). Handles both 2D and 3D meshes.
-     * @param[in] sharp_angle Angle threshold in radians used to detect sharp corners formed
-     *                         by two fixed edges. Defaults to 0.75*M_PI (135 degrees).
-     */
-    void TriLocalOperationOptimization::fix_vertices_based_on_fixed_edges(
+    template <GEO::index_t DIM>
+    void TriLocalOperationOptimization<DIM>::fix_vertices_based_on_fixed_edges(
         const double sharp_angle
         ) {
         std::vector<std::pair<GEO::index_t, GEO::index_t>> mesh_v_adjacent_v(
@@ -249,22 +258,16 @@ namespace geolio
                 if (adj_v1 == GEO::NO_VERTEX)
                     manager_.mesh_v_fixed[v] = true; // fix vertex that adjacent to only one fixed edge
                 else {
-                    if (manager_.mesh_2d) {
-                        const auto& p = mesh_.vertices.point<2>(v);
-                        const auto& p0 = mesh_.vertices.point<2>(adj_v0);
-                        const auto& p1 = mesh_.vertices.point<2>(adj_v1);
-                        if (GEO::Geom::angle(p0-p, p1-p) < sharp_angle)
-                            manager_.mesh_v_fixed[v] = true; // fix vertex that adjacent fixed edges form a sharp angle
-                    }
-                    else {
-                        const auto& p = mesh_.vertices.point(v);
-                        const auto& p0 = mesh_.vertices.point(adj_v0);
-                        const auto& p1 = mesh_.vertices.point(adj_v1);
-                        if (GEO::Geom::angle(p0-p, p1-p) < sharp_angle)
-                            manager_.mesh_v_fixed[v] = true; // fix vertex that adjacent fixed edges form a sharp angle
-                    }
+                    const auto& p = mesh_.vertices.point<DIM>(v);
+                    const auto& p0 = mesh_.vertices.point<DIM>(adj_v0);
+                    const auto& p1 = mesh_.vertices.point<DIM>(adj_v1);
+                    if (GEO::Geom::angle(p0-p, p1-p) < sharp_angle)
+                        manager_.mesh_v_fixed[v] = true; // fix vertex that adjacent fixed edges form a sharp angle
                 }
             }
         }
     }
+
+    template class TriLocalOperationOptimization<2>;
+    template class TriLocalOperationOptimization<3>;
 }

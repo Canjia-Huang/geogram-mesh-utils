@@ -11,59 +11,77 @@
 
 namespace geolio::test
 {
-    TEST(TriLocalOperationOptimizationTest, two_d_model) {
+    TEST(TriLocalOperationOptimizationTest, cdt_2d) {
         GEO::Mesh mesh(2);
         generate_random_CDT2d_mesh(mesh, 20, 10);
         GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
 
         {
-            TriLocalOperationOptimization TLOO(mesh);
+            TriLocalOperationOptimization<2> TLOO(mesh);
             TLOO.fix_boundary_elements();
-            TLOO.optimize(10, 1);
+            TLOO.optimize(5, 1);
         }
+
         GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
     }
 
-    // TEST(TriLocalOperationOptimizationTest, three_d_model) {
-    //     GEO::Mesh mesh;
-    //     GEO::mesh_load(std::string(TEST_DATA_PATH)+"bunny.obj", mesh);
-    //
-    //     {
-    //         TriLocalOperationOptimization TLOO(mesh);
-    //         TLOO.fix_sharp_elements();
-    //         GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
-    //
-    //         TLOO.optimize();
-    //         GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
-    //     }
-    // }
+#ifdef NDEBUG // too slow under DEBUG mode...
+    TEST(TriLocalOperationOptimizationTest, bunny) {
+        GEO::Mesh mesh;
+        GEO::mesh_load(std::string(TEST_DATA_PATH)+"bunny.obj", mesh);
 
-    TEST(TriLocalOperationOptimizationTest, three_d_model_sharp) {
+        {
+            TriLocalOperationOptimization<3> TLOO(mesh);
+            GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
+            TLOO.optimize(3, 1.5);
+        }
+
+        GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
+    }
+#endif
+
+    TEST(TriLocalOperationOptimizationTest, fandisk_sharp) {
         GEO::Mesh mesh;
         GEO::mesh_load(std::string(TEST_DATA_PATH)+"fandisk.obj", mesh);
 
         {
-            TriLocalOperationOptimization TLOO(mesh);
+            TriLocalOperationOptimization<3> TLOO(mesh);
             TLOO.fix_sharp_elements();
             GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
-
             TLOO.optimize();
-            GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
         }
 
+        GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
     }
 
-    TEST(TriLocalOperationOptimizationTest, three_d_model_boundary) {
+    TEST(TriLocalOperationOptimizationTest, beetle_boundary) {
         GEO::Mesh mesh;
         GEO::mesh_load(std::string(TEST_DATA_PATH)+"beetle.obj", mesh);
         GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
 
         {
-            TriLocalOperationOptimization TLOO(mesh);
+            TriLocalOperationOptimization<3> TLOO(mesh);
             TLOO.fix_boundary_elements();
-            TLOO.optimize();
-            GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
+            TLOO.optimize(5, 0.01);
         }
 
+        GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
+    }
+
+    TEST(TriLocalOperationOptimizationTest, fandisk_preserve_original_idx) {
+        GEO::Mesh mesh;
+        GEO::mesh_load(std::string(TEST_DATA_PATH)+"fandisk.obj", mesh);
+
+        GEO::Attribute<GEO::index_t> mesh_v_original_idx(mesh.vertices.attributes(), "original_idx");
+        GEO::Attribute<GEO::index_t> mesh_f_original_idx(mesh.facets.attributes(), "original_idx");
+
+        {
+            TriLocalOperationOptimization<3> TLOO(mesh, &mesh_v_original_idx, &mesh_f_original_idx);
+            TLOO.fix_sharp_elements();
+            GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
+            TLOO.optimize();
+        }
+
+        GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
     }
 }

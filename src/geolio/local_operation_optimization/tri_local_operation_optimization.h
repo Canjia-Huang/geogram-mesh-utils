@@ -12,27 +12,43 @@
 
 namespace geolio
 {
+    template <GEO::index_t DIM>
     class TriLocalOperationOptimization {
     public:
         /**
          * @brief Constructs a TriLocalOperationOptimization over the given triangle mesh.
          * @details Stores the mesh reference, builds the internal MeshElementManager, and
          *          labels boundary and non-manifold vertices so subsequent operations can
-         *          preserve or fix them.
+         *          preserve or fix them. When optional original-index attributes are provided,
+         *          they are initialized so that every current vertex/facet maps to its own
+         *          index; the first element receives a special marker so it can be recovered
+         *          after optimization.
          * @param[in] mesh The triangle mesh to optimize; only simplex facets are supported.
+         * @param[in] mesh_v_original_idx Optional per-vertex attribute that records each
+         *                                vertex's original index before optimization; newly
+         *                                created vertices are set to GEO::NO_INDEX. Pass
+         *                                nullptr to skip.
+         * @param[in] mesh_f_original_idx Optional per-facet attribute that records each facet's
+         *                                original index before optimization; newly created
+         *                                facets are set to GEO::NO_INDEX. Pass nullptr to skip.
          */
-        explicit TriLocalOperationOptimization(GEO::Mesh& mesh);
+        explicit TriLocalOperationOptimization(
+            GEO::Mesh& mesh,
+            GEO::Attribute<GEO::index_t>* mesh_v_original_idx = nullptr,
+            GEO::Attribute<GEO::index_t>* mesh_f_original_idx = nullptr);
 
 
         /**
          * @brief Runs the local optimization pipeline.
          * @details If target_edge_length is negative it is derived automatically from
          *          compute_average_mesh_edge_length(). The split and collapse thresholds are
-         *          then set to 4/3 and 4/5 of that target. A SplitOperation, CollapseOperation,
-         *          SwapOperation and SmoothOperation are created once, and for each round their
-         *          perform_one_pass() methods are invoked in split, collapse, swap, smooth order
-         *          (smooth runs 3 iterations). After all rounds, clean_unused_elements() removes
-         *          the disused facets and isolated vertices.
+         *          then set to 4/3 and 4/5 of that target, and fixed-edge operations are enabled
+         *          for all four operations. For each round a SplitOperation, CollapseOperation,
+         *          SwapOperation and SmoothOperation are created and their run_through() methods
+         *          are invoked in split, collapse, swap, smooth order (smooth runs 3 iterations
+         *          via run_nb_times()). After all rounds, clean_unused_elements() removes the
+         *          disused facets and isolated vertices, and any optional original-index
+         *          attributes are finalized (newly created elements are set to GEO::NO_INDEX).
          * @param[in] rounds_nb Number of optimization rounds to execute. Each round runs split,
          *                      collapse, swap and smooth passes in that order.
          * @param[in] target_edge_length Desired target edge length used to guide split/collapse
@@ -129,8 +145,14 @@ namespace geolio
         void fix_vertices_based_on_fixed_edges(double sharp_angle = 0.75*M_PI);
 
         GEO::Mesh& mesh_;
-        MeshElementManager manager_;
+        MeshElementManager<DIM> manager_;
+
+        GEO::Attribute<GEO::index_t>* mesh_v_original_idx_ = nullptr;
+        GEO::Attribute<GEO::index_t>* mesh_f_original_idx_ = nullptr;
     };
+
+    extern template class TriLocalOperationOptimization<2>;
+    extern template class TriLocalOperationOptimization<3>;
 }
 
 #endif //GEOLIO_TRI_LOCAL_OPERATION_OPTIMIZATION_H

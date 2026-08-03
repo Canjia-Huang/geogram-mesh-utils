@@ -7,71 +7,48 @@
 #include <utility>
 #include <vector>
 
+#include "geolio/common/log.h"
+
 namespace geolio
 {
-    /**
-     * @brief Constructs a SmoothOperation for relaxing vertex positions.
-     * @details Initializes the base operation. For 3D meshes it keeps a copy of the input
-     *          mesh (original_mesh_) and builds a GEO::MeshFacetsAABB over it so smoothed
-     *          vertices can be projected back onto the original surface. 2D meshes skip the
-     *          copy because no projection is needed.
-     * @param[in] mesh_element_manager The mesh element manager exposing the mesh and its
-     *                                 usage/fixed element attributes.
-     */
-    SmoothOperation::SmoothOperation(
-        MeshElementManager& mesh_element_manager
-        ) : BaseOperation(mesh_element_manager)
+    template<GEO::index_t DIM>
+    SmoothOperation<DIM>::SmoothOperation(
+        MeshElementManager<DIM>& mesh_element_manager,
+        const GEO::index_t geometric_constraint,
+        const bool allow_smooth_fixed_edge_vertices
+        ) : BaseOperation<DIM>(mesh_element_manager),
+            GEOMETRIC_CONSTRAINT_(geometric_constraint),
+            ALLOW_SMOOTH_FIXED_EDGE_VERTICES_(allow_smooth_fixed_edge_vertices)
     {
-        if (!manager_.mesh_2d) {
-            original_mesh_.copy(mesh_);
-            original_mesh_facet_AABB_.initialize(original_mesh_);
-        }
-    }
-
-    /**
-     * @brief Runs a number of smoothing iterations over the mesh vertices.
-     * @details Builds the one-ring adjacency of every used vertex from the used facets, and
-     *          optionally the set of vertices/edges adjacent to fixed edges. For each
-     *          iteration it computes each movable vertex's target position as the average of
-     *          its neighbours, projects it onto the original surface for 3D meshes, slides
-     *          it along adjacent fixed edges when allowed, and writes it back if
-     *          is_perform_valid() passes.
-     * @param[in] iterations_nb Number of smoothing iterations to execute.
-     */
-    void SmoothOperation::perform_one_pass(
-        const GEO::index_t iterations_nb
-        ) const {
-        /* Build vertex adjacency */
-        std::vector<std::vector<GEO::index_t>> mesh_v_adjacent_v(mesh_.vertices.nb());
-        for (const auto& f : mesh_.facets) {
-            if (!manager_.mesh_f_used[f])
+        /* Collect the adjacent vertices of a vertex. */
+        mesh_v_adjacent_v.assign(this->mesh_.vertices.nb(), std::vector<GEO::index_t>());
+        for (const auto& f : this->mesh_.facets) {
+            if (!this->manager_.mesh_f_used[f])
                 continue;
 
             for (GEO::index_t lv = 0; lv < 3; ++lv) {
-                const auto& v = mesh_.facets.vertex(f, lv);
-                assert(manager_.mesh_v_used[v]);
-                const auto& nv = mesh_.facets.vertex(f, (lv+1)%3);
-                assert(manager_.mesh_v_used[nv]);
+                const auto& v = this->mesh_.facets.vertex(f, lv);
+                assert(this->manager_.mesh_v_used[v]);
+                const auto& nv = this->mesh_.facets.vertex(f, (lv+1)%3);
+                assert(this->manager_.mesh_v_used[nv]);
 
                 mesh_v_adjacent_v[v].push_back(nv);
-                if (mesh_.facets.adjacent(f, lv) == GEO::NO_FACET)
+                if (this->mesh_.facets.adjacent(f, lv) == GEO::NO_FACET)
                     mesh_v_adjacent_v[nv].push_back(v);
             }
         }
 
-        /* Build fixed edge adjacent edges */
-        std::vector<char> mesh_v_on_fixed_edges;
-        std::vector<std::pair<GEO::index_t, GEO::index_t>> mesh_fixed_edge_v_adjacent_v; // v -> adjacent vertices along adjacent fixed edges
-        if (ALLOW_SMOOTH_FIXED_EDGE_VERTICES) {
-            mesh_fixed_edge_v_adjacent_v.assign(mesh_.vertices.nb(), std::pair(GEO::NO_VERTEX, GEO::NO_VERTEX));
+        /* Prepare for smooth fixed edge vertices */
+        if (ALLOW_SMOOTH_FIXED_EDGE_VERTICES_) {
+            mesh_fixed_edge_v_adjacent_v.assign(this->mesh_.vertices.nb(), std::pair(GEO::NO_VERTEX, GEO::NO_VERTEX));
 
-            for (const auto& f : mesh_.facets) {
+            for (const auto& f : this->mesh_.facets) {
                 for (GEO::index_t lv = 0; lv < 3; ++lv) {
-                    if (const auto& fc = mesh_.facets.corner(f, lv);
-                        manager_.mesh_fc_fixed[fc]
+                    if (const auto& fc = this->mesh_.facets.corner(f, lv);
+                        this->manager_.mesh_fc_fixed[fc]
                         ) {
-                        const auto& ev0 = mesh_.facets.vertex(f, lv);
-                        const auto& ev1 = mesh_.facets.vertex(f, (lv+1)%3);
+                        const auto& ev0 = this->mesh_.facets.vertex(f, lv);
+                        const auto& ev1 = this->mesh_.facets.vertex(f, (lv+1)%3);
                         {
                             if (auto& [adj_v0, adj_v1] = mesh_fixed_edge_v_adjacent_v[ev0];
                                 adj_v0 == GEO::NO_VERTEX)
@@ -95,147 +72,195 @@ namespace geolio
             }
 
             /* Fix fixed vertex */
-            for (const auto& v : mesh_.vertices) {
-                if (manager_.mesh_v_fixed[v])
+            for (const auto& v : this->mesh_.vertices) {
+                if (this->manager_.mesh_v_fixed[v])
                     mesh_fixed_edge_v_adjacent_v[v] = std::pair(GEO::NO_VERTEX, GEO::NO_VERTEX);
             }
         }
         else {
-            mesh_v_on_fixed_edges.assign(mesh_.vertices.nb(), false);
-            for (const auto& f : mesh_.facets) {
+            mesh_v_on_fixed_edges_.assign(this->mesh_.vertices.nb(), false);
+            for (const auto& f : this->mesh_.facets) {
                 for (GEO::index_t lv = 0; lv < 3; ++lv) {
-                    if (const auto& fc = mesh_.facets.corner(f, lv);
-                        manager_.mesh_fc_fixed[fc]
+                    if (const auto& fc = this->mesh_.facets.corner(f, lv);
+                        this->manager_.mesh_fc_fixed[fc]
                         ) {
-                        const auto& ev0 = mesh_.facets.vertex(f, lv);
-                        const auto& ev1 = mesh_.facets.vertex(f, (lv+1)%3);
-                        mesh_v_on_fixed_edges[ev0] = true;
-                        mesh_v_on_fixed_edges[ev1] = true;
+                        const auto& ev0 = this->mesh_.facets.vertex(f, lv);
+                        const auto& ev1 = this->mesh_.facets.vertex(f, (lv+1)%3);
+                        mesh_v_on_fixed_edges_[ev0] = true;
+                        mesh_v_on_fixed_edges_[ev1] = true;
                     }
                 }
             }
         }
 
-        /* Smooth */
-        if (manager_.mesh_2d) {
-            std::vector<GEO::vec2> mesh_v_new_pos(mesh_.vertices.nb()); // pre-allocated
-            for (GEO::index_t iter = 0; iter < iterations_nb; ++iter) {
-                /* Compute average position */
-                for (const auto& v : mesh_.vertices) {
-                    if (!manager_.mesh_v_used[v])
-                        continue;
-
-                    auto& target_p = mesh_v_new_pos[v];
-                    target_p = GEO::vec2(0, 0);
-                    for (const auto& nv : mesh_v_adjacent_v[v])
-                        target_p += mesh_.vertices.point<2>(nv);
-                    assert(!mesh_v_adjacent_v[v].empty());
-                    target_p /= mesh_v_adjacent_v[v].size();
-                }
-
-                /* Update */
-                for (const auto& v : mesh_.vertices) {
-                    if (is_perform_valid(v)) {
-                        auto& target_p = mesh_v_new_pos[v];
-
-                        /* Slide along fixed edge */
-                        if (ALLOW_SMOOTH_FIXED_EDGE_VERTICES) {
-                            assert(mesh_fixed_edge_v_adjacent_v.size() == mesh_.vertices.nb());
-                            assert(!manager_.mesh_v_fixed[v]);
-                            const auto& [v0, v1] = mesh_fixed_edge_v_adjacent_v[v];
-                            assert(v0 != GEO::NO_VERTEX);
-                            assert(v1 != GEO::NO_VERTEX);
-                            const auto& p0 = mesh_.vertices.point<2>(v0);
-                            const auto& p1 = mesh_.vertices.point<2>(v1);
-                            const auto p1p0 = GEO::normalize(p1-p0);
-                            target_p = p0 + GEO::dot(target_p-p0, p1p0) * p1p0;
-                        }
-                        else {
-                            assert(mesh_v_on_fixed_edges.size() == mesh_.vertices.nb());
-                            if (mesh_v_on_fixed_edges[v])
-                                continue;
-                        }
-
-                        mesh_.vertices.point<2>(v) = target_p;
-                    }
-                }
-            }
+        /* Predetermine which vertices are involved in smoothing. */
+        mesh_v_perform_.assign(this->mesh_.vertices.nb(), true);
+        for (const auto& v : this->mesh_.vertices) {
+            if (!is_perform_valid(v))
+                mesh_v_perform_[v] = false;
         }
-        else {
-            assert(mesh_.vertices.dimension() == 3);
 
-            std::vector<GEO::vec3> mesh_v_new_pos(mesh_.vertices.nb()); // pre-allocated
-            for (GEO::index_t iter = 0; iter < iterations_nb; ++iter) {
-                /* Compute average position */
-                for (const auto& v : mesh_.vertices) {
-                    if (!manager_.mesh_v_used[v])
-                        continue;
+        /* Pre-allocated */
+        mesh_v_new_pos.resize(this->mesh_.vertices.nb());
 
-                    auto& target_p = mesh_v_new_pos[v];
-                    target_p = GEO::vec3(0, 0, 0);
-                    for (const auto& nv : mesh_v_adjacent_v[v])
-                        target_p += mesh_.vertices.point(nv);
-                    assert(!mesh_v_adjacent_v[v].empty());
-                    target_p /= mesh_v_adjacent_v[v].size();
-                }
-
-                /* Update */
-                for (const auto& v : mesh_.vertices) {
-                    if (is_perform_valid(v)) {
-                        auto& target_p = mesh_v_new_pos[v];
-
-                        { /* Project to original mesh */
-                            GEO::vec3 nearest_pos;
-                            double sq_dist;
-                            original_mesh_facet_AABB_.nearest_facet(target_p, nearest_pos, sq_dist);
-
-                            target_p = nearest_pos;
-                        }
-
-                        /* Slide along fixed edge */
-                        if (ALLOW_SMOOTH_FIXED_EDGE_VERTICES) {
-                            assert(mesh_fixed_edge_v_adjacent_v.size() == mesh_.vertices.nb());
-                            assert(!manager_.mesh_v_fixed[v]);
-                            if (const auto& [v0, v1] = mesh_fixed_edge_v_adjacent_v[v];
-                                v0 != GEO::NO_VERTEX && v1 != GEO::NO_VERTEX
-                                ) {
-                                const auto& p0 = mesh_.vertices.point(v0);
-                                const auto& p1 = mesh_.vertices.point(v1);
-                                const auto p1p0 = GEO::normalize(p1-p0);
-                                target_p = p0 + GEO::dot(target_p-p0, p1p0) * p1p0;
-                            }
-                        }
-                        else {
-                            assert(mesh_v_on_fixed_edges.size() == mesh_.vertices.nb());
-                            if (mesh_v_on_fixed_edges[v])
-                                continue;
-                        }
-
-                        mesh_.vertices.point(v) = mesh_v_new_pos[v];
+        /* Init AABB tree (for 3D mesh). */
+        if constexpr (DIM == 3) {
+            if (GEOMETRIC_CONSTRAINT_ == PROJECT_TO_ORIGINAL_MESH) {
+                original_mesh_.copy(this->mesh_);
+                {
+                    GEO::vector<GEO::index_t> facets_to_delete(original_mesh_.facets.nb(), 0);
+                    for (const auto& f : original_mesh_.facets) {
+                        if (!this->manager_.mesh_f_used[f])
+                            facets_to_delete[f] = 1;
                     }
+                    original_mesh_.facets.delete_elements(facets_to_delete, true);
                 }
+                original_mesh_facet_AABB_.initialize(original_mesh_);
             }
         }
     }
 
-    /**
-     * @brief Checks whether vertex @p v is allowed to move during smoothing.
-     * @details Returns false when the vertex is no longer in use or is marked as fixed;
-     *          returns true otherwise.
-     * @param[in] v Index of the vertex to test.
-     * @return true if the vertex may be moved; false otherwise.
-     */
-    bool SmoothOperation::is_perform_valid(
+    template<GEO::index_t DIM>
+    double SmoothOperation<DIM>::do_once(
+        ) {
+        /* Compute vertex normal */
+        std::vector<GEO::vec3> mesh_v_normal; // normalized
+        if constexpr (DIM == 3) {
+            if (GEOMETRIC_CONSTRAINT_ == TANGENTIAL_SMOOTHING) {
+                mesh_v_normal.assign(this->mesh_.vertices.nb(), GEO::vec3());
+                for (const auto& f : this->mesh_.facets) {
+                    if (!this->manager_.mesh_f_used[f])
+                        continue;
+
+                    const auto normal = GEO::normalize(
+                        GEO::Geom::triangle_normal(
+                            this->mesh_.facets.point(f, 0),
+                            this->mesh_.facets.point(f, 1),
+                            this->mesh_.facets.point(f, 2)));
+                    for (GEO::index_t lv = 0; lv < 3; ++lv) {
+                        const auto& v = this->mesh_.facets.vertex(f, lv);
+                        mesh_v_normal[v] += normal;
+                    }
+                }
+
+                for (const auto& v : this->mesh_.vertices) {
+                    if (!mesh_v_perform_[v])
+                        continue;
+                    mesh_v_normal[v] = GEO::normalize(mesh_v_normal[v]);
+                }
+            }
+        }
+
+        /* Compute target position */
+        for (const auto& v : this->mesh_.vertices) {
+            if (!mesh_v_perform_[v])
+                continue;
+
+            auto& original_p = this->mesh_.vertices.template point<DIM>(v);
+
+            /* Average */
+            auto& target_p = mesh_v_new_pos[v];
+            target_p = GEO::vecng<DIM, GEO::Numeric::float64>();
+            for (const auto& nv : mesh_v_adjacent_v[v])
+                target_p += this->mesh_.vertices.template point<DIM>(nv);
+            assert(!mesh_v_adjacent_v[v].empty());
+            target_p /= mesh_v_adjacent_v[v].size();
+
+            /* == Constraints ====================================================================================== */
+
+            /* Slide along fixed edge */
+            if (ALLOW_SMOOTH_FIXED_EDGE_VERTICES_) {
+                assert(mesh_fixed_edge_v_adjacent_v.size() == this->mesh_.vertices.nb());
+                assert(!this->manager_.mesh_v_fixed[v]);
+                const auto& [v0, v1] = mesh_fixed_edge_v_adjacent_v[v];
+                if (v0 == GEO::NO_VERTEX || v1 == GEO::NO_VERTEX)
+                    continue;
+                const auto& p0 = this->mesh_.vertices.template point<DIM>(v0);
+                const auto& p1 = this->mesh_.vertices.template point<DIM>(v1);
+                // const auto p1p0 = GEO::normalize(p1-p0);
+                // target_p = p0 + GEO::dot(target_p-p0, p1p0) * p1p0;
+                target_p = 0.5*(p0+p1);
+            }
+
+            /* Project to original mesh */
+            if constexpr (DIM == 3) {
+                if (GEOMETRIC_CONSTRAINT_ == PROJECT_TO_ORIGINAL_MESH) {
+                    GEO::vec3 nearest_pos;
+                    double sq_dist;
+                    original_mesh_facet_AABB_.nearest_facet(target_p, nearest_pos, sq_dist);
+
+                    target_p = nearest_pos;
+                }
+                else if (GEOMETRIC_CONSTRAINT_ == TANGENTIAL_SMOOTHING) {
+                    assert(v < mesh_v_normal.size());
+
+                    auto dir = target_p - original_p;
+                    dir = dir - GEO::dot(dir, mesh_v_normal[v]) * mesh_v_normal[v];
+                    target_p = original_p + dir;
+                }
+            }
+
+            /* Damping */
+            target_p = damping_factor_ * original_p + (1-damping_factor_) * target_p;
+        }
+
+        /* Update */
+        double max_displacement = -std::numeric_limits<double>::max();
+        for (const auto& v : this->mesh_.vertices) {
+            if (!mesh_v_perform_[v])
+                continue;
+
+            auto& original_p = this->mesh_.vertices.template point<DIM>(v);
+            auto& target_p = mesh_v_new_pos[v];
+
+            /* Record max displacement */
+            max_displacement = std::max(
+                max_displacement,
+                GEO::distance(original_p, target_p));
+
+            original_p = target_p;
+        }
+
+        return max_displacement;
+    }
+
+    template<GEO::index_t DIM>
+    void SmoothOperation<DIM>::run_nb_times(
+        const GEO::index_t iterations_nb
+        ) {
+        for (GEO::index_t iteration = 0; iteration < iterations_nb; ++iteration)
+            do_once();
+    }
+
+    template<GEO::index_t DIM>
+    void SmoothOperation<DIM>::run_until(
+        const double displacement_threshold
+        ) {
+        while (do_once() > displacement_threshold) {}
+    }
+
+    template<GEO::index_t DIM>
+    bool SmoothOperation<DIM>::is_perform_valid(
         const GEO::index_t v
         ) const {
-        assert(v < mesh_.vertices.nb());
+        assert(v < this->mesh_.vertices.nb());
 
-        if (!manager_.mesh_v_used[v]) // This vertex should not yet exist.
+
+        if (!this->manager_.mesh_v_used[v]) // This vertex should not yet exist.
             return false;
 
-        if (manager_.mesh_v_fixed[v]) // Cannot move fixed vertex.
+        if (this->manager_.mesh_v_fixed[v]) // Cannot move fixed vertex.
             return false;
+
+        if (!ALLOW_SMOOTH_FIXED_EDGE_VERTICES_) {
+            assert(mesh_v_on_fixed_edges_.size() == this->mesh_.vertices.nb());
+            if (mesh_v_on_fixed_edges_[v])
+                return false;
+        }
 
         return true;
     }
+
+    template class SmoothOperation<2>;
+    template class SmoothOperation<3>;
 }

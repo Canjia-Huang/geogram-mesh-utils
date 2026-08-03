@@ -9,27 +9,76 @@
 
 namespace geolio
 {
-    class SwapOperation : public BaseOperation {
+    template<GEO::index_t DIM>
+    class SwapOperation : public BaseOperation<DIM> {
     public:
         /**
-         * @brief Constructs a SwapOperation for flipping edges to improve vertex valence.
-         * @details Initializes the base operation; no additional state is required because
-         *          swapping only rewires existing elements.
-         * @param[in] mesh_element_manager The mesh element manager exposing the mesh and its
-         *                                 usage/fixed element attributes.
+         * @brief Bit flags selecting which validity criterion a candidate edge must satisfy.
+         * @details SWAP_BASED_ON_VALENCE accepts a swap only when it decreases the sum of
+         *          squared deviations from the ideal valence (6 interior, 4 boundary);
+         *          SWAP_BASED_ON_DELAUNAY accepts a swap only when the edge is not locally
+         *          Delaunay (the sum of the two opposite cotangent angles is non-negative).
          */
-        explicit SwapOperation(MeshElementManager& mesh_element_manager);
+        enum SwapCriterion {
+            SWAP_BASED_ON_VALENCE       = 1<<0,
+            SWAP_BASED_ON_DELAUNAY      = 1<<1
+        };
 
         /**
-         * @brief Executes a single pass of edge-swapping over the whole mesh.
-         * @details Resets the per-facet "processed" flags, then iterates over every facet and
-         *          local edge; for each interior edge that passes is_perform_valid(), it swaps
-         *          the edge, applies post_process() bookkeeping, asserts post_check(), and marks
-         *          both incident facets as processed so they are not revisited in this pass.
+         * @brief Constructs a SwapOperation for flipping edges to improve vertex valence.
+         * @details Initializes the base operation, stores the swap criterion, and pre-populates
+         *          the swap queue with every currently eligible edge; no additional state is
+         *          required because swapping only rewires existing elements.
+         * @param[in] mesh_element_manager The mesh element manager exposing the mesh and its
+         *                                 usage/fixed element attributes.
+         * @param[in] swap_criterion Bitwise combination of SwapCriterion flags guiding which
+         *                           edges are accepted. Defaults to SWAP_BASED_ON_DELAUNAY.
          */
-        void perform_one_pass();
+        explicit SwapOperation(
+            MeshElementManager<DIM>& mesh_element_manager,
+            GEO::index_t swap_criterion = SWAP_BASED_ON_DELAUNAY);
+
+        /**
+         * @brief Pops the next edge from the swap queue and swaps it if possible.
+         * @details Reads the next pending edge from the queue. A stale entry (whose facet
+         *          timestamp changed since it was inserted) is re-enqueued with the current
+         *          timestamp when @p iteratively is true. The edge is skipped when it no longer
+         *          passes is_perform_valid(); otherwise it is swapped via perform(), followed by
+         *          post_process() bookkeeping and a post_check() assertion. The re-wired edges of
+         *          both incident facets are re-enqueued with updated timestamps.
+         * @param[in] iteratively When true, stale and newly affected edges are re-enqueued so
+         *                        later calls can re-examine them; when false each edge is
+         *                        processed at most once.
+         * @return true while the queue is non-empty (more work may be pending); false once the
+         *         queue is empty.
+         */
+        bool do_once(bool iteratively = true);
+
+        /**
+         * @brief Runs the edge-swap queue to exhaustion over the whole mesh.
+         * @details Repeatedly calls do_once(iteratively) until the queue is empty, swapping
+         *          every eligible edge. When @p iteratively is false, stale edges are not
+         *          re-enqueued and each edge is considered at most once.
+         * @param[in] iteratively When true, affected edges are re-examined after each swap; when
+         *                        false a single sweep over the initial queue is performed.
+         */
+        void run_through(bool iteratively = true);
 
     private:
+        /** @brief A pending edge-swap candidate in the swap queue. */
+        struct EdgeToSwap {
+            EdgeToSwap(
+                const GEO::index_t _f,
+                const GEO::index_t _lv,
+                const GEO::index_t _timestamping
+            ) : f(_f), lv(_lv), timestamping(_timestamping)
+            {}
+
+            GEO::index_t f = GEO::NO_FACET;
+            GEO::index_t lv = GEO::NO_INDEX;
+            GEO::index_t timestamping = GEO::NO_INDEX;
+        };
+
         /**
          * @brief Checks whether the edge of facet @p f at local vertex @p lv may be swapped.
          * @details Rejects edges whose facet is disused, fixed edges, boundary edges, edges with
@@ -61,7 +110,14 @@ namespace geolio
          * @param[in] nf Index of the adjacent facet involved in the swap.
          */
         void post_process(GEO::index_t f, GEO::index_t lv, GEO::index_t nf) const;
+
+        const GEO::index_t SWAP_CRITERION_;
+
+        std::vector<EdgeToSwap> pq_;
     };
+
+    extern template class SwapOperation<2>;
+    extern template class SwapOperation<3>;
 }
 
 #endif //GEOLIO_SWAP_OPERATION_H

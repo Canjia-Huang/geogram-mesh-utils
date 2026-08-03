@@ -6,37 +6,80 @@
 #define GEOLIO_COLLAPSE_OPERATION_H
 
 #include "base_operation.h"
+#include <queue>
+#include <vector>
 
 namespace geolio
 {
-    class CollapseOperation : public BaseOperation {
+    template<GEO::index_t DIM>
+    class CollapseOperation : public BaseOperation<DIM> {
     public:
         /**
          * @brief Constructs a CollapseOperation for collapsing overly short edges.
-         * @details Initializes the base operation and stores the maximum edge length below
-         *          which an edge is eligible for collapse.
+         * @details Initializes the base operation, stores the collapse thresholds, and
+         *          pre-populates a min-heap priority queue with every currently eligible edge
+         *          (ordered by length, shortest first).
          * @param[in] mesh_element_manager The mesh element manager exposing the mesh and its
          *                                 usage/fixed element attributes.
          * @param[in] limit_edge_length Edges longer than this threshold are never collapsed.
+         * @param[in] allow_collapse_fixed_edges When true, fixed (locked) edges may be
+         *                                       collapsed; when false they are never collapsed.
+         *                                       Defaults to true.
          */
         explicit CollapseOperation(
-            MeshElementManager& mesh_element_manager,
-            double limit_edge_length);
+            MeshElementManager<DIM>& mesh_element_manager,
+            double limit_edge_length,
+            bool allow_collapse_fixed_edges = true);
 
         /**
-         * @brief Executes a single pass of edge-collapse over the whole mesh.
-         * @details Resets the per-facet "processed" flags, then iterates over every facet and
-         *          local edge; for each edge that passes is_perform_valid(), it performs the
-         *          collapse, applies post_process() bookkeeping, and asserts post_check().
-         *          Processed flags are not set after a collapse because the collapsed facet is
-         *          marked disused, so a later re-scan of that facet is safely rejected.
+         * @brief Pops the next edge from the collapse queue and collapses it if possible.
+         * @details Reads the shortest pending edge from the priority queue. A stale entry (whose
+         *          facet timestamp changed since it was inserted) is re-enqueued with the current
+         *          timestamp when @p iteratively is true. The edge is skipped when it no longer
+         *          passes is_perform_valid(); otherwise it is collapsed via perform(), followed
+         *          by post_process() bookkeeping and a post_check() assertion. The surviving
+         *          one-ring edges of the collapsed vertex are re-enqueued with updated
+         *          timestamps.
+         * @param[in] iteratively When true, stale and newly affected edges are re-enqueued so
+         *                        later calls can re-examine them; when false each edge is
+         *                        processed at most once.
+         * @return true while the queue is non-empty (more work may be pending); false once the
+         *         queue is empty.
          */
-        void perform_one_pass();
+        bool do_once(bool iteratively = true);
 
-        /** @brief When true, collapse of fixed (locked) edges is allowed. */
-        bool ALLOW_COLLAPSE_FIXED_EDGES = false;
+        /**
+         * @brief Runs the edge-collapse queue to exhaustion over the whole mesh.
+         * @details Repeatedly calls do_once(iteratively) until the priority queue is empty,
+         *          collapsing every eligible edge in order of increasing length. When
+         *          @p iteratively is false, stale edges are not re-enqueued and each edge is
+         *          considered at most once.
+         * @param[in] iteratively When true, affected edges are re-examined after each collapse;
+         *                        when false a single sweep over the initial queue is performed.
+         */
+        void run_through(bool iteratively = true);
 
     private:
+        /** @brief A pending edge-collapse candidate in the priority queue. */
+        struct EdgeToCollapse {
+            EdgeToCollapse(
+                const GEO::index_t _f,
+                const GEO::index_t _lv,
+                const GEO::index_t _timestamping,
+                const double _length
+            ) : f(_f), lv(_lv), timestamping(_timestamping), length(_length)
+            {}
+
+            GEO::index_t f = GEO::NO_FACET;
+            GEO::index_t lv = GEO::NO_INDEX;
+            GEO::index_t timestamping = GEO::NO_INDEX;
+            double length = -1.0;
+
+            bool operator<(const EdgeToCollapse& other) const { // min-heap
+                return length > other.length;
+            }
+        };
+
         /**
          * @brief Checks whether the edge of facet @p f at local vertex @p lv may be collapsed.
          * @details Verifies that the facet is still in use, that the edge endpoint v1 is not
@@ -89,7 +132,17 @@ namespace geolio
                           GEO::index_t disuse_f0, GEO::index_t disuse_f1) const;
 
         const double limit_edge_length_;
+
+        const bool ALLOW_COLLAPSE_FIXED_EDGES_; // When true, collapse of fixed (locked) edges is allowed.
+
+        std::priority_queue<EdgeToCollapse> pq_;
+
+        std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_f_and_lv_0_; // just pre-allocated
+        std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_f_and_lv_1_; // just pre-allocated
     };
+
+    extern template class CollapseOperation<2>;
+    extern template class CollapseOperation<3>;
 }
 
 #endif //GEOLIO_COLLAPSE_OPERATION_H

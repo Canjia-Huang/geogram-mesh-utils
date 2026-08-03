@@ -13,15 +13,15 @@
 
 namespace geolio
 {
+    template <GEO::index_t DIM>
     class MeshElementManager {
     public:
         /**
          * @brief Constructs a MeshElementManager over the given triangle mesh.
-         * @details Records the mesh reference, whether it is 2D (vertex dimension 2), and
-         *          generates a random attribute name prefix via generate_random_string().
-         *          Binds and initializes the per-vertex, per-facet and per-corner usage/fixed
-         *          attributes under that prefix: vertices and facets start as used, boundary,
-         *          fixed and non-manifold flags start false.
+         * @details Records the mesh reference and generates a random attribute name prefix via
+         *          generate_random_string(). Binds and initializes the per-vertex, per-facet and
+         *          per-corner usage/fixed attributes under that prefix: vertices and facets start
+         *          as used, boundary, fixed and non-manifold flags start false.
          * @param[in] _mesh The triangle mesh to manage; it must contain only simplex facets.
          */
         explicit MeshElementManager(GEO::Mesh& _mesh);
@@ -122,8 +122,8 @@ namespace geolio
         /**
          * @brief Computes the Euclidean length of the local edge of facet @p f at local vertex @p lv.
          * @details Reads the two endpoints of the oriented edge (lv -> lv+1) of facet @p f and
-         *          returns the GEO::distance between them, using 2D coordinates when the mesh is
-         *          2D and full coordinates otherwise.
+         *          returns the GEO::distance between them, using the DIM-dimensional coordinates
+         *          of the templated manager.
          * @param[in] f Index of the facet containing the edge.
          * @param[in] lv Local vertex index identifying the oriented edge (lv -> lv+1).
          * @return The length of the edge.
@@ -131,9 +131,7 @@ namespace geolio
         [[nodiscard]] double get_edge_length(const GEO::index_t f, const GEO::index_t lv) const {
             assert(f < mesh.facets.nb());
             assert(lv < 3);
-            if (mesh_2d)
-                return GEO::distance(mesh.facets.point<2>(f, lv), mesh.facets.point<2>(f, (lv+1)%3));
-            return GEO::distance(mesh.facets.point(f, lv), mesh.facets.point(f, (lv+1)%3));
+            return GEO::distance(mesh.facets.point<DIM>(f, lv), mesh.facets.point<DIM>(f, (lv+1)%3));
         }
 
         /**
@@ -145,7 +143,6 @@ namespace geolio
         [[nodiscard]] double compute_average_mesh_edge_length() const;
 
         GEO::Mesh& mesh;
-        const bool mesh_2d; // mesh.vertices.dimension() == 2
         GEO::Attribute<bool> mesh_v_boundary; // v -> on boundary
         GEO::Attribute<bool> mesh_v_fixed; // v -> fixed
         GEO::Attribute<bool> mesh_v_non_manifold; // v -> non manifold
@@ -175,6 +172,9 @@ namespace geolio
         std::vector<GEO::index_t> free_vertices_;
         std::vector<GEO::index_t> free_facets_;
     };
+
+    extern template class MeshElementManager<2>;
+    extern template class MeshElementManager<3>;
 }
 
 #endif //GEOLIO_MESH_ELEMENT_MANAGER_H
