@@ -18,11 +18,10 @@ namespace geolio
     public:
         /**
          * @brief Constructs a MeshElementManager over the given triangle mesh.
-         * @details Records the mesh reference, whether it is 2D (vertex dimension 2), and
-         *          generates a random attribute name prefix via generate_random_string().
-         *          Binds and initializes the per-vertex, per-facet and per-corner usage/fixed
-         *          attributes under that prefix: vertices and facets start as used, boundary,
-         *          fixed and non-manifold flags start false.
+         * @details Records the mesh reference and generates a random attribute name prefix via
+         *          generate_random_string(). Binds and initializes the per-vertex, per-facet and
+         *          per-corner usage/fixed attributes under that prefix: vertices and facets start
+         *          as used, boundary, fixed and non-manifold flags start false.
          * @param[in] _mesh The triangle mesh to manage; it must contain only simplex facets.
          */
         explicit MeshElementManager(GEO::Mesh& _mesh);
@@ -123,8 +122,8 @@ namespace geolio
         /**
          * @brief Computes the Euclidean length of the local edge of facet @p f at local vertex @p lv.
          * @details Reads the two endpoints of the oriented edge (lv -> lv+1) of facet @p f and
-         *          returns the GEO::distance between them, using 2D coordinates when the mesh is
-         *          2D and full coordinates otherwise.
+         *          returns the GEO::distance between them, using the DIM-dimensional coordinates
+         *          of the templated manager.
          * @param[in] f Index of the facet containing the edge.
          * @param[in] lv Local vertex index identifying the oriented edge (lv -> lv+1).
          * @return The length of the edge.

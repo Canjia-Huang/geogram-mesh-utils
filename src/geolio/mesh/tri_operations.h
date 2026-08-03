@@ -18,6 +18,7 @@ namespace geolio
      *          connectivity. The implementation writes the interpolated point to @p new_v, rewrites
      *          the facet vertex and adjacency entries of the created facets, and copies or restores
      *          the per-facet and per-corner attributes.
+     * @tparam DIM Coordinate dimension (2 or 3) used to read the interpolated vertex position.
      * @param[in,out] M The target mesh. Vertex and facet storage must be pre-allocated and
      *                  reachable via the mesh accessors used by this function.
      * @param[in] f Index of the triangle facet to split.
@@ -78,6 +79,7 @@ namespace geolio
      *          facet-to-facet adjacency of the neighbouring facets across the collapsed cavity.
      *          Incident facets that used the collapsed edge become unused and are reported through
      *          output parameters; physical deletion is left to the caller.
+     * @tparam DIM Coordinate dimension (2 or 3) used to read the interpolated vertex position.
      * @param[in,out] M The target mesh topology/geometry to update.
      * @param[in] f Index of a triangle facet incident to the edge to collapse.
      * @param[in] lv Local vertex index in {0,1,2} identifying the directed edge (lv -> lv+1).

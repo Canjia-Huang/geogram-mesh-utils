@@ -221,7 +221,7 @@ namespace geolio
             original_p = target_p;
         }
 
-        return true;
+        return max_displacement;
     }
 
     template<GEO::index_t DIM>
