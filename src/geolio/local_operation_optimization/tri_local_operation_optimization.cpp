@@ -85,15 +85,19 @@ namespace geolio
             const auto PREV_VERTICES_NB = mesh_.vertices.nb();
             const auto PREV_FACETS_NB = mesh_.facets.nb();
 
+            LOG::TRACE("splitting...");
             SplitOperation<DIM> split_operation(manager_, SPLIT_EDGE_LENGTH, ALLOW_SPLIT_FIXED_EDGES);
             split_operation.run_through();
 
+            LOG::TRACE("collapsing...");
             CollapseOperation<DIM> collapse_operation(manager_, COLLAPSE_EDGE_LENGTH, ALLOW_COLLAPSE_FIXED_EDGES);
             collapse_operation.run_through();
 
+            LOG::TRACE("swapping...");
             SwapOperation<DIM> swap_operation(manager_, SWAP_CRITERION);
             swap_operation.run_through();
 
+            LOG::TRACE("smoothing...");
             SmoothOperation<DIM> smooth_operation(manager_, SMOOTH_GEOMETRIC_CONSTRAINT, ALLOW_SMOOTH_FIXED_EDGES_VERTICES);
             smooth_operation.run_nb_times(3);
 
