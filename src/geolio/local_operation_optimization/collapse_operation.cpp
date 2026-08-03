@@ -211,7 +211,7 @@ namespace geolio
         assert(disuse_f0 != GEO::NO_FACET);
 
         /* After edge collapse on a boundary vertex, it remains a boundary vertex. */
-        const auto v0 = this->mesh_.facets.vertex(disuse_v0, lv);
+        const auto v0 = this->mesh_.facets.vertex(f, lv);
         if (this->manager_.mesh_v_boundary[disuse_v0])
             this->manager_.mesh_v_boundary[v0] = true;
 
