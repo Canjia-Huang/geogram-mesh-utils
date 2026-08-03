@@ -9,6 +9,8 @@
 #include <geogram/mesh/mesh.h>
 #include "collapse_operation.h"
 #include "mesh_element_manager.h"
+#include "swap_operation.h"
+#include "smooth_operation.h"
 
 namespace geolio
 {
@@ -58,6 +60,34 @@ namespace geolio
         void optimize(
             GEO::index_t rounds_nb = 5,
             double target_edge_length = -1);
+
+        /** Enables split operations to act on edges that are marked as fixed. */
+        bool allow_split_fixed_edges = true;
+
+        /** Enables collapse operations to act on edges that are marked as fixed. */
+        bool allow_collapse_fixed_edges = true;
+
+        /**
+         * Criterion used by swap operations to decide whether an edge should be flipped.
+         * Possible values:
+         * - SwapOperation<DIM>::SWAP_BASED_ON_VALENCE: accept swaps that improve vertex valence.
+         * - SwapOperation<DIM>::SWAP_BASED_ON_DELAUNAY: accept swaps that make the edge locally Delaunay.
+         * These are bit flags, so they can be combined with bitwise OR.
+         */
+        GEO::index_t swap_criterion = SwapOperation<DIM>::SWAP_BASED_ON_DELAUNAY;
+
+        /**
+         * Geometric constraint used by smoothing to project updated vertices.
+         * Possible values:
+         * - SmoothOperation<DIM>::NONE: plain Laplacian smoothing without extra geometric constraints.
+         * - SmoothOperation<DIM>::PROJECT_TO_ORIGINAL_MESH: project the new position onto the original
+         *   input surface (3D only).
+         * - SmoothOperation<DIM>::TANGENTIAL_SMOOTHING: keep only the tangential displacement (3D only).
+         */
+        GEO::index_t smooth_geometric_constraint = SmoothOperation<DIM>::PROJECT_TO_ORIGINAL_MESH;
+
+        /** Allows smoothing to move vertices that lie on fixed edges. */
+        bool allow_smooth_fixed_edges_vertices = true;
 
         /**
          * @brief Marks a specific vertex as fixed.

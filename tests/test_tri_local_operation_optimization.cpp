@@ -25,7 +25,6 @@ namespace geolio::test
         GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
     }
 
-#ifdef NDEBUG // too slow under DEBUG mode...
     TEST(TriLocalOperationOptimizationTest, bunny) {
         GEO::Mesh mesh;
         GEO::mesh_load(std::string(TEST_DATA_PATH)+"bunny.obj", mesh);
@@ -38,7 +37,6 @@ namespace geolio::test
 
         GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
     }
-#endif
 
     TEST(TriLocalOperationOptimizationTest, fandisk_sharp) {
         GEO::Mesh mesh;

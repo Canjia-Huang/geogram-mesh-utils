@@ -45,7 +45,7 @@ namespace geolio
          */
         explicit SmoothOperation(
             MeshElementManager<DIM>& mesh_element_manager,
-            GEO::index_t geometric_constraint = NONE,
+            GEO::index_t geometric_constraint = PROJECT_TO_ORIGINAL_MESH,
             bool allow_smooth_fixed_edge_vertices = true);
 
         /**
