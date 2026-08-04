@@ -186,76 +186,29 @@ namespace geolio
                     return false;
         }
         if (SWAP_CRITERION_ & SWAP_BASED_ON_DELAUNAY) {
-                const auto& p0 = this->mesh_.vertices.template point<DIM>(v0);
-                const auto& p1 = this->mesh_.vertices.template point<DIM>(v1);
-                const auto& p2 = this->mesh_.vertices.template point<DIM>(v2);
-                const auto& p3 = this->mesh_.vertices.template point<DIM>(v3);
-                const auto p2p0 = p0-p2;
-                const auto p2p1 = p1-p2;
-                const auto p3p0 = p0-p3;
-                const auto p3p1 = p1-p3;
+            const auto& p0 = this->mesh_.vertices.template point<DIM>(v0);
+            const auto& p1 = this->mesh_.vertices.template point<DIM>(v1);
+            const auto& p2 = this->mesh_.vertices.template point<DIM>(v2);
+            const auto& p3 = this->mesh_.vertices.template point<DIM>(v3);
+            const auto p2p0 = p0-p2;
+            const auto p2p1 = p1-p2;
+            const auto p3p0 = p0-p3;
+            const auto p3p1 = p1-p3;
             double cot_alpha, cot_beta;
             if constexpr (DIM == 2) {
                 cot_alpha = GEO::dot(p2p0, p2p1) / std::abs(geolio::cross(p2p0, p2p1));
                 cot_beta  = GEO::dot(p3p0, p3p1) / std::abs(geolio::cross(p3p0, p3p1));
             }
             else {
+                static_assert(DIM == 3);
                 cot_alpha = GEO::dot(p2p0, p2p1) / GEO::length(GEO::cross(p2p0, p2p1));
                 cot_beta  = GEO::dot(p3p0, p3p1) / GEO::length(GEO::cross(p3p0, p3p1));
             }
-            if (cot_alpha + cot_beta > -1e-5)
+
+            if (!std::isfinite(cot_alpha + cot_beta) ||
+                cot_alpha + cot_beta > -1e-5)
                 return false;
         }
-        // if (SWAP_CRITERION & SWAP_BASED_ON_MAX_MIN_ANGLE) { // not robust
-        //     if (manager_.mesh_2d) {
-        //         const auto& p0 = mesh_.vertices.point<2>(v0);
-        //         const auto& p1 = mesh_.vertices.point<2>(v1);
-        //         const auto& p2 = mesh_.vertices.point<2>(v2);
-        //         const auto& p3 = mesh_.vertices.point<2>(v3);
-        //         const std::array<double, 6> prev_angles = {
-        //             GEO::Geom::angle(p1-p0, p2-p0),
-        //             GEO::Geom::angle(p0-p1, p2-p1),
-        //             GEO::Geom::angle(p0-p2, p1-p2),
-        //             GEO::Geom::angle(p1-p0, p3-p0),
-        //             GEO::Geom::angle(p0-p1, p3-p1),
-        //             GEO::Geom::angle(p0-p3, p1-p3),
-        //         };
-        //         const std::array<double, 6> post_angles = {
-        //             GEO::Geom::angle(p2-p0, p3-p0),
-        //             GEO::Geom::angle(p0-p2, p3-p2),
-        //             GEO::Geom::angle(p0-p3, p2-p3),
-        //             GEO::Geom::angle(p2-p1, p3-p1),
-        //             GEO::Geom::angle(p1-p2, p3-p2),
-        //             GEO::Geom::angle(p1-p3, p2-p3),
-        //         };
-        //         if (std::ranges::min(post_angles) < std::ranges::min(prev_angles) + 1e-5)
-        //             return false;
-        //     }
-        //     else {
-        //         const auto& p0 = mesh_.vertices.point(v0);
-        //         const auto& p1 = mesh_.vertices.point(v1);
-        //         const auto& p2 = mesh_.vertices.point(v2);
-        //         const auto& p3 = mesh_.vertices.point(v3);
-        //         const std::array<double, 6> prev_angles = {
-        //             GEO::Geom::angle(p1-p0, p2-p0),
-        //             GEO::Geom::angle(p0-p1, p2-p1),
-        //             GEO::Geom::angle(p0-p2, p1-p2),
-        //             GEO::Geom::angle(p1-p0, p3-p0),
-        //             GEO::Geom::angle(p0-p1, p3-p1),
-        //             GEO::Geom::angle(p0-p3, p1-p3),
-        //         };
-        //         const std::array<double, 6> post_angles = {
-        //             GEO::Geom::angle(p2-p0, p3-p0),
-        //             GEO::Geom::angle(p0-p2, p3-p2),
-        //             GEO::Geom::angle(p0-p3, p2-p3),
-        //             GEO::Geom::angle(p2-p1, p3-p1),
-        //             GEO::Geom::angle(p1-p2, p3-p2),
-        //             GEO::Geom::angle(p1-p3, p2-p3),
-        //         };
-        //         if (std::ranges::min(post_angles) < std::ranges::min(prev_angles) + 1e-5)
-        //             return false;
-        //     }
-        // }
 
         return true;
     }
