@@ -262,16 +262,9 @@ namespace geolio::test
     class TetEdgeSwap32Test : public TetOperationsTest {
     protected:
         void perform_operation(const GEO::index_t c, const GEO::index_t le) override {
-            std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>> ordered_c_le_lf;
-            bool EDGE_ON_BORDER = get_edge_incident_cells(mesh, c, le, ordered_c_le_lf);
+            GEO::index_t disuse_c;
 
-            if (const GEO::index_t EDGE_INCIDENT_TETS_NB = ordered_c_le_lf.size();
-                !EDGE_ON_BORDER && EDGE_INCIDENT_TETS_NB == 3
-                ) {
-                GEO::index_t disuse_c;
-
-                tet_edge_swap_3_2(mesh, ordered_c_le_lf, disuse_c);
-
+            if (const bool processed = tet_edge_swap_3_2(mesh, c, le, disuse_c)) {
                 /* Clean disuse vertices and cells */
                 ASSERT_LT(disuse_c, mesh.cells.nb());
                 GEO::vector<GEO::index_t> cells_to_delete(mesh.cells.nb(), 0);

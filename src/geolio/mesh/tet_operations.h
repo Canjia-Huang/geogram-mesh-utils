@@ -275,22 +275,22 @@ namespace geolio
 
     /**
      * @brief Perform a 3-2 edge swap operation on a tetrahedral mesh.
-     * @details Replaces three tetrahedra sharing a common internal edge with two tetrahedra by
-     *          removing that edge. The incident tetrahedra must be provided in @p ordered_c_le_lf
-     *          as a vector of (cell, local_edge, local_facet) tuples in ring order (as returned
-     *          by get_edge_incident_cells()). Exactly three non-boundary cells are required.
-     *          The function rewrites the vertices of the two surviving cells, relinks all
-     *          affected cell-to-cell adjacencies, and records the removed cell index in
-     *          @p disuse_c.
-     * @param[in,out] M                The tetrahedral mesh to modify.
-     * @param[in]     ordered_c_le_lf  Ordered list of (cell, local_edge, local_facet) tuples for
-     *                                the three tetrahedra incident to the target edge (ring order)
-     *                                (can be obtained by @p get_edge_incident_cells).
-     * @param[out]    disuse_c         Receives the index of the removed cell (the third entry).
+     * @details This operation replaces 3 tetrahedra sharing a common edge with 2 tetrahedra by
+     *          removing the shared edge. Given a cell @p _c with a local edge @p _le, the function
+     *          collects the cells incident to that edge in ring order via get_edge_incident_cells()
+     *          and requires exactly 3 non-border cells. It then rewrites the vertices of the two
+     *          surviving cells and relinks the adjacency of the cavity; the removed cell index is
+     *          reported through @p disuse_c.
+     * @param[in,out] M        The tetrahedral mesh to modify.
+     * @param[in]     _c       Index of a seed cell containing the target edge.
+     * @param[in]     _le      Local edge index (0-5) in cell @p _c.
+     * @param[out]    disuse_c Reference to receive the index of the removed cell.
+     * @return true if the swap was performed successfully; false if preconditions are not met.
      */
-    void tet_edge_swap_3_2(
+    bool tet_edge_swap_3_2(
         GEO::Mesh& M,
-        const std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>>& ordered_c_le_lf,
+        GEO::index_t _c,
+        GEO::index_t _le,
         GEO::index_t& disuse_c);
 }
 
