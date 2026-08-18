@@ -204,10 +204,7 @@ namespace geolio::test
             std::vector<GEO::index_t> new_cells(EDGE_INCIDENT_TETS_NB);
             std::iota(new_cells.begin(), new_cells.end(), new_c);
 
-            tet_edge_split(mesh, ordered_c_le_lf, new_v, &(new_cells[0]), GEO::Numeric::random_float32());
-
-            for (const auto& status : new_cells)
-                EXPECT_EQ(status, GEO::NO_CELL);
+            tet_edge_split(mesh, ordered_c_le_lf, new_v, new_cells, GEO::Numeric::random_float32());
         }
     };
 

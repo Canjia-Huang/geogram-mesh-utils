@@ -249,10 +249,11 @@ namespace geolio
         GEO::Mesh& M,
         const std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>>& ordered_c_le_lf,
         const GEO::index_t new_v,
-        GEO::index_t* new_cs,
+        const std::vector<GEO::index_t>& new_cs,
         const double r
         ) {
         assert(new_v < M.vertices.nb());
+        assert(new_cs.size() == ordered_c_le_lf.size());
 
         /* Find all adjacent cells */
         const GEO::index_t INCIDENT_CELLS_NB = ordered_c_le_lf.size();
@@ -267,7 +268,7 @@ namespace geolio
 
         for (GEO::index_t i = 0; i < INCIDENT_CELLS_NB; ++i) {
             const auto& [c, _, lf0] = ordered_c_le_lf[i];
-            const auto& new_c = *(new_cs+i);
+            const auto& new_c = new_cs[i];
 
             const GEO::index_t lv0 = M.cells.find_tet_vertex(c, ev0);
             const GEO::index_t lv1 = M.cells.find_tet_vertex(c, ev1);
@@ -294,9 +295,9 @@ namespace geolio
             M.cells.set_adjacent(new_c, lv0, c);
             M.cells.set_adjacent(new_c, lv1, nc1);
             if (M.cells.adjacent(c, lv2) != GEO::NO_CELL)
-                M.cells.set_adjacent(new_c, lv2, *(new_cs+(i+INCIDENT_CELLS_NB-1)%INCIDENT_CELLS_NB));
+                M.cells.set_adjacent(new_c, lv2, new_cs[(i+INCIDENT_CELLS_NB-1)%INCIDENT_CELLS_NB]);
             if (M.cells.adjacent(c, lv3) != GEO::NO_CELL)
-                M.cells.set_adjacent(new_c, lv3, *(new_cs+(i+1)%INCIDENT_CELLS_NB));
+                M.cells.set_adjacent(new_c, lv3, new_cs[(i+1)%INCIDENT_CELLS_NB]);
             if (nc1 != GEO::NO_CELL) {
                 const GEO::index_t nlf = M.cells.find_tet_facet(
                     nc1,
@@ -307,10 +308,6 @@ namespace geolio
                 M.cells.set_adjacent(nc1, nlf, new_c);
             }
         }
-
-        /* Label */
-        for (GEO::index_t i = 0; i < INCIDENT_CELLS_NB; ++i)
-            *(new_cs+i) = GEO::NO_CELL;
     }
 
     bool is_tet_edge_collapse_valid(

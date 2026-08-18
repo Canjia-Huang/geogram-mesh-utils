@@ -191,7 +191,7 @@ namespace geolio
         GEO::Mesh& M,
         const std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>>& ordered_c_le_lf,
         GEO::index_t new_v,
-        GEO::index_t* new_cs,
+        const std::vector<GEO::index_t>& new_cs,
         double r = 0.5);
 
     /**
