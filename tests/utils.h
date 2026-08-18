@@ -9,8 +9,8 @@
 #include <string>
 #include <vector>
 #include <geogram/delaunay/CDT_2d.h>
-#include <geolio/mesh/CDT_2d.h>
-#include <geolio/mesh/periodic_delaunay_3d.h>
+#include <../src/geolio/geogram_plus/CDT_2d.h>
+#include <../src/geolio/geogram_plus/periodic_delaunay_3d.h>
 #include <geogram/delaunay/periodic_delaunay_3d.h>
 
 namespace geolio::test

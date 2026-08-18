@@ -23,8 +23,8 @@ add_subdirectory(mesh)
 target_link_libraries(${CURRENT_LIB_NAME}
         PUBLIC
         Geogram::geogram
-        ${PROJECT_NAME}::mesh
         ${PROJECT_NAME}::local_operation_optimization
+        ${PROJECT_NAME}::mesh
         ${PROJECT_NAME}::third_party
 )
 
