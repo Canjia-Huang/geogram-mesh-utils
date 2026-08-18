@@ -183,7 +183,7 @@ namespace geolio
      *                                (can be obtained by @p get_edge_incident_cells).
      * @param[in]     new_v            Index of the pre-allocated vertex to place on the edge.
      * @param[in,out] new_cs           Array of pre-allocated tetrahedron indices (one per
-     *                                incident cell). Consumed in order and reset to GEO::NO_CELL.
+     *                                incident cell).
      * @param[in]     r                Interpolation ratio used to position @p new_v on the edge
      *                                (`0` at the first endpoint, `1` at the second).
      */
