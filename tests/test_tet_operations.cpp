@@ -194,24 +194,17 @@ namespace geolio::test
     class TetEdgeSplitTest : public TetOperationsTest {
     protected:
         void perform_operation(const GEO::index_t c, const GEO::index_t le) override {
-            GEO::index_t EDGE_INCIDENT_TETS_NB = 0;
-            const GEO::index_t ev0 = mesh.cells.edge_vertex(c, le, 0);
-            const GEO::index_t ev1 = mesh.cells.edge_vertex(c, le, 1);
-            for (const auto& cc : mesh.cells) {
-                for (GEO::index_t lle = 0; lle < 6; ++lle) {
-                    const GEO::index_t eev0 = mesh.cells.edge_vertex(cc, lle, 0);
-                    const GEO::index_t eev1 = mesh.cells.edge_vertex(cc, lle, 1);
-                    if ((eev0 == ev0 && eev1 == ev1) || (eev0 == ev1 && eev1 == ev0))
-                        ++EDGE_INCIDENT_TETS_NB;
-                }
-            }
+            std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>> ordered_c_le_lf;
+            get_edge_incident_cells(mesh, c, le, ordered_c_le_lf);
+
+            const GEO::index_t EDGE_INCIDENT_TETS_NB = ordered_c_le_lf.size();
 
             const GEO::index_t new_v = mesh.vertices.create_vertices(1);
             const GEO::index_t new_c = mesh.cells.create_tets(EDGE_INCIDENT_TETS_NB);
             std::vector<GEO::index_t> new_cells(EDGE_INCIDENT_TETS_NB);
             std::iota(new_cells.begin(), new_cells.end(), new_c);
 
-            tet_edge_split(mesh, c, le, new_v, &(new_cells[0]), GEO::Numeric::random_float32());
+            tet_edge_split(mesh, ordered_c_le_lf, new_v, &(new_cells[0]), GEO::Numeric::random_float32());
 
             for (const auto& status : new_cells)
                 EXPECT_EQ(status, GEO::NO_CELL);
@@ -269,9 +262,16 @@ namespace geolio::test
     class TetEdgeSwap32Test : public TetOperationsTest {
     protected:
         void perform_operation(const GEO::index_t c, const GEO::index_t le) override {
-            GEO::index_t disuse_c;
+            std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>> ordered_c_le_lf;
+            bool EDGE_ON_BORDER = get_edge_incident_cells(mesh, c, le, ordered_c_le_lf);
 
-            if (const bool processed = tet_edge_swap_3_2(mesh, c, le, disuse_c)) {
+            if (const GEO::index_t EDGE_INCIDENT_TETS_NB = ordered_c_le_lf.size();
+                !EDGE_ON_BORDER && EDGE_INCIDENT_TETS_NB == 3
+                ) {
+                GEO::index_t disuse_c;
+
+                tet_edge_swap_3_2(mesh, ordered_c_le_lf, disuse_c);
+
                 /* Clean disuse vertices and cells */
                 ASSERT_LT(disuse_c, mesh.cells.nb());
                 GEO::vector<GEO::index_t> cells_to_delete(mesh.cells.nb(), 0);

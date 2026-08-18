@@ -247,23 +247,20 @@ namespace geolio
 
     void tet_edge_split(
         GEO::Mesh& M,
-        const GEO::index_t _c,
-        const GEO::index_t le,
+        const std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>>& ordered_c_le_lf,
         const GEO::index_t new_v,
         GEO::index_t* new_cs,
         const double r
         ) {
-        assert(_c < M.cells.nb());
-        assert(le < 6);
         assert(new_v < M.vertices.nb());
 
         /* Find all adjacent cells */
-        std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>> ordered_c_le_lf;
-        get_edge_incident_cells(M, _c, le, ordered_c_le_lf);
         const GEO::index_t INCIDENT_CELLS_NB = ordered_c_le_lf.size();
 
-        const GEO::index_t ev0 = M.cells.edge_vertex(_c, le, 0);
-        const GEO::index_t ev1 = M.cells.edge_vertex(_c, le, 1);
+        const auto start_c = get<0>(ordered_c_le_lf[0]);
+        const auto start_le = get<1>(ordered_c_le_lf[0]);
+        const GEO::index_t ev0 = M.cells.edge_vertex(start_c, start_le, 0);
+        const GEO::index_t ev1 = M.cells.edge_vertex(start_c, start_le, 1);
 
         /* Set new vertex */
         M.vertices.point(new_v) = (1-r)*M.vertices.point(ev0) + r*M.vertices.point(ev1);
@@ -568,24 +565,18 @@ namespace geolio
         return true;
     }
 
-    bool tet_edge_swap_3_2(
+    void tet_edge_swap_3_2(
         GEO::Mesh& M,
-        const GEO::index_t _c,
-        const GEO::index_t _le,
+        const std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>>& ordered_c_le_lf,
         GEO::index_t& disuse_c
         ) {
-        assert(_c < M.cells.nb());
-        assert(M.cells.type(_c) == GEO::MeshCellType::MESH_TET);
-        assert(_le < 6);
+        assert(ordered_c_le_lf.size() == 3);
+        assert(M.cells.adjacent(get<0>(ordered_c_le_lf[2]), get<2>(ordered_c_le_lf[2])) == get<0>(ordered_c_le_lf[0])); // internal edge
 
-        std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>> ordered_c_le_lf;
-        if(const bool is_on_border = get_edge_incident_cells(M, _c, _le, ordered_c_le_lf);
-            is_on_border ||
-            ordered_c_le_lf.size() != 3)
-            return false;
-
-        const GEO::index_t v0 = M.cells.edge_vertex(_c, _le, 0);
-        const GEO::index_t v1 = M.cells.edge_vertex(_c, _le, 1);
+        const auto start_c = get<0>(ordered_c_le_lf[0]);
+        const auto start_le = get<1>(ordered_c_le_lf[0]);
+        const GEO::index_t v0 = M.cells.edge_vertex(start_c, start_le, 0);
+        const GEO::index_t v1 = M.cells.edge_vertex(start_c, start_le, 1);
 
         const GEO::index_t c0 = get<0>(ordered_c_le_lf[0]);
         const GEO::index_t c1 = get<0>(ordered_c_le_lf[1]);
@@ -651,7 +642,5 @@ namespace geolio
             assert(nlf != GEO::NO_INDEX);
             M.cells.set_adjacent(nc21, nlf, c1);
         }
-
-        return true;
     }
 }

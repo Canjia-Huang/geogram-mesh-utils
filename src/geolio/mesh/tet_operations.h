@@ -168,24 +168,28 @@ namespace geolio
 
     /**
      * @brief Split a tetrahedral edge by inserting one vertex and splitting all incident cells.
-     * @details The edge is identified by local edge index @p le in seed cell @p _c. The function
-     *          first collects every tetrahedron incident to that edge in ring/chain order via
-     *          get_edge_incident_cells(), then places @p new_v on the edge at interpolation ratio
-     *          @p r and splits each incident tetrahedron into two along the edge, relinking the
-     *          cell-to-cell adjacencies.
-     * @param[in,out] M      The tetrahedral mesh to modify.
-     * @param[in]     _c     Seed cell that contains the edge to split.
-     * @param[in]     le     Local edge index (0-5) in cell @p _c.
-     * @param[in]     new_v   Index of the pre-allocated vertex to place on the edge.
-     * @param[in,out] new_cs  Array of pre-allocated tetrahedron indices, one per incident
-     *                        cell. The array is consumed in order and reset to GEO::NO_CELL.
-     * @param[in]     r       Interpolation ratio used to position @p new_v on the edge
-     *                        (`0` at the first endpoint, `1` at the second).
+     * @details The incident cells are provided in order through @p ordered_c_le_lf. Each element
+     *          is a tuple (cell, local_edge, local_facet) describing a tetrahedron incident to
+     *          the target edge; the vector must be in ring/chain order around the edge
+     *          (as produced by get_edge_incident_cells()). The function places @p new_v on the
+     *          edge at interpolation ratio @p r (`0` at the first endpoint, `1` at the second),
+     *          then splits every incident tetrahedron into two, relinking cell-to-cell
+     *          adjacencies. The @p new_cs array must contain one pre-allocated cell index per
+     *          incident tetrahedron; entries are consumed in the same order and reset to
+     *          GEO::NO_CELL on return.
+     * @param[in,out] M                The tetrahedral mesh to modify.
+     * @param[in]     ordered_c_le_lf  Ordered list of (cell, local_edge, local_facet) tuples for
+     *                                all tetrahedra incident to the edge, in ring/chain order
+     *                                (can be obtained by @p get_edge_incident_cells).
+     * @param[in]     new_v            Index of the pre-allocated vertex to place on the edge.
+     * @param[in,out] new_cs           Array of pre-allocated tetrahedron indices (one per
+     *                                incident cell). Consumed in order and reset to GEO::NO_CELL.
+     * @param[in]     r                Interpolation ratio used to position @p new_v on the edge
+     *                                (`0` at the first endpoint, `1` at the second).
      */
     void tet_edge_split(
         GEO::Mesh& M,
-        GEO::index_t _c,
-        GEO::index_t le,
+        const std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>>& ordered_c_le_lf,
         GEO::index_t new_v,
         GEO::index_t* new_cs,
         double r = 0.5);
@@ -271,22 +275,22 @@ namespace geolio
 
     /**
      * @brief Perform a 3-2 edge swap operation on a tetrahedral mesh.
-     * @details This operation replaces 3 tetrahedra sharing a common edge with 2 tetrahedra by
-     *          removing the shared edge. Given a cell @p _c with a local edge @p _le, the function
-     *          collects the cells incident to that edge in ring order via get_edge_incident_cells()
-     *          and requires exactly 3 non-border cells. It then rewrites the vertices of the two
-     *          surviving cells and relinks the adjacency of the cavity; the removed cell index is
-     *          reported through @p disuse_c.
-     * @param[in,out] M        The tetrahedral mesh to modify.
-     * @param[in]     _c       Index of a seed cell containing the target edge.
-     * @param[in]     _le      Local edge index (0-5) in cell @p _c.
-     * @param[out]    disuse_c Reference to receive the index of the removed cell.
-     * @return true if the swap was performed successfully; false if preconditions are not met.
+     * @details Replaces three tetrahedra sharing a common internal edge with two tetrahedra by
+     *          removing that edge. The incident tetrahedra must be provided in @p ordered_c_le_lf
+     *          as a vector of (cell, local_edge, local_facet) tuples in ring order (as returned
+     *          by get_edge_incident_cells()). Exactly three non-boundary cells are required.
+     *          The function rewrites the vertices of the two surviving cells, relinks all
+     *          affected cell-to-cell adjacencies, and records the removed cell index in
+     *          @p disuse_c.
+     * @param[in,out] M                The tetrahedral mesh to modify.
+     * @param[in]     ordered_c_le_lf  Ordered list of (cell, local_edge, local_facet) tuples for
+     *                                the three tetrahedra incident to the target edge (ring order)
+     *                                (can be obtained by @p get_edge_incident_cells).
+     * @param[out]    disuse_c         Receives the index of the removed cell (the third entry).
      */
-    bool tet_edge_swap_3_2(
+    void tet_edge_swap_3_2(
         GEO::Mesh& M,
-        GEO::index_t _c,
-        GEO::index_t _le,
+        const std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>>& ordered_c_le_lf,
         GEO::index_t& disuse_c);
 }
 
