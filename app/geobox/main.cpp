@@ -14,7 +14,7 @@ int main(const int argc, char** argv) {
     GEO::CmdLine::import_arg_group("standard");
     GEO::CmdLine::import_arg_group("algo");
 
-    geolio::GeoBoxApplication app;
+    geolio::geobox::GeoBoxApplication app;
     app.start(argc, argv);
     return 0;
 }

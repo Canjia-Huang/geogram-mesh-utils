@@ -10,7 +10,9 @@ set_target_properties(${CURRENT_LIB_NAME} PROPERTIES POSITION_INDEPENDENT_CODE O
 
 file(GLOB SOURCE_FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+        ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/object/*.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/object/*.cpp)
 target_sources(${CURRENT_LIB_NAME}
         PRIVATE
         ${SOURCE_FILES}

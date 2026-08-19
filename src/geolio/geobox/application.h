@@ -7,7 +7,7 @@
 
 #include <geogram_gfx/gui/simple_mesh_application.h>
 
-namespace geolio
+namespace geolio::geobox
 {
     class GeoBoxApplication : public GEO::SimpleMeshApplication {
     public:

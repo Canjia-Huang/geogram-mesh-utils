@@ -4,7 +4,7 @@
 //
 #include "application.h"
 
-namespace geolio
+namespace geolio::geobox
 {
     GeoBoxApplication::GeoBoxApplication(
         ) : SimpleMeshApplication("GeoBox")
