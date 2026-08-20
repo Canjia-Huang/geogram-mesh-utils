@@ -64,6 +64,9 @@ namespace geolio::geobox
         // re-apply the Polyscope style so it is the default on startup.
         SimpleMeshApplication::ImGui_initialize();
         set_style("Polyscope");
+        // set_style() resets the background to white; use a calm dark navy
+        // as the default background instead.
+        set_background_color(GEO::vec4f(0.08f, 0.12f, 0.22f, 1.0f));
     }
 
     void GeoBoxApplication::draw_controller_properties_window(
