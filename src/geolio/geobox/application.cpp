@@ -3,6 +3,7 @@
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
 #include "application.h"
+#include <geogram/basic/command_line.h>
 #include "geolio/common/log.h"
 #include "geolio/common/parse_filepath.h"
 #include "object/mesh_object.h"
@@ -77,7 +78,7 @@ namespace geolio::geobox
         ) {
         if (ImGui::CollapsingHeader("Viewer"))
             draw_viewer_properties();
-        if (ImGui::CollapsingHeader("Object"))
+        if (ImGui::CollapsingHeader("Object", ImGuiTreeNodeFlags_DefaultOpen))
             draw_objects_properties();
     }
 
@@ -113,6 +114,8 @@ namespace geolio::geobox
 
     void GeoBoxApplication::draw_objects_properties(
         ) {
+        const auto icon_button_size = ImGui::GetFrameHeight();
+
         for (auto it = base_objects_.begin(); it != base_objects_.end();) {
             const auto& base_object = *it;
 
@@ -121,11 +124,18 @@ namespace geolio::geobox
             ImGui::Text("%s", base_object->name().c_str());
 
             ImGui::SameLine();
-            if (ImGui::Button(base_object->visible() ? "Hide" : "Show"))
+            if (ImGui::Button(
+                GEO::icon_UTF8(
+                    base_object->visible() ? "eye" : "eye-slash").c_str(),
+                ImVec2(icon_button_size, icon_button_size)
+            ))
                 base_object->set_visible(!base_object->visible());
 
             ImGui::SameLine();
-            if (ImGui::Button("Delete")) {
+            if (ImGui::Button(
+                GEO::icon_UTF8("xmark").c_str(),
+                ImVec2(icon_button_size, icon_button_size)
+            )) {
                 it = base_objects_.erase(it);
                 ImGui::PopID();
                 continue;
