@@ -168,7 +168,7 @@ namespace geolio::geobox
             ImVec2(
                 ImGui::GetCursorScreenPos().x + ImGui::GetContentRegionAvail().x,
                 ImGui::GetCursorScreenPos().y + icon_button_size),
-            ImGui::GetColorU32(ImVec4(0.35f, 0.61f, 0.80f, 0.5f)));
+            ImGui::GetColorU32(ImVec4(0.35f, 0.61f, 0.80f, 0.8f)));
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, icon_button_padding);
 
         // Show / hide all objects.
@@ -300,13 +300,15 @@ namespace geolio::geobox
         if (selected_object_.expired())
             return;
 
+        constexpr float WINDOWS_WIDTH = 0.2f;
+
         const ImVec2 viewport_size = ImGui::GetMainViewport()->Size;
         ImGui::SetNextWindowPos(
-            ImVec2(viewport_size.x * 0.75f, ImGui::GetFrameHeight()),
+            ImVec2(viewport_size.x * (1-WINDOWS_WIDTH), ImGui::GetFrameHeight()),
             ImGuiCond_FirstUseEver
         );
         ImGui::SetNextWindowSize(
-            ImVec2(viewport_size.x * 0.25f, viewport_size.y * 0.5f),
+            ImVec2(viewport_size.x * WINDOWS_WIDTH, viewport_size.y * 0.5f),
             ImGuiCond_FirstUseEver
         );
         ImGui::SetNextWindowBgAlpha(0.6f);

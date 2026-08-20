@@ -75,6 +75,7 @@ namespace geolio::geobox
             }
         }
 
+        /* == Vertices ============================================================================================= */
         ImGui::Separator();
         ImGui::Checkbox("##VertOnOff", &show_vertices_);
         ImGui::SameLine();
@@ -86,6 +87,7 @@ namespace geolio::geobox
             ImGui::InputFloat("trsp.", &vertices_transparency_, 0.0f, 1.0f, "%.3f");
         }
 
+        /* == Facets =============================================================================================== */
         if (mesh_.facets.nb() != 0) {
             ImGui::Separator();
             ImGui::Checkbox("##SurfOnOff", &show_surface_);
@@ -110,6 +112,7 @@ namespace geolio::geobox
             }
         }
 
+        /* == Cells ================================================================================================ */
         if (mesh_.cells.nb() != 0) {
             ImGui::Separator();
             ImGui::Checkbox("##VolumeOnOff", &show_volume_);
