@@ -20,7 +20,7 @@ namespace geolio::geobox
         draw_menu_bar();
         draw_controller_properties_window();
         // draw_viewer_properties_window();
-        // draw_object_properties_window();
+        draw_object_properties_window();
         // draw_console();
         // draw_command_window();
         // draw_command_line_editor();
@@ -187,13 +187,34 @@ namespace geolio::geobox
         }
     }
 
-    void GeoBoxApplication::draw_object_properties(
+    void GeoBoxApplication::draw_object_properties_window(
         ) {
-        if (objects_.empty())
+        if (selected_object_.expired())
             return;
 
-        for (const auto& base_object : objects_)
-            base_object->draw_object_properties();
+        const ImVec2 viewport_size = ImGui::GetMainViewport()->Size;
+        ImGui::SetNextWindowPos(
+            ImVec2(viewport_size.x * 0.75f, ImGui::GetFrameHeight()),
+            ImGuiCond_FirstUseEver
+        );
+        ImGui::SetNextWindowSize(
+            ImVec2(viewport_size.x * 0.25f, viewport_size.y * 0.5f),
+            ImGuiCond_FirstUseEver
+        );
+        ImGui::SetNextWindowBgAlpha(0.6f);
+        if (ImGui::Begin("Object Properties", nullptr, ImGuiWindowFlags_NoDocking))
+            draw_object_properties();
+
+        ImGui::End();
+    }
+
+    void GeoBoxApplication::draw_object_properties(
+        ) {
+        const auto selected_object = selected_object_.lock();
+        if (!selected_object)
+            return;
+
+        selected_object->draw_object_properties();
     }
 
     void GeoBoxApplication::draw_scene(

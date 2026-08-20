@@ -29,6 +29,8 @@ namespace geolio::geobox
 
         void draw_objects_properties();
 
+        void draw_object_properties_window() override;
+
         void draw_object_properties() override;
 
         void draw_scene() override;
