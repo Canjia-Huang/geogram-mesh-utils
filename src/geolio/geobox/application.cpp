@@ -119,16 +119,24 @@ namespace geolio::geobox
         // Geogram's icon font is monospaced (advance = 1.5*font_size), which can
         // exceed the default button height. Size the button to the icon's actual
         // text extent so ImGui's (0.5,0.5) text alignment centers the glyph.
-        const auto icon_button_size = std::max(
+        const float icon_text_width =
+            ImGui::CalcTextSize(GEO::icon_UTF8("xmark").c_str()).x;
+        const auto icon_button_size = 0.75f * std::max(
             ImGui::GetFrameHeight(),
-            ImGui::CalcTextSize(GEO::icon_UTF8("xmark").c_str()).x
-                + 2.0f * ImGui::GetStyle().FramePadding.x);
+            icon_text_width + 2.0f * ImGui::GetStyle().FramePadding.x);
+
+        // With the box shrunken to 75%, tighten the buttons' inner padding so
+        // the glyph still fits and stays centered inside it.
+        const ImVec2 icon_frame_padding(
+            std::max(0.0f, (icon_button_size - icon_text_width) * 0.5f),
+            std::max(0.0f, (icon_button_size - ImGui::GetTextLineHeight()) * 0.5f));
 
         for (auto it = base_objects_.begin(); it != base_objects_.end();) {
             const auto& base_object = *it;
 
             ImGui::PushID(base_object.get());
 
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, icon_frame_padding);
             if (ImGui::Button(
                 GEO::icon_UTF8(
                     base_object->visible() ? "eye" : "eye-slash").c_str(),
@@ -141,10 +149,12 @@ namespace geolio::geobox
                 GEO::icon_UTF8("xmark").c_str(),
                 ImVec2(icon_button_size, icon_button_size)
                 )) {
+                ImGui::PopStyleVar();
                 it = base_objects_.erase(it);
                 ImGui::PopID();
                 continue;
             }
+            ImGui::PopStyleVar();
 
             ImGui::SameLine();
             // ImGui lays text at the line's text-baseline offset; nudge it so the
