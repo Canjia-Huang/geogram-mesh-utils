@@ -55,7 +55,27 @@ namespace geolio::geobox
 
     void GeoBoxApplication::init_colormaps(
         ) {
-        geolio::geobox::init_colormaps(my_colormaps_);
+        // The base's SimpleApplication::init_colormaps() (non-virtual) already
+        // created the 10 colormap textures into its own colormaps_ member
+        // during GL_initialize(). Reuse those texture IDs instead of creating a
+        // second set of GL textures, so no extra GL state is touched at startup.
+        my_colormaps_.clear();
+        my_colormaps_.reserve(colormaps_.size());
+        for (const auto& cm : colormaps_) {
+            geolio::geobox::ColormapInfo info;
+            info.texture = cm.texture;
+            info.name = cm.name;
+            my_colormaps_.push_back(info);
+        }
+    }
+
+    void GeoBoxApplication::GL_initialize(
+        ) {
+        // The base's SimpleApplication::init_colormaps() is non-virtual and
+        // fills its own colormaps_ member, so call ours explicitly to fill
+        // my_colormaps_ (needs a GL context, hence this override).
+        SimpleMeshApplication::GL_initialize();
+        init_colormaps();
     }
 
     void GeoBoxApplication::ImGui_initialize(
@@ -344,21 +364,7 @@ namespace geolio::geobox
 
         objects_.push_back(object_ptr);
 
-        { /* Reset camera */
-            double all_xyzmin[3] = {std::numeric_limits<double>::max(), std::numeric_limits<double>::max(), std::numeric_limits<double>::max()};
-            double all_xyzmax[3] = {-std::numeric_limits<double>::max(), -std::numeric_limits<double>::max(), -std::numeric_limits<double>::max()};
-            for (const auto& object : objects_) {
-                double xyzmin[3], xyzmax[3];
-                object->get_bbox(xyzmin, xyzmax);
-                for (GEO::coord_index_t i = 0; i < 3; ++i) {
-                    all_xyzmin[i] = std::min(all_xyzmin[i], xyzmin[i]);
-                    all_xyzmax[i] = std::max(all_xyzmax[i], xyzmax[i]);
-                }
-                set_region_of_interest(
-                    all_xyzmin[0], all_xyzmin[1], all_xyzmin[2],
-                    all_xyzmax[0], all_xyzmax[1], all_xyzmax[2]);
-            }
-        }
+        camera_focus(*object_ptr);
 
         return true;
     }

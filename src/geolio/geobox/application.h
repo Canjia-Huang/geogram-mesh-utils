@@ -18,8 +18,12 @@ namespace geolio::geobox
         void draw_gui() override;
 
     protected:
-        // will be called in SimpleApplication::GL_initialize()
+        // fills my_colormaps_; must run after the GL context is created
+        // (the base's SimpleApplication::init_colormaps() is non-virtual and
+        // fills the base's own member, so it is called explicitly here).
         void init_colormaps();
+
+        void GL_initialize() override;
 
         // apply the Polyscope style once ImGui has been initialized
         // (SimpleApplication::ImGui_initialize forces gui:style=Light).
