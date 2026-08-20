@@ -21,6 +21,10 @@ namespace geolio::geobox
         // will be called in SimpleApplication::GL_initialize()
         void init_colormaps();
 
+        // apply the Polyscope style once ImGui has been initialized
+        // (SimpleApplication::ImGui_initialize forces gui:style=Light).
+        void ImGui_initialize() override;
+
         void draw_controller_properties_window();
 
         void draw_controller_properties();

@@ -58,6 +58,14 @@ namespace geolio::geobox
         geolio::geobox::init_colormaps(my_colormaps_);
     }
 
+    void GeoBoxApplication::ImGui_initialize(
+        ) {
+        // SimpleApplication::ImGui_initialize() forces the "Light" style;
+        // re-apply the Polyscope style so it is the default on startup.
+        SimpleMeshApplication::ImGui_initialize();
+        set_style("Polyscope");
+    }
+
     void GeoBoxApplication::draw_controller_properties_window(
         ) {
         const ImVec2 viewport_size = ImGui::GetMainViewport()->Size;
