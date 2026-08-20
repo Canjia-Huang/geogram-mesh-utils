@@ -159,6 +159,49 @@ namespace geolio::test
         for_each_c();
     }
 
+    TEST_F(TetSplitTest, manage_attributes) {
+        mesh.clear();
+
+        GEO::Attribute<GEO::index_t> mesh_c_idx(mesh.cells.attributes(), "idx");
+        GEO::Attribute<GEO::index_t> mesh_cf_idx(mesh.cell_facets.attributes(), "idx");
+        GEO::Attribute<GEO::index_t> mesh_cc_idx(mesh.cell_corners.attributes(), "idx");
+
+        const std::array<GEO::vec3, 8> vertices = {
+            GEO::vec3(0, 0, 2),
+            GEO::vec3(0, 2, 0), GEO::vec3(-1.732, -1, 0), GEO::vec3(1.732, -1, 0),
+            GEO::vec3(0, 0, -2)
+        };
+        const std::vector<GEO::index_t> cells = {
+            1, 2, 3, 0,
+            3, 2, 1, 4
+        };
+        mesh.vertices.create_vertices(vertices.size());
+        for (const auto& v : mesh.vertices)
+            mesh.vertices.point(v) = vertices[v];
+        mesh.cells.create_tets(cells.size()/3);
+        for (const auto& c : mesh.cells) {
+            mesh_c_idx[c] = c;
+
+            for (GEO::index_t lv = 0; lv < 4; ++lv) {
+                mesh.cells.set_vertex(c, lv, cells[4*c+lv]);
+
+                mesh_cc_idx[mesh.cells.corner(c, lv)] = mesh.cells.corner(c, lv);
+                mesh_cf_idx[mesh.cells.facet(c, lv)] = mesh.cells.facet(c, lv);
+            }
+        }
+        mesh.cells.connect();
+        GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
+
+        /* Split */
+        const GEO::index_t new_v = mesh.vertices.create_vertices(1);
+        const GEO::index_t new_c0 = mesh.cells.create_tets(3);
+        const GEO::index_t new_c1 = new_c0+1;
+        const GEO::index_t new_c2 = new_c1+1;
+        tet_split(mesh, 1, new_v, new_c0, new_c1, new_c2);
+
+        GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
+    }
+
     /* ============================================================================================================= */
 
     class TetFacetSplitTest : public TetOperationsTest {

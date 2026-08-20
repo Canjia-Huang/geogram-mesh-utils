@@ -21,7 +21,7 @@ namespace geolio
         const GEO::index_t new_c2
         ) {
         assert(c < M.cells.nb());
-        assert(new_v < M.cells.nb());
+        assert(new_v < M.vertices.nb());
         assert(new_c0 < M.cells.nb());
         assert(new_c1 < M.cells.nb());
         assert(new_c2 < M.cells.nb());
@@ -82,6 +82,28 @@ namespace geolio
             assert(M.cells.find_tet_facet(nc2, v0, v1, v3) != GEO::NO_INDEX);
             M.cells.set_adjacent(nc2, M.cells.find_tet_facet(nc2, v0, v1, v3), new_c2);
         }
+
+        /* Copy attributes */
+        M.cells.attributes().copy_item(new_c0, c);
+        M.cells.attributes().copy_item(new_c1, c);
+        M.cells.attributes().copy_item(new_c2, c);
+        M.cell_corners.attributes().copy_item(M.cells.corner(new_c0, 1), M.cells.corner(c, 1));
+        M.cell_corners.attributes().copy_item(M.cells.corner(new_c0, 2), M.cells.corner(c, 2));
+        M.cell_corners.attributes().copy_item(M.cells.corner(new_c0, 3), M.cells.corner(c, 3));
+        M.cell_corners.attributes().copy_item(M.cells.corner(new_c1, 0), M.cells.corner(c, 0));
+        M.cell_corners.attributes().copy_item(M.cells.corner(new_c1, 2), M.cells.corner(c, 2));
+        M.cell_corners.attributes().copy_item(M.cells.corner(new_c1, 3), M.cells.corner(c, 3));
+        M.cell_corners.attributes().copy_item(M.cells.corner(new_c2, 0), M.cells.corner(c, 0));
+        M.cell_corners.attributes().copy_item(M.cells.corner(new_c2, 1), M.cells.corner(c, 1));
+        M.cell_corners.attributes().copy_item(M.cells.corner(new_c2, 3), M.cells.corner(c, 3));
+        M.cell_facets.attributes().copy_item(M.cells.facet(new_c0, 0), M.cells.facet(c, 0));
+        M.cell_facets.attributes().copy_item(M.cells.facet(new_c1, 1), M.cells.facet(c, 1));
+        M.cell_facets.attributes().copy_item(M.cells.facet(new_c2, 2), M.cells.facet(c, 2));
+        /* Restore attributes */
+        M.cell_corners.attributes().zero_item(M.cells.corner(c, 3));
+        M.cell_facets.attributes().zero_item(M.cells.facet(c, 0));
+        M.cell_facets.attributes().zero_item(M.cells.facet(c, 1));
+        M.cell_facets.attributes().zero_item(M.cells.facet(c, 2));
     }
 
     void tet_facet_split(
@@ -272,6 +294,8 @@ namespace geolio
 
             const GEO::index_t lv0 = M.cells.find_tet_vertex(c, ev0);
             const GEO::index_t lv1 = M.cells.find_tet_vertex(c, ev1);
+            assert(lv0 != GEO::NO_INDEX);
+            assert(lv1 != GEO::NO_INDEX);
             const GEO::index_t lv2 = TET_LF_INCIDENT_LV[lf0][0]^TET_LF_INCIDENT_LV[lf0][1]^TET_LF_INCIDENT_LV[lf0][2]^lv0^lv1;
             assert(lv2 < 4 && lv2 != lv0 && lv2 != lv1);
             const GEO::index_t lv3 = 0^1^2^3^lv0^lv1^lv2;
@@ -294,10 +318,14 @@ namespace geolio
             M.cells.set_adjacent(c, lv1, new_c);
             M.cells.set_adjacent(new_c, lv0, c);
             M.cells.set_adjacent(new_c, lv1, nc1);
-            if (M.cells.adjacent(c, lv2) != GEO::NO_CELL)
+            if (M.cells.adjacent(c, lv2) != GEO::NO_CELL) {
+                assert(M.cells.adjacent(c, lv2) == get<0>(ordered_c_le_lf[(i+INCIDENT_CELLS_NB-1)%INCIDENT_CELLS_NB]));
                 M.cells.set_adjacent(new_c, lv2, new_cs[(i+INCIDENT_CELLS_NB-1)%INCIDENT_CELLS_NB]);
-            if (M.cells.adjacent(c, lv3) != GEO::NO_CELL)
+            }
+            if (M.cells.adjacent(c, lv3) != GEO::NO_CELL) {
+                assert(M.cells.adjacent(c, lv3) == get<0>(ordered_c_le_lf[(i+1)%INCIDENT_CELLS_NB]));
                 M.cells.set_adjacent(new_c, lv3, new_cs[(i+1)%INCIDENT_CELLS_NB]);
+            }
             if (nc1 != GEO::NO_CELL) {
                 const GEO::index_t nlf = M.cells.find_tet_facet(
                     nc1,
