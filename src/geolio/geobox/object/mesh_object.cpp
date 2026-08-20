@@ -5,57 +5,18 @@
 #include "mesh_object.h"
 #include <geogram_gfx/imgui_ext/imgui_ext.h>
 #include <geogram_gfx/third_party/imgui/imgui.h>
-#include <geogram_gfx/gui/colormaps/french.xpm>
-#include <geogram_gfx/gui/colormaps/black_white.xpm>
-#include <geogram_gfx/gui/colormaps/viridis.xpm>
-#include <geogram_gfx/gui/colormaps/rainbow.xpm>
-#include <geogram_gfx/gui/colormaps/cei_60757.xpm>
-#include <geogram_gfx/gui/colormaps/inferno.xpm>
-#include <geogram_gfx/gui/colormaps/magma.xpm>
-#include <geogram_gfx/gui/colormaps/parula.xpm>
-#include <geogram_gfx/gui/colormaps/plasma.xpm>
-#include <geogram_gfx/gui/colormaps/blue_red.xpm>
 
 namespace geolio::geobox
 {
     MeshObject::MeshObject(
+        const std::string& name,
+        const std::vector<ColormapInfo>& colormaps,
         const GEO::Mesh& mesh
-        ) {
+        ) : BaseObject(name),
+            colormaps_(colormaps)
+    {
         mesh_.copy(mesh);
         mesh_gfx_.set_mesh(&mesh_);
-
-        init_colormaps();
-    }
-
-    void MeshObject::init_colormap(
-        const std::string& name, const char** xpm_data
-        ) {
-        colormaps_.push_back(ColormapInfo());
-        colormaps_.rbegin()->name = name;
-        glGenTextures(1, &colormaps_.rbegin()->texture);
-        glBindTexture(GL_TEXTURE_2D, colormaps_.rbegin()->texture);
-        GEO::glTexImage2Dxpm(xpm_data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(
-            GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR
-        );
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glBindTexture(GL_TEXTURE_2D, 0);
-    }
-
-    void MeshObject::init_colormaps() {
-        init_colormap("french", french_xpm);
-        init_colormap("black_white", black_white_xpm);
-        init_colormap("viridis", viridis_xpm);
-        init_colormap("rainbow", rainbow_xpm);
-        init_colormap("cei_60757", cei_60757_xpm);
-        init_colormap("inferno", inferno_xpm);
-        init_colormap("magma", magma_xpm);
-        init_colormap("parula", parula_xpm);
-        init_colormap("plasma", plasma_xpm);
-        init_colormap("blue_red", blue_red_xpm);
     }
 
     void MeshObject::draw_scene(
