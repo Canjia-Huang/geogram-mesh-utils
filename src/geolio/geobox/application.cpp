@@ -3,6 +3,7 @@
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
 #include "application.h"
+#include <algorithm>
 #include <geogram/basic/command_line.h>
 #include "geolio/common/log.h"
 #include "geolio/common/parse_filepath.h"
@@ -114,7 +115,13 @@ namespace geolio::geobox
 
     void GeoBoxApplication::draw_objects_properties(
         ) {
-        const auto icon_button_size = ImGui::GetFrameHeight();
+        // Geogram's icon font is monospaced (advance = 1.5*font_size), which can
+        // exceed the default button height. Size the button to the icon's actual
+        // text extent so ImGui's (0.5,0.5) text alignment centers the glyph.
+        const auto icon_button_size = std::max(
+            ImGui::GetFrameHeight(),
+            ImGui::CalcTextSize(GEO::icon_UTF8("xmark").c_str()).x
+                + 2.0f * ImGui::GetStyle().FramePadding.x);
 
         for (auto it = base_objects_.begin(); it != base_objects_.end();) {
             const auto& base_object = *it;
