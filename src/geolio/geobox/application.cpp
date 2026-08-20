@@ -5,6 +5,7 @@
 #include "application.h"
 #include <algorithm>
 #include <geogram/basic/command_line.h>
+#include <geogram_gfx/third_party/imgui/imgui_internal.h>
 #include "geolio/common/log.h"
 #include "geolio/common/parse_filepath.h"
 #include "object/mesh_object.h"
@@ -12,7 +13,7 @@
 namespace geolio::geobox
 {
     GeoBoxApplication::GeoBoxApplication(
-        ) : SimpleMeshApplication("GeoBox")
+        ) : SimpleMeshApplication("Geolio - GeoBox")
     {}
 
     void GeoBoxApplication::draw_gui(
@@ -128,28 +129,34 @@ namespace geolio::geobox
 
             ImGui::PushID(base_object.get());
 
-            ImGui::Text("%s", base_object->name().c_str());
-
-            ImGui::SameLine();
             if (ImGui::Button(
                 GEO::icon_UTF8(
                     base_object->visible() ? "eye" : "eye-slash").c_str(),
                 ImVec2(icon_button_size, icon_button_size)
-            ))
+                ))
                 base_object->set_visible(!base_object->visible());
 
             ImGui::SameLine();
             if (ImGui::Button(
                 GEO::icon_UTF8("xmark").c_str(),
                 ImVec2(icon_button_size, icon_button_size)
-            )) {
+                )) {
                 it = base_objects_.erase(it);
                 ImGui::PopID();
                 continue;
             }
 
+            ImGui::SameLine();
+            // ImGui lays text at the line's text-baseline offset; nudge it so the
+            // name sits vertically centered against the (taller) icon buttons.
+            ImGuiWindow* window = ImGui::GetCurrentWindow();
+            window->DC.CurrLineTextBaseOffset =
+                (icon_button_size - ImGui::GetTextLineHeight()) * 0.5f;
+            ImGui::Text("%s", base_object->name().c_str());
+
             ++it;
             ImGui::PopID();
+
             ImGui::Separator();
         }
     }
