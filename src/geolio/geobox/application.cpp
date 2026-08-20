@@ -60,13 +60,10 @@ namespace geolio::geobox
 
     void GeoBoxApplication::ImGui_initialize(
         ) {
-        // SimpleApplication::ImGui_initialize() forces the "Light" style;
-        // re-apply the Polyscope style so it is the default on startup.
         SimpleMeshApplication::ImGui_initialize();
-        set_style("Polyscope");
-        // set_style() resets the background to white; use a calm dark navy
-        // as the default background instead.
-        set_background_color(GEO::vec4f(0.08f, 0.12f, 0.22f, 1.0f));
+        set_style("Light");
+
+        // set_background_color(GEO::vec4f(0.08f, 0.12f, 0.22f, 1.0f)); // dark blue
     }
 
     void GeoBoxApplication::draw_controller_properties_window(
@@ -151,7 +148,7 @@ namespace geolio::geobox
             ImVec2(
                 ImGui::GetCursorScreenPos().x + ImGui::GetContentRegionAvail().x,
                 ImGui::GetCursorScreenPos().y + icon_button_size),
-            ImGui::GetColorU32(ImVec4(0.35f, 0.61f, 0.49f, 0.25f)));
+            ImGui::GetColorU32(ImVec4(0.35f, 0.61f, 0.80f, 0.5f)));
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, icon_button_padding);
 
         // Show / hide all objects.
