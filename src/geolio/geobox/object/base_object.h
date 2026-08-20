@@ -5,15 +5,22 @@
 #ifndef GEOLIO_BASE_OBJECT_H
 #define GEOLIO_BASE_OBJECT_H
 
+#include <geolio/common/utils.h>
+
 namespace geolio::geobox
 {
     class BaseObject {
     public:
-        BaseObject() = default;
+        BaseObject() : unique_id_(generate_random_string(22)) {}
 
         virtual ~BaseObject() = default;
 
-        virtual void draw(bool lighting) = 0;
+        virtual void draw_object_properties() = 0;
+
+        virtual void draw_scene(bool lighting) = 0;
+
+    protected:
+        const std::string unique_id_;
     };
 }
 

@@ -27,6 +27,7 @@ target_link_libraries(${CURRENT_LIB_NAME}
         PUBLIC
         Geogram::geogram
         Geogram::geogram_gfx
+        ${PROJECT_NAME}::third_party
 )
 
 geolio_end_file()

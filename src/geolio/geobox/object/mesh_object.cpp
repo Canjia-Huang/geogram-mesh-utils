@@ -3,15 +3,62 @@
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
 #include "mesh_object.h"
+#include <geogram_gfx/imgui_ext/imgui_ext.h>
+#include <geogram_gfx/third_party/imgui/imgui.h>
+#include <geogram_gfx/gui/colormaps/french.xpm>
+#include <geogram_gfx/gui/colormaps/black_white.xpm>
+#include <geogram_gfx/gui/colormaps/viridis.xpm>
+#include <geogram_gfx/gui/colormaps/rainbow.xpm>
+#include <geogram_gfx/gui/colormaps/cei_60757.xpm>
+#include <geogram_gfx/gui/colormaps/inferno.xpm>
+#include <geogram_gfx/gui/colormaps/magma.xpm>
+#include <geogram_gfx/gui/colormaps/parula.xpm>
+#include <geogram_gfx/gui/colormaps/plasma.xpm>
+#include <geogram_gfx/gui/colormaps/blue_red.xpm>
 
 namespace geolio::geobox
 {
     MeshObject::MeshObject(
+        const GEO::Mesh& mesh
         ) {
+        mesh_.copy(mesh);
+        mesh_gfx_.set_mesh(&mesh_);
 
+        init_colormaps();
     }
 
-    void MeshObject::draw(
+    void MeshObject::init_colormap(
+        const std::string& name, const char** xpm_data
+        ) {
+        colormaps_.push_back(ColormapInfo());
+        colormaps_.rbegin()->name = name;
+        glGenTextures(1, &colormaps_.rbegin()->texture);
+        glBindTexture(GL_TEXTURE_2D, colormaps_.rbegin()->texture);
+        GEO::glTexImage2Dxpm(xpm_data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(
+            GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR
+        );
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+
+    void MeshObject::init_colormaps() {
+        init_colormap("french", french_xpm);
+        init_colormap("black_white", black_white_xpm);
+        init_colormap("viridis", viridis_xpm);
+        init_colormap("rainbow", rainbow_xpm);
+        init_colormap("cei_60757", cei_60757_xpm);
+        init_colormap("inferno", inferno_xpm);
+        init_colormap("magma", magma_xpm);
+        init_colormap("parula", parula_xpm);
+        init_colormap("plasma", plasma_xpm);
+        init_colormap("blue_red", blue_red_xpm);
+    }
+
+    void MeshObject::draw_scene(
         const bool lighting
         ) {
         if (mesh_gfx_.mesh() == nullptr)
@@ -35,6 +82,113 @@ namespace geolio::geobox
         draw_surface();
         draw_edges();
         draw_volume(lighting);
+    }
+
+    void MeshObject::draw_object_properties(
+        ) {
+        ImGui::PushID(this);
+
+        const auto s = static_cast<float>(ImGui::scaling());
+
+        /* == Attributes =========================================================================================== */
+        ImGui::Checkbox("attributes", &show_attributes_);
+        if (show_attributes_) {
+            if (attribute_min_ == 0.0f && attribute_max_ == 0.0f)
+                autorange();
+
+            if (ImGui::Button(
+                (attribute_ + "##Attribute").c_str(),
+                ImVec2(-1, 0)))
+                ImGui::OpenPopup("##Attributes");
+
+            if (ImGui::BeginPopup("##Attributes")) {
+                std::vector<std::string> attributes;
+                GEO::String::split_string(attribute_names(), ';', attributes);
+                for (const auto & attribute : attributes) {
+                    if (ImGui::Button(attribute.c_str())) {
+                        set_attribute(attribute);
+                        ImGui::CloseCurrentPopup();
+                    }
+                }
+                ImGui::EndPopup();
+            }
+            ImGui::InputFloat("min",&attribute_min_);
+            ImGui::InputFloat("max",&attribute_max_);
+            if (ImGui::Button("autorange", ImVec2(-1, 0)))
+                autorange();
+
+            if (ImGui::ImageButton(
+                "choose_colormap",
+                static_cast<ImTextureID>(colormaps_[current_colormap_index_].texture),
+                ImVec2(115.0f*s, 8.0f*s))
+                ) {
+                ImGui::OpenPopup("##Colormap");
+            }
+            if (ImGui::BeginPopup("##Colormap")) {
+                for (GEO::index_t i = 0; i < colormaps_.size(); ++i) {
+                    if (ImGui::ImageButton(
+                        colormaps_[i].name.c_str(),
+			            static_cast<ImTextureID>(colormaps_[i].texture),
+                        ImVec2(100.0f*s, 8.0f*s))
+                        ) {
+                        current_colormap_index_   = i;
+                        ImGui::CloseCurrentPopup();
+                    }
+                }
+                ImGui::EndPopup();
+            }
+        }
+
+        ImGui::Separator();
+        ImGui::Checkbox("##VertOnOff", &show_vertices_);
+        ImGui::SameLine();
+        ImGui::ColorEdit3WithPalette("Vert.", vertices_color_.data());
+
+        if (show_vertices_) {
+            ImGui::Checkbox("selection", &show_vertices_selection_);
+            ImGui::SliderFloat("sz.", &vertices_size_, 0.1f, 5.0f, "%.1f");
+            ImGui::InputFloat("trsp.", &vertices_transparency_, 0.0f, 1.0f, "%.3f");
+        }
+
+        if (mesh_.facets.nb() != 0) {
+            ImGui::Separator();
+            ImGui::Checkbox("##SurfOnOff", &show_surface_);
+            ImGui::SameLine();
+            ImGui::ColorEdit3WithPalette("Surf.", surface_color_.data());
+            if (show_surface_) {
+                ImGui::Checkbox("##SidesOnOff", &show_surface_sides_);
+                ImGui::SameLine();
+                ImGui::ColorEdit3WithPalette("2sided", surface_color_2_.data());
+
+                ImGui::Checkbox("##MeshOnOff", &show_mesh_);
+                ImGui::SameLine();
+                ImGui::ColorEdit3WithPalette("mesh", mesh_color_.data());
+                if (show_mesh_)
+                    ImGui::SliderFloat("wid.##mesh", &mesh_width_, 0.1f, 2.0f, "%.1f");
+
+                ImGui::Checkbox("##BordersOnOff", &show_surface_borders_);
+                ImGui::SameLine();
+                ImGui::ColorEdit3WithPalette("borders", surface_borders_color_.data());
+                if (show_surface_borders_)
+                    ImGui::SliderFloat("wid.##borders", &surface_borders_width_, 0.1f, 2.0f, "%.1f");
+            }
+        }
+
+        if (mesh_.cells.nb() != 0) {
+            ImGui::Separator();
+            ImGui::Checkbox("##VolumeOnOff", &show_volume_);
+            ImGui::SameLine();
+            ImGui::ColorEdit3WithPalette("Volume", volume_color_.data());
+            if (show_volume_) {
+                ImGui::SliderFloat("shrk.", &cells_shrink_, 0.0f, 1.0f, "%.2f");
+                if (!mesh_.cells.are_simplices()) {
+                    ImGui::Checkbox("colored cells", &show_colored_cells_);
+                    ImGui::Checkbox("hexes", &show_hexes_);
+                }
+            }
+        }
+
+        ImGui::PopID();
     }
 
     void MeshObject::draw_points(
@@ -130,5 +284,47 @@ namespace geolio::geobox
 
             mesh_gfx_.set_lighting(lighting);
         }
+    }
+
+    void MeshObject::autorange(
+        ) {
+        if (attribute_subelements_ == GEO::MESH_NONE)
+            return;
+
+        const GEO::MeshSubElementsStore& subelements =
+            mesh_.get_subelements_by_type(attribute_subelements_);
+            GEO::ReadOnlyScalarAttributeAdapter attribute(
+            subelements.attributes(), attribute_name_
+            );
+
+        attribute_min_ = 0.0;
+        attribute_max_ = 0.0;
+        if (attribute.is_bound()) {
+            attribute_min_ = GEO::Numeric::max_float32();
+            attribute_max_ = GEO::Numeric::min_float32();
+            for (GEO::index_t i = 0; i < subelements.nb(); ++i) {
+                attribute_min_ =
+                    std::min(attribute_min_, static_cast<float>(attribute[i]));
+                attribute_max_ =
+                    std::max(attribute_max_, static_cast<float>(attribute[i]));
+            }
+        }
+    }
+
+    void MeshObject::set_attribute(
+        const std::string& attribute
+        ) {
+        attribute_ = attribute;
+        std::string subelements_name;
+        GEO::String::split_string(
+            attribute_, '.',
+            subelements_name,
+            attribute_name_
+            );
+
+        attribute_subelements_ = GEO::Mesh::name_to_subelements_type(subelements_name);
+
+        if (attribute_min_ == 0.0f && attribute_max_ == 0.0f)
+            autorange();
     }
 }

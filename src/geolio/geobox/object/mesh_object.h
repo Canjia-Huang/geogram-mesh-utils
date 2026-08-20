@@ -13,11 +13,19 @@ namespace geolio::geobox
 {
     class MeshObject : public BaseObject {
     public:
-        MeshObject();
+        explicit MeshObject(const GEO::Mesh& mesh);
 
-        void draw(bool lighting) override;
+        void draw_object_properties() override;
+
+        void draw_scene(bool lighting) override;
 
     protected:
+        // ref <geogram_gfx/gui/simple_application.cpp> init_colormap()
+        void init_colormap(const std::string& name, const char** xpm_data);
+
+        // ref <geogram_gfx/gui/simple_application.cpp> init_colormaps()
+        void init_colormaps();
+
         // ref <geogram_gfx/gui/simple_mesh_application.cpp> draw_points()
         void draw_points();
 
@@ -30,34 +38,45 @@ namespace geolio::geobox
         // ref <geogram_gfx/gui/simple_mesh_application.cpp> draw_volume()
         void draw_volume(bool lighting);
 
+        // ref <geogram_gfx/gui/simple_mesh_application.cpp> autorange()
+        void autorange();
+
+        // ref <geogram_gfx/gui/simple_mesh_application.cpp> attribute_names()
+        std::string attribute_names() const {
+            return mesh_.get_scalar_attributes();
+        }
+
+        // ref <geogram_gfx/gui/simple_mesh_application.cpp> set_attribute()
+        void set_attribute(const std::string& attribute);
+
         GEO::Mesh mesh_;
         GEO::MeshGfx mesh_gfx_;
 
         bool show_vertices_ = false;
         bool show_vertices_selection_ = false;
-        float vertices_size_;
-        GEO::vec4f vertices_color_;
-        float vertices_transparency_;
+        float vertices_size_ = 1.0f;
+        GEO::vec4f vertices_color_ = GEO::vec4f(0.0f, 1.0f, 0.0f, 1.0f);
+        float vertices_transparency_ = 0.0f;
 
-        bool show_surface_;
-        bool show_surface_sides_;
-        GEO::vec4f surface_color_;
-        GEO::vec4f surface_color_2_;
+        bool show_surface_ = true;
+        bool show_surface_sides_ = false;
+        GEO::vec4f surface_color_ = GEO::vec4f(0.5f, 0.5f, 1.0f, 1.0f);
+        GEO::vec4f surface_color_2_ = GEO::vec4f(1.0f, 0.5f, 0.0f, 1.0f);
 
-        bool show_mesh_;
-        float mesh_width_;
-        GEO::vec4f mesh_color_;
+        bool show_mesh_ = true;
+        float mesh_width_ = 0.1f;
+        GEO::vec4f mesh_color_ = GEO::vec4f(0.05f, 0.05f, 0.05f, 1.0f);
 
-        bool show_surface_borders_;
-        float surface_borders_width_;
-        GEO::vec4f surface_borders_color_;
+        bool show_surface_borders_ = true;
+        float surface_borders_width_ = 0.3f;
+        GEO::vec4f surface_borders_color_ = GEO::vec4f(0.0f, 0.85f, 0.85f, 1.0f);
 
-        bool show_volume_;
-        float cells_shrink_;
-        GEO::vec4f volume_color_;
-        bool show_colored_cells_;
-        bool show_hexes_;
-        bool show_connectors_;
+        bool show_volume_ = true;
+        float cells_shrink_ = 0.0f;
+        GEO::vec4f volume_color_ = GEO::vec4f(0.9f, 0.9f, 0.9f, 1.0f);
+        bool show_colored_cells_ = false;
+        bool show_hexes_ = true;
+        bool show_connectors_ = true;
 
         struct ColormapInfo {
             ColormapInfo() : texture(0) {
@@ -69,9 +88,9 @@ namespace geolio::geobox
 
         bool show_attributes_ = false;
         GEO::index_t current_colormap_index_ = 0;
-        std::string       attribute_;
-        GEO::MeshElementsFlags attribute_subelements_;
-        std::string       attribute_name_;
+        std::string       attribute_ = "vertices.point_fp32[0]";
+        std::string       attribute_name_ = "point_fp32[0]";
+        GEO::MeshElementsFlags attribute_subelements_ = GEO::MESH_VERTICES;
         float             attribute_min_ = 0;
         float             attribute_max_ = 0;
     };

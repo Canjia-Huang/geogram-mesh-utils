@@ -6,6 +6,7 @@
 #define GEOLIO_APPLICATION_H
 
 #include <geogram_gfx/gui/simple_mesh_application.h>
+#include "geolio/geobox/object/base_object.h"
 
 namespace geolio::geobox
 {
@@ -13,8 +14,14 @@ namespace geolio::geobox
     public:
         GeoBoxApplication();
 
-    private:
+    protected:
+        void draw_object_properties() override;
 
+        void draw_scene() override;
+
+        bool load(const std::string& filename) override;
+
+        std::vector<std::shared_ptr<BaseObject>> base_objects_;
     };
 }
 
