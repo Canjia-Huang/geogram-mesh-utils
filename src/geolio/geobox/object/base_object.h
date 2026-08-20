@@ -29,7 +29,7 @@ namespace geolio::geobox
 
         virtual void draw_scene(bool lighting) = 0;
 
-        virtual void get_bbox(double* xyzmin, double* xyzmax) = 0;
+        virtual void get_bbox(double* xyzmin, double* xyzmax) const = 0;
 
     protected:
         const std::string name_;

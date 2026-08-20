@@ -156,7 +156,7 @@ namespace geolio::geobox
     void MeshObject::get_bbox(
         double* xyzmin,
         double* xyzmax
-        ) {
+        ) const {
         GEO::get_bbox(mesh_, xyzmin, xyzmax);
     }
 

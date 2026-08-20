@@ -13,9 +13,7 @@ namespace geolio::geobox
 {
     GeoBoxApplication::GeoBoxApplication(
         ) : SimpleMeshApplication("Geolio - GeoBox")
-    {
-        init();
-    }
+    {}
 
     void GeoBoxApplication::draw_gui(
         ) {
@@ -52,14 +50,6 @@ namespace geolio::geobox
                 ImGuiCond_Always
             );
             status_bar_->draw();
-        }
-    }
-
-    void GeoBoxApplication::init(
-        ) {
-        for (GEO::coord_index_t i = 0; i < 3; ++i) {
-            xyzmin_[i] = std::numeric_limits<double>::max();
-            xyzmax_[i] = -std::numeric_limits<double>::max();
         }
     }
 
@@ -140,7 +130,7 @@ namespace geolio::geobox
             std::max(0.0f, (icon_button_size - icon_text_width) * 0.5f),
             std::max(0.0f, (icon_button_size - ImGui::GetTextLineHeight()) * 0.5f));
 
-        for (auto it = base_objects_.begin(); it != base_objects_.end();) {
+        for (auto it = objects_.begin(); it != objects_.end();) {
             const auto& base_object = *it;
 
             ImGui::PushID(base_object.get());
@@ -154,16 +144,21 @@ namespace geolio::geobox
                 base_object->set_visible(!base_object->visible());
 
             ImGui::SameLine();
+            // Focus the camera on this object's bounding box.
+            if (ImGui::Button(
+                GEO::icon_UTF8("camera").c_str(),
+                ImVec2(icon_button_size, icon_button_size)
+                ))
+                focus(*base_object);
+
+            ImGui::SameLine();
             if (ImGui::Button(
                 GEO::icon_UTF8("xmark").c_str(),
                 ImVec2(icon_button_size, icon_button_size)
                 )) {
                 ImGui::PopStyleVar();
-                it = base_objects_.erase(it);
+                it = objects_.erase(it);
                 ImGui::PopID();
-
-                if (base_objects_.empty())
-                    init();
 
                 continue;
             }
@@ -194,19 +189,32 @@ namespace geolio::geobox
 
     void GeoBoxApplication::draw_object_properties(
         ) {
-        if (base_objects_.empty())
+        if (objects_.empty())
             return;
 
-        for (const auto& base_object : base_objects_)
+        for (const auto& base_object : objects_)
             base_object->draw_object_properties();
     }
 
     void GeoBoxApplication::draw_scene(
         ) {
-        for (const auto& base_object : base_objects_) {
+        for (const auto& base_object : objects_) {
             if (base_object->visible())
                 base_object->draw_scene(lighting_);
         }
+    }
+
+    void GeoBoxApplication::focus(
+        const BaseObject& object
+        ) {
+        home();
+
+        double xyzmin[3];
+        double xyzmax[3];
+        object.get_bbox(xyzmin, xyzmax);
+        set_region_of_interest(
+            xyzmin[0], xyzmin[1], xyzmin[2],
+            xyzmax[0], xyzmax[1], xyzmax[2]);
     }
 
     bool GeoBoxApplication::load(
@@ -220,22 +228,28 @@ namespace geolio::geobox
             return false;
         }
 
-        const auto object = std::make_shared<MeshObject>(
+        const auto object_ptr = std::make_shared<MeshObject>(
             get_filename(filename),
             my_colormaps_,
             mesh);
 
-        double xyzmin[3], xyzmax[3];
-        object->get_bbox(xyzmin, xyzmax);
-        for (GEO::coord_index_t i = 0; i < 3; ++i) {
-            xyzmin_[i] = std::min(xyzmin_[i], xyzmin[i]);
-            xyzmax_[i] = std::max(xyzmax_[i], xyzmax[i]);
-        }
-        set_region_of_interest(
-            xyzmin_[0], xyzmin_[1], xyzmin_[2],
-            xyzmax_[0], xyzmax_[1], xyzmax_[2]);
+        objects_.push_back(object_ptr);
 
-        base_objects_.push_back(object);
+        { /* Reset camera */
+            double all_xyzmin[3] = {std::numeric_limits<double>::max(), std::numeric_limits<double>::max(), std::numeric_limits<double>::max()};
+            double all_xyzmax[3] = {-std::numeric_limits<double>::max(), -std::numeric_limits<double>::max(), -std::numeric_limits<double>::max()};
+            for (const auto& object : objects_) {
+                double xyzmin[3], xyzmax[3];
+                object->get_bbox(xyzmin, xyzmax);
+                for (GEO::coord_index_t i = 0; i < 3; ++i) {
+                    all_xyzmin[i] = std::min(all_xyzmin[i], xyzmin[i]);
+                    all_xyzmax[i] = std::max(all_xyzmax[i], xyzmax[i]);
+                }
+                set_region_of_interest(
+                    all_xyzmin[0], all_xyzmin[1], all_xyzmin[2],
+                    all_xyzmax[0], all_xyzmax[1], all_xyzmax[2]);
+            }
+        }
 
         return true;
     }
