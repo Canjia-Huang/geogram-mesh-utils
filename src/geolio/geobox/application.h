@@ -49,6 +49,10 @@ namespace geolio::geobox
 
         std::vector<geolio::geobox::ColormapInfo> my_colormaps_;
 
+        // Current size of the Object Properties window, tracked so its
+        // right edge can be kept flush against the viewport's right edge.
+        ImVec2 object_properties_size_{0.0f, 0.0f};
+
         std::vector<std::shared_ptr<BaseObject>> objects_;
         std::weak_ptr<BaseObject> selected_object_;
     };

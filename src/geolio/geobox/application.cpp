@@ -303,17 +303,27 @@ namespace geolio::geobox
         constexpr float WINDOWS_WIDTH = 0.2f;
 
         const ImVec2 viewport_size = ImGui::GetMainViewport()->Size;
+        if (object_properties_size_.x <= 0.0f)
+            object_properties_size_ = ImVec2(
+                viewport_size.x * WINDOWS_WIDTH, viewport_size.y * 0.5f);
+
+        // Anchor the window's right edge to the viewport's right edge, so it
+        // stays docked in the top-right corner when the viewport is resized
+        // while keeping the tracked (constant) width and height.
         ImGui::SetNextWindowPos(
-            ImVec2(viewport_size.x * (1-WINDOWS_WIDTH), ImGui::GetFrameHeight()),
-            ImGuiCond_FirstUseEver
+            ImVec2(
+                viewport_size.x - object_properties_size_.x,
+                ImGui::GetFrameHeight()),
+            ImGuiCond_Always
         );
-        ImGui::SetNextWindowSize(
-            ImVec2(viewport_size.x * WINDOWS_WIDTH, viewport_size.y * 0.5f),
-            ImGuiCond_FirstUseEver
-        );
+        ImGui::SetNextWindowSize(object_properties_size_, ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowBgAlpha(0.6f);
-        if (ImGui::Begin("Object Properties", nullptr, ImGuiWindowFlags_NoDocking))
+        if (ImGui::Begin(
+            "Object Properties", nullptr,
+            ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoMove)) {
             draw_object_properties();
+            object_properties_size_ = ImGui::GetWindowSize();
+        }
 
         ImGui::End();
     }
