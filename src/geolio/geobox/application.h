@@ -35,7 +35,7 @@ namespace geolio::geobox
 
         void draw_scene() override;
 
-        void focus(const BaseObject& object);
+        void camera_focus(const BaseObject& object);
 
         bool load(const std::string& filename) override;
 

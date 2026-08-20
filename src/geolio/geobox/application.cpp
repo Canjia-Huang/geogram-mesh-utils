@@ -130,6 +130,76 @@ namespace geolio::geobox
             std::max(0.0f, (icon_button_size - icon_text_width) * 0.5f),
             std::max(0.0f, (icon_button_size - ImGui::GetTextLineHeight()) * 0.5f));
 
+        // Master row: actions that apply to all objects.
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, icon_frame_padding);
+
+        // Show / hide all objects.
+        const bool all_visible = std::all_of(
+            objects_.begin(), objects_.end(),
+            [](const std::shared_ptr<BaseObject>& object) {
+                return object->visible();
+            });
+        if (ImGui::Button(
+            GEO::icon_UTF8(all_visible ? "eye" : "eye-slash").c_str(),
+            ImVec2(icon_button_size, icon_button_size)
+            )) {
+            for (const auto& object : objects_)
+                object->set_visible(!all_visible);
+        }
+
+        ImGui::SameLine();
+        // Focus the camera on all objects.
+        if (ImGui::Button(
+            GEO::icon_UTF8("camera").c_str(),
+            ImVec2(icon_button_size, icon_button_size)
+            ) && !objects_.empty()) {
+            home();
+            double xyzmin[3] = {
+                std::numeric_limits<double>::max(),
+                std::numeric_limits<double>::max(),
+                std::numeric_limits<double>::max()
+            };
+            double xyzmax[3] = {
+                -std::numeric_limits<double>::max(),
+                -std::numeric_limits<double>::max(),
+                -std::numeric_limits<double>::max()
+            };
+            for (const auto& object : objects_) {
+                double bmin[3], bmax[3];
+                object->get_bbox(bmin, bmax);
+                for (GEO::coord_index_t i = 0; i < 3; ++i) {
+                    xyzmin[i] = std::min(xyzmin[i], bmin[i]);
+                    xyzmax[i] = std::max(xyzmax[i], bmax[i]);
+                }
+            }
+            set_region_of_interest(
+                xyzmin[0], xyzmin[1], xyzmin[2],
+                xyzmax[0], xyzmax[1], xyzmax[2]);
+        }
+
+        ImGui::SameLine();
+        // Delete all objects.
+        if (ImGui::Button(
+            GEO::icon_UTF8("xmark").c_str(),
+            ImVec2(icon_button_size, icon_button_size)
+            )) {
+            objects_.clear();
+            selected_object_.reset();
+        }
+        ImGui::PopStyleVar();
+
+        ImGui::SameLine();
+        // Clicking the rest of the row clears the current object selection.
+        ImGui::PushStyleVar(
+            ImGuiStyleVar_SelectableTextAlign, ImVec2(0.0f, 0.5f));
+        if (ImGui::Selectable(
+            "Clear Selection", false, 0, ImVec2(0.0f, icon_button_size)
+            ))
+            selected_object_.reset();
+        ImGui::PopStyleVar();
+
+        ImGui::Separator();
+
         for (auto it = objects_.begin(); it != objects_.end();) {
             const auto& base_object = *it;
 
@@ -149,7 +219,7 @@ namespace geolio::geobox
                 GEO::icon_UTF8("camera").c_str(),
                 ImVec2(icon_button_size, icon_button_size)
                 ))
-                focus(*base_object);
+                camera_focus(*base_object);
 
             ImGui::SameLine();
             if (ImGui::Button(
@@ -225,7 +295,7 @@ namespace geolio::geobox
         }
     }
 
-    void GeoBoxApplication::focus(
+    void GeoBoxApplication::camera_focus(
         const BaseObject& object
         ) {
         home();
