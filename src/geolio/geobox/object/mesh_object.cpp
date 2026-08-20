@@ -53,10 +53,15 @@ namespace geolio::geobox
             if (ImGui::Button("autorange", ImVec2(-1, 0)))
                 autorange();
 
+            // ImageButton() uses its size verbatim (no -1.0f "fill width"),
+            // and this popup auto-resizes, so pin the popup width to the
+            // window's content width and size each colormap row to fill it.
+            const float colormap_popup_width = 0.95f * ImGui::GetContentRegionAvail().x;
+
             if (ImGui::ImageButton(
                 "choose_colormap",
                 static_cast<ImTextureID>(colormaps_[current_colormap_index_].texture),
-                ImVec2(115.0f*s, 8.0f*s))
+                ImVec2(colormap_popup_width, 8.0f*s))
                 ) {
                 ImGui::OpenPopup("##Colormap");
             }
