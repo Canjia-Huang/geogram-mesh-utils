@@ -83,8 +83,8 @@ namespace geolio::geobox
 
         bool show_attributes_ = false;
         GEO::index_t current_colormap_index_ = 0;
-        std::string       attribute_ = "vertices.point_fp32[0]";
-        std::string       attribute_name_ = "point_fp32[0]";
+        std::string       attribute_ = "vertices.point[0]";
+        std::string       attribute_name_ = "point[0]";
         GEO::MeshElementsFlags attribute_subelements_ = GEO::MESH_VERTICES;
         float             attribute_min_ = 0;
         float             attribute_max_ = 0;

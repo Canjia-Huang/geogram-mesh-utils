@@ -7,6 +7,8 @@
 #include <geogram_gfx/third_party/imgui/imgui.h>
 #include <geogram/mesh/mesh_geometry.h>
 
+#include "geolio/common/log.h"
+
 namespace geolio::geobox
 {
     MeshObject::MeshObject(
@@ -18,6 +20,8 @@ namespace geolio::geobox
     {
         mesh_.copy(mesh);
         mesh_gfx_.set_mesh(&mesh_);
+
+        set_attribute(attribute_);
     }
 
     void MeshObject::draw_object_properties(
@@ -40,7 +44,8 @@ namespace geolio::geobox
             if (ImGui::BeginPopup("##Attributes")) {
                 std::vector<std::string> attributes;
                 GEO::String::split_string(attribute_names(), ';', attributes);
-                for (const auto & attribute : attributes) {
+
+                for (const auto& attribute : attributes) {
                     if (ImGui::Button(attribute.c_str())) {
                         set_attribute(attribute);
                         ImGui::CloseCurrentPopup();
@@ -48,20 +53,16 @@ namespace geolio::geobox
                 }
                 ImGui::EndPopup();
             }
-            ImGui::InputFloat("min",&attribute_min_);
-            ImGui::InputFloat("max",&attribute_max_);
+
+            ImGui::InputFloat("min", &attribute_min_);
+            ImGui::InputFloat("max", &attribute_max_);
             if (ImGui::Button("autorange", ImVec2(-1, 0)))
                 autorange();
-
-            // ImageButton() uses its size verbatim (no -1.0f "fill width"),
-            // and this popup auto-resizes, so pin the popup width to the
-            // window's content width and size each colormap row to fill it.
-            const float colormap_popup_width = 0.95f * ImGui::GetContentRegionAvail().x;
 
             if (ImGui::ImageButton(
                 "choose_colormap",
                 static_cast<ImTextureID>(colormaps_[current_colormap_index_].texture),
-                ImVec2(colormap_popup_width, 8.0f*s))
+                ImVec2(0.95f * ImGui::GetContentRegionAvail().x, 8.0f*s))
                 ) {
                 ImGui::OpenPopup("##Colormap");
             }
@@ -296,12 +297,11 @@ namespace geolio::geobox
         GEO::String::split_string(
             attribute_, '.',
             subelements_name,
-            attribute_name_
-            );
+            attribute_name_);
 
         attribute_subelements_ = GEO::Mesh::name_to_subelements_type(subelements_name);
 
-        if (attribute_min_ == 0.0f && attribute_max_ == 0.0f)
-            autorange();
+        // if (attribute_min_ == 0.0f && attribute_max_ == 0.0f)
+        autorange();
     }
 }
