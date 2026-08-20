@@ -5,6 +5,7 @@
 #include "mesh_object.h"
 #include <geogram_gfx/imgui_ext/imgui_ext.h>
 #include <geogram_gfx/third_party/imgui/imgui.h>
+#include <geogram/mesh/mesh_geometry.h>
 
 namespace geolio::geobox
 {
@@ -17,32 +18,6 @@ namespace geolio::geobox
     {
         mesh_.copy(mesh);
         mesh_gfx_.set_mesh(&mesh_);
-    }
-
-    void MeshObject::draw_scene(
-        const bool lighting
-        ) {
-        if (mesh_gfx_.mesh() == nullptr)
-            return;
-
-        mesh_gfx_.set_lighting(lighting);
-
-        if (show_attributes_) {
-            mesh_gfx_.set_scalar_attribute(
-                attribute_subelements_,
-                attribute_name_,
-                static_cast<double>(attribute_min_),
-                static_cast<double>(attribute_max_),
-                colormaps_[current_colormap_index_].texture,
-                1);
-        }
-        else
-            mesh_gfx_.unset_scalar_attribute();
-
-        draw_points();
-        draw_surface();
-        draw_edges();
-        draw_volume(lighting);
     }
 
     void MeshObject::draw_object_properties(
@@ -150,6 +125,39 @@ namespace geolio::geobox
         }
 
         ImGui::PopID();
+    }
+
+    void MeshObject::draw_scene(
+        const bool lighting
+        ) {
+        if (mesh_gfx_.mesh() == nullptr)
+            return;
+
+        mesh_gfx_.set_lighting(lighting);
+
+        if (show_attributes_) {
+            mesh_gfx_.set_scalar_attribute(
+                attribute_subelements_,
+                attribute_name_,
+                static_cast<double>(attribute_min_),
+                static_cast<double>(attribute_max_),
+                colormaps_[current_colormap_index_].texture,
+                1);
+        }
+        else
+            mesh_gfx_.unset_scalar_attribute();
+
+        draw_points();
+        draw_surface();
+        draw_edges();
+        draw_volume(lighting);
+    }
+
+    void MeshObject::get_bbox(
+        double* xyzmin,
+        double* xyzmax
+        ) {
+        GEO::get_bbox(mesh_, xyzmin, xyzmax);
     }
 
     void MeshObject::draw_points(

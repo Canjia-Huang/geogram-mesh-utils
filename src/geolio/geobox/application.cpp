@@ -13,7 +13,9 @@ namespace geolio::geobox
 {
     GeoBoxApplication::GeoBoxApplication(
         ) : SimpleMeshApplication("Geolio - GeoBox")
-    {}
+    {
+        init();
+    }
 
     void GeoBoxApplication::draw_gui(
         ) {
@@ -50,6 +52,14 @@ namespace geolio::geobox
                 ImGuiCond_Always
             );
             status_bar_->draw();
+        }
+    }
+
+    void GeoBoxApplication::init(
+        ) {
+        for (GEO::coord_index_t i = 0; i < 3; ++i) {
+            xyzmin_[i] = std::numeric_limits<double>::max();
+            xyzmax_[i] = -std::numeric_limits<double>::max();
         }
     }
 
@@ -151,6 +161,10 @@ namespace geolio::geobox
                 ImGui::PopStyleVar();
                 it = base_objects_.erase(it);
                 ImGui::PopID();
+
+                if (base_objects_.empty())
+                    init();
+
                 continue;
             }
             ImGui::PopStyleVar();
@@ -206,17 +220,22 @@ namespace geolio::geobox
             return false;
         }
 
-        double xyzmin[3];
-        double xyzmax[3];
-        get_bbox(mesh, xyzmin, xyzmax, false);
-        set_region_of_interest(
-                xyzmin[0], xyzmin[1], xyzmin[2],
-                xyzmax[0], xyzmax[1], xyzmax[2]);
-
-        base_objects_.push_back(std::make_shared<MeshObject>(
+        const auto object = std::make_shared<MeshObject>(
             get_filename(filename),
             my_colormaps_,
-            mesh));
+            mesh);
+
+        double xyzmin[3], xyzmax[3];
+        object->get_bbox(xyzmin, xyzmax);
+        for (GEO::coord_index_t i = 0; i < 3; ++i) {
+            xyzmin_[i] = std::min(xyzmin_[i], xyzmin[i]);
+            xyzmax_[i] = std::max(xyzmax_[i], xyzmax[i]);
+        }
+        set_region_of_interest(
+            xyzmin_[0], xyzmin_[1], xyzmin_[2],
+            xyzmax_[0], xyzmax_[1], xyzmax_[2]);
+
+        base_objects_.push_back(object);
 
         return true;
     }

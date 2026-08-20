@@ -18,6 +18,9 @@ namespace geolio::geobox
         void draw_gui() override;
 
     protected:
+        void init();
+
+        // will be called in SimpleApplication::GL_initialize()
         void init_colormaps();
 
         void draw_controller_properties_window();
@@ -35,6 +38,10 @@ namespace geolio::geobox
         bool load(const std::string& filename) override;
 
         std::vector<geolio::geobox::ColormapInfo> my_colormaps_;
+
+        double xyzmin_[3];
+        double xyzmax_[3];
+
         std::vector<std::shared_ptr<BaseObject>> base_objects_;
         std::weak_ptr<BaseObject> selected_object_;
     };

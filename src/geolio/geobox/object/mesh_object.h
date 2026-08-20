@@ -23,6 +23,8 @@ namespace geolio::geobox
 
         void draw_scene(bool lighting) override;
 
+        void get_bbox(double* xyzmin, double* xyzmax) override;
+
     protected:
         // ref <geogram_gfx/gui/simple_mesh_application.cpp> draw_points()
         void draw_points();
