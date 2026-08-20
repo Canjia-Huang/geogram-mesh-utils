@@ -4,6 +4,7 @@
 //
 #include "application.h"
 #include "geolio/common/log.h"
+#include "geolio/common/parse_filepath.h"
 #include "object/mesh_object.h"
 
 namespace geolio::geobox
@@ -15,9 +16,9 @@ namespace geolio::geobox
     void GeoBoxApplication::draw_gui(
         ) {
         draw_menu_bar();
-        draw_dock_space();
-        draw_viewer_properties_window();
-        draw_object_properties_window();
+        draw_controller_properties_window();
+        // draw_viewer_properties_window();
+        // draw_object_properties_window();
         // draw_console();
         // draw_command_window();
         // draw_command_line_editor();
@@ -50,20 +51,50 @@ namespace geolio::geobox
         }
     }
 
+    void GeoBoxApplication::init_colormaps(
+        ) {
+        geolio::geobox::init_colormaps(my_colormaps_);
+    }
+
+    void GeoBoxApplication::draw_controller_properties_window(
+        ) {
+        const ImVec2 viewport_size = ImGui::GetMainViewport()->Size;
+        ImGui::SetNextWindowPos(
+            ImVec2(0.0f, ImGui::GetFrameHeight()), ImGuiCond_FirstUseEver
+        );
+        ImGui::SetNextWindowSize(
+            ImVec2(viewport_size.x * 0.25f, viewport_size.y * 0.5f),
+            ImGuiCond_FirstUseEver
+        );
+        ImGui::SetNextWindowBgAlpha(0.6f);
+        if (ImGui::Begin("Controller", nullptr, ImGuiWindowFlags_NoDocking))
+            draw_controller_properties();
+
+        ImGui::End();
+    }
+
+    void GeoBoxApplication::draw_controller_properties(
+        ) {
+        if (ImGui::CollapsingHeader("Viewer"))
+            draw_viewer_properties();
+        if (ImGui::CollapsingHeader("Object"))
+            draw_objects_properties();
+    }
+
     void GeoBoxApplication::draw_viewer_properties(
         ) {
         if (ImGui::Button((GEO::icon_UTF8("home")).c_str(), ImVec2(-1.0, 0.0)))
             home();
 
         ImGui::Separator();
-        if(three_D_) {
+        if (three_D_) {
             ImGui::Checkbox("Lighting", &lighting_);
             if(lighting_) {
                 ImGui::Checkbox("Edit light", &edit_light_);
             }
             ImGui::Separator();
             ImGui::Checkbox("Clipping", &clipping_);
-            if(clipping_) {
+            if (clipping_) {
                 ImGui::Combo(
                     "##mode", (int*)&clip_mode_,
                     "std. GL\0cells\0stradd.\0slice\0\0"
@@ -80,13 +111,34 @@ namespace geolio::geobox
         ImGui::ColorEdit3WithPalette("Backgnd", background_color_.data());
     }
 
-    void GeoBoxApplication::draw_controller_properties(
+    void GeoBoxApplication::draw_objects_properties(
         ) {
-        if (ImGui::CollapsingHeader("Viewer"))
-            draw_viewer_properties();
+        for (auto it = base_objects_.begin(); it != base_objects_.end();) {
+            const auto& base_object = *it;
+
+            ImGui::PushID(base_object.get());
+
+            ImGui::Text("%s", base_object->name().c_str());
+
+            ImGui::SameLine();
+            if (ImGui::Button(base_object->visible() ? "Hide" : "Show"))
+                base_object->set_visible(!base_object->visible());
+
+            ImGui::SameLine();
+            if (ImGui::Button("Delete")) {
+                it = base_objects_.erase(it);
+                ImGui::PopID();
+                continue;
+            }
+
+            ++it;
+            ImGui::PopID();
+            ImGui::Separator();
+        }
     }
 
-    void GeoBoxApplication::draw_object_properties() {
+    void GeoBoxApplication::draw_object_properties(
+        ) {
         if (base_objects_.empty())
             return;
 
@@ -96,11 +148,10 @@ namespace geolio::geobox
 
     void GeoBoxApplication::draw_scene(
         ) {
-        if (base_objects_.empty())
-            return;
-
-        for (const auto& base_object : base_objects_)
-            base_object->draw_scene(lighting_);
+        for (const auto& base_object : base_objects_) {
+            if (base_object->visible())
+                base_object->draw_scene(lighting_);
+        }
     }
 
     bool GeoBoxApplication::load(
@@ -121,7 +172,10 @@ namespace geolio::geobox
                 xyzmin[0], xyzmin[1], xyzmin[2],
                 xyzmax[0], xyzmax[1], xyzmax[2]);
 
-        base_objects_.push_back(std::make_shared<MeshObject>(mesh));
+        base_objects_.push_back(std::make_shared<MeshObject>(
+            get_filename(filename),
+            my_colormaps_,
+            mesh));
 
         return true;
     }

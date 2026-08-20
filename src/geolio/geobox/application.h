@@ -6,6 +6,7 @@
 #define GEOLIO_APPLICATION_H
 
 #include <geogram_gfx/gui/simple_mesh_application.h>
+#include "colormap.h"
 #include "geolio/geobox/object/base_object.h"
 
 namespace geolio::geobox
@@ -17,9 +18,15 @@ namespace geolio::geobox
         void draw_gui() override;
 
     protected:
-        void draw_viewer_properties() override;
+        void init_colormaps();
+
+        void draw_controller_properties_window();
 
         void draw_controller_properties();
+
+        void draw_viewer_properties() override;
+
+        void draw_objects_properties();
 
         void draw_object_properties() override;
 
@@ -27,6 +34,7 @@ namespace geolio::geobox
 
         bool load(const std::string& filename) override;
 
+        std::vector<geolio::geobox::ColormapInfo> my_colormaps_;
         std::vector<std::shared_ptr<BaseObject>> base_objects_;
     };
 }

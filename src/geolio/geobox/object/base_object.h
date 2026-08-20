@@ -11,16 +11,24 @@ namespace geolio::geobox
 {
     class BaseObject {
     public:
-        BaseObject() : unique_id_(generate_random_string(22)) {}
+        explicit BaseObject(const std::string& name) : name_(name), unique_id_(generate_random_string(22)), visible_(true) {}
 
         virtual ~BaseObject() = default;
+
+        [[nodiscard]] const std::string& name() const { return name_; }
+
+        [[nodiscard]] bool visible() const { return visible_; }
+
+        void set_visible(const bool visible) { visible_ = visible; }
 
         virtual void draw_object_properties() = 0;
 
         virtual void draw_scene(bool lighting) = 0;
 
     protected:
+        const std::string name_;
         const std::string unique_id_;
+        bool visible_;
     };
 }
 

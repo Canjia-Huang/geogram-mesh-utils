@@ -4,29 +4,26 @@
 //
 #ifndef GEOLIO_MESH_OBJECT_H
 #define GEOLIO_MESH_OBJECT_H
-
 #include "base_object.h"
 #include <geogram/mesh/mesh.h>
 #include <geogram_gfx/mesh/mesh_gfx.h>
+#include "geolio/geobox/colormap.h"
 
 namespace geolio::geobox
 {
     // ref <geogram_gfx/gui/simple_mesh_application.cpp> SimpleMeshApplication
     class MeshObject : public BaseObject {
     public:
-        explicit MeshObject(const GEO::Mesh& mesh);
+        explicit MeshObject(
+            const std::string& name,
+            const std::vector<ColormapInfo>& colormaps,
+            const GEO::Mesh& mesh);
 
         void draw_object_properties() override;
 
         void draw_scene(bool lighting) override;
 
     protected:
-        // ref <geogram_gfx/gui/simple_application.cpp> init_colormap()
-        void init_colormap(const std::string& name, const char** xpm_data);
-
-        // ref <geogram_gfx/gui/simple_application.cpp> init_colormaps()
-        void init_colormaps();
-
         // ref <geogram_gfx/gui/simple_mesh_application.cpp> draw_points()
         void draw_points();
 
@@ -79,13 +76,8 @@ namespace geolio::geobox
         bool show_hexes_ = true;
         bool show_connectors_ = true;
 
-        struct ColormapInfo {
-            ColormapInfo() : texture(0) {
-            }
-            GLuint texture;
-            std::string name;
-        };
-        GEO::vector<ColormapInfo> colormaps_;
+        const std::vector<ColormapInfo>& colormaps_;
+        bool colormaps_initialized_ = false;
 
         bool show_attributes_ = false;
         GEO::index_t current_colormap_index_ = 0;
