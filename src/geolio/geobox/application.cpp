@@ -5,7 +5,6 @@
 #include "application.h"
 #include <algorithm>
 #include <geogram/basic/command_line.h>
-#include <geogram_gfx/third_party/imgui/imgui_internal.h>
 #include "geolio/common/log.h"
 #include "geolio/common/parse_filepath.h"
 #include "object/mesh_object.h"
@@ -157,12 +156,20 @@ namespace geolio::geobox
             ImGui::PopStyleVar();
 
             ImGui::SameLine();
-            // ImGui lays text at the line's text-baseline offset; nudge it so the
-            // name sits vertically centered against the (taller) icon buttons.
-            ImGuiWindow* window = ImGui::GetCurrentWindow();
-            window->DC.CurrLineTextBaseOffset =
-                (icon_button_size - ImGui::GetTextLineHeight()) * 0.5f;
-            ImGui::Text("%s", base_object->name().c_str());
+            // The rest of the row (name + trailing space) is clickable and
+            // selects the object; the text is vertically centered like the buttons.
+            ImGui::PushStyleVar(
+                ImGuiStyleVar_SelectableTextAlign, ImVec2(0.0f, 0.5f));
+            const bool is_selected =
+                (selected_object_.lock() == base_object);
+            if (ImGui::Selectable(
+                base_object->name().c_str(),
+                is_selected,
+                0,
+                ImVec2(0.0f, icon_button_size)
+                ))
+                selected_object_ = base_object;
+            ImGui::PopStyleVar();
 
             ++it;
             ImGui::PopID();

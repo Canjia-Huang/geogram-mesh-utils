@@ -36,6 +36,7 @@ namespace geolio::geobox
 
         std::vector<geolio::geobox::ColormapInfo> my_colormaps_;
         std::vector<std::shared_ptr<BaseObject>> base_objects_;
+        std::weak_ptr<BaseObject> selected_object_;
     };
 }
 
