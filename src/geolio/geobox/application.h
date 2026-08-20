@@ -14,7 +14,13 @@ namespace geolio::geobox
     public:
         GeoBoxApplication();
 
+        void draw_gui() override;
+
     protected:
+        void draw_viewer_properties() override;
+
+        void draw_controller_properties();
+
         void draw_object_properties() override;
 
         void draw_scene() override;

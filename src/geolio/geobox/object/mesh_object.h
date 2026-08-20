@@ -11,6 +11,7 @@
 
 namespace geolio::geobox
 {
+    // ref <geogram_gfx/gui/simple_mesh_application.cpp> SimpleMeshApplication
     class MeshObject : public BaseObject {
     public:
         explicit MeshObject(const GEO::Mesh& mesh);
