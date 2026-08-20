@@ -163,8 +163,8 @@ namespace geolio::test
         mesh.clear();
 
         GEO::Attribute<GEO::index_t> mesh_c_idx(mesh.cells.attributes(), "idx");
-        GEO::Attribute<GEO::index_t> mesh_cf_idx(mesh.cell_facets.attributes(), "idx");
         GEO::Attribute<GEO::index_t> mesh_cc_idx(mesh.cell_corners.attributes(), "idx");
+        GEO::Attribute<GEO::index_t> mesh_cf_idx(mesh.cell_facets.attributes(), "idx");
 
         const std::array<GEO::vec3, 8> vertices = {
             GEO::vec3(0, 0, 2),
@@ -198,6 +198,69 @@ namespace geolio::test
         const GEO::index_t new_c1 = new_c0+1;
         const GEO::index_t new_c2 = new_c1+1;
         tet_split(mesh, 1, new_v, new_c0, new_c1, new_c2);
+        {
+            constexpr GEO::index_t c = 1;
+            EXPECT_EQ(mesh_c_idx[c], c);
+            EXPECT_EQ(mesh_c_idx[new_c0], c);
+            EXPECT_EQ(mesh_c_idx[new_c1], c);
+            EXPECT_EQ(mesh_c_idx[new_c2], c);
+        }
+        {
+            for (const auto& c : {static_cast<GEO::index_t>(1), new_c0, new_c1, new_c2}) {
+                for (GEO::index_t lv = 0; lv < 4; ++lv) {
+                    if (const auto& cc = mesh.cells.corner(c, lv);
+                        mesh.cell_corners.vertex(cc) == 1)
+                        EXPECT_EQ(mesh_cc_idx[cc], 4*1+2);
+                    else if (mesh.cell_corners.vertex(cc) == 2)
+                        EXPECT_EQ(mesh_cc_idx[cc], 4*1+1);
+                    else if (mesh.cell_corners.vertex(cc) == 3)
+                        EXPECT_EQ(mesh_cc_idx[cc], 4*1+0);
+                    else if (mesh.cell_corners.vertex(cc) == 4)
+                        EXPECT_EQ(mesh_cc_idx[cc], 4*1+3);
+                    else
+                        EXPECT_EQ(mesh_cc_idx[cc], 0);
+                }
+            }
+        }
+        {
+            for (const auto& c : {static_cast<GEO::index_t>(1), new_c0, new_c1, new_c2}) {
+                GEO::index_t found_lf = GEO::NO_INDEX;
+
+                if (const auto lf = mesh.cells.find_tet_facet(c, 3, 2, 1);
+                    lf != GEO::NO_INDEX) {
+                    EXPECT_EQ(found_lf, GEO::NO_INDEX);
+                    found_lf = lf;
+                    EXPECT_EQ(mesh_cf_idx[mesh.cells.facet(c, lf)], 4*1+3);
+                }
+
+                if (const auto lf = mesh.cells.find_tet_facet(c, 1, 2, 4);
+                    lf != GEO::NO_INDEX) {
+                    EXPECT_EQ(found_lf, GEO::NO_INDEX);
+                    found_lf = lf;
+                    EXPECT_EQ(mesh_cf_idx[mesh.cells.facet(c, lf)], 4*1+0);
+                }
+
+                if (const auto lf = mesh.cells.find_tet_facet(c, 3, 1, 4);
+                    lf != GEO::NO_INDEX) {
+                    EXPECT_EQ(found_lf, GEO::NO_INDEX);
+                    found_lf = lf;
+                    EXPECT_EQ(mesh_cf_idx[mesh.cells.facet(c, lf)], 4*1+1);
+                }
+
+                if (const auto lf = mesh.cells.find_tet_facet(c, 2, 3, 4);
+                    lf != GEO::NO_INDEX) {
+                    EXPECT_EQ(found_lf, GEO::NO_INDEX);
+                    found_lf = lf;
+                    EXPECT_EQ(mesh_cf_idx[mesh.cells.facet(c, lf)], 4*1+2);
+                }
+
+                EXPECT_NE(found_lf, GEO::NO_INDEX);
+                for (GEO::index_t lf = 0; lf < 4; ++lf) {
+                    if (lf != found_lf)
+                        EXPECT_EQ(mesh_cf_idx[mesh.cells.facet(c, lf)], 0);
+                }
+            }
+        }
 
         GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
     }
