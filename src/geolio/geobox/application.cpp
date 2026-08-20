@@ -125,13 +125,23 @@ namespace geolio::geobox
             icon_text_width + 2.0f * ImGui::GetStyle().FramePadding.x);
 
         // With the box shrunken to 75%, tighten the buttons' inner padding so
-        // the glyph still fits and stays centered inside it.
-        const ImVec2 icon_frame_padding(
+        // the glyph still fits and stays centered inside it. FramePadding.y must
+        // stay 0: it becomes the button's text baseline, and a nonzero value
+        // makes SameLine() shift the following Selectable down by that amount,
+        // so its text/highlight would stick out below the buttons.
+        const ImVec2 icon_button_padding(
             std::max(0.0f, (icon_button_size - icon_text_width) * 0.5f),
-            std::max(0.0f, (icon_button_size - ImGui::GetTextLineHeight()) * 0.5f));
+            0.0f);
 
         // Master row: actions that apply to all objects.
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, icon_frame_padding);
+        // Give the master row a distinct background so it stands out from object rows.
+        ImGui::GetWindowDrawList()->AddRectFilled(
+            ImGui::GetCursorScreenPos(),
+            ImVec2(
+                ImGui::GetCursorScreenPos().x + ImGui::GetContentRegionAvail().x,
+                ImGui::GetCursorScreenPos().y + icon_button_size),
+            ImGui::GetColorU32(ImVec4(0.35f, 0.61f, 0.49f, 0.25f)));
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, icon_button_padding);
 
         // Show / hide all objects.
         const bool all_visible = std::all_of(
@@ -205,7 +215,7 @@ namespace geolio::geobox
 
             ImGui::PushID(base_object.get());
 
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, icon_frame_padding);
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, icon_button_padding);
             if (ImGui::Button(
                 GEO::icon_UTF8(
                     base_object->visible() ? "eye" : "eye-slash").c_str(),
