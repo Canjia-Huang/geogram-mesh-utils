@@ -409,41 +409,80 @@ namespace geolio::test
 
     /* ============================================================================================================= */
 
-    // class TetEdgeCollapseTest : public TetOperationsTest {
-    // protected:
-    //     void perform_operation(const GEO::index_t c, const GEO::index_t le) override {
-    //         const double r = GEO::Numeric::random_float32();
-    //
-    //         GEO::index_t disuse_v;
-    //         std::vector<GEO::index_t> disuse_cs;
-    //         tet_edge_collapse(mesh, c, le, disuse_v, disuse_cs, r);
-    //
-    //         /* Clean disuse vertices and cells */
-    //         GEO::vector<GEO::index_t> cells_to_delete(mesh.cells.nb(), 0);
-    //         for (const auto& cc : disuse_cs)
-    //             cells_to_delete[cc] = 1;
-    //         mesh.cells.delete_elements(cells_to_delete);
-    //     }
-    // };
-    //
+    class TetEdgeCollapseTest : public TetOperationsTest {
+    protected:
+        void perform_operation(const GEO::index_t c, const GEO::index_t le) override {
+            const double r = GEO::Numeric::random_float32();
+
+            GEO::index_t disuse_v;
+            std::vector<GEO::index_t> disuse_cs;
+            tet_edge_collapse(mesh, c, le, disuse_v, disuse_cs, r);
+
+            /* Clean disuse vertices and cells */
+            GEO::vector<GEO::index_t> cells_to_delete(mesh.cells.nb(), 0);
+            for (const auto& cc : disuse_cs)
+                cells_to_delete[cc] = 1;
+            mesh.cells.delete_elements(cells_to_delete);
+        }
+    };
+
     // TEST_F(TetEdgeCollapseTest, tet_edge_collapse) {
     //     for_each_c_le();
     // }
 
     /* ============================================================================================================= */
 
-    // class TetEdgeSwap23Test : public TetOperationsTest {
-    // protected:
-    //     void perform_operation(const GEO::index_t c, const GEO::index_t lf) override {
-    //
-    //         const GEO::index_t new_c = mesh.cells.create_tets(1);
-    //         tet_edge_swap_2_3(mesh, c, lf, new_c);
-    //     }
-    // };
-    //
+    class TetEdgeSwap23Test : public TetOperationsTest {
+    protected:
+        void perform_operation(const GEO::index_t c, const GEO::index_t lf) override {
+
+            const GEO::index_t new_c = mesh.cells.create_tets(1);
+            tet_edge_swap_2_3(mesh, c, lf, new_c);
+        }
+    };
+
     // TEST_F(TetEdgeSwap23Test, tet_edge_swap) {
     //     for_each_c_lf();
     // }
+
+    TEST_F(TetEdgeSwap23Test, manage_attributes) {
+        mesh.clear();
+
+        GEO::Attribute<GEO::index_t> mesh_c_idx(mesh.cells.attributes(), "idx");
+        GEO::Attribute<GEO::index_t> mesh_cc_idx(mesh.cell_corners.attributes(), "idx");
+        GEO::Attribute<GEO::index_t> mesh_cf_idx(mesh.cell_facets.attributes(), "idx");
+
+        const std::vector<GEO::vec3> vertices = {
+            GEO::vec3(0, 2, 0), GEO::vec3(-1.732, -1, 0), GEO::vec3(1.732, -1, 0),
+            GEO::vec3(0, 0, 2), GEO::vec3(0, 0, -2)
+        };
+        const std::vector<GEO::index_t> cells = {
+            0, 1, 2, 3,
+            2, 1, 0, 4
+        };
+        mesh.vertices.create_vertices(vertices.size());
+        for (const auto& v : mesh.vertices)
+            mesh.vertices.point(v) = vertices[v];
+        mesh.cells.create_tets(cells.size()/3);
+        for (const auto& c : mesh.cells) {
+            mesh_c_idx[c] = c;
+
+            for (GEO::index_t lv = 0; lv < 4; ++lv) {
+                mesh.cells.set_vertex(c, lv, cells[4*c+lv]);
+
+                mesh_cc_idx[mesh.cells.corner(c, lv)] = mesh.cells.corner(c, lv);
+                mesh_cf_idx[mesh.cells.facet(c, lv)] = mesh.cells.facet(c, lv);
+            }
+        }
+        mesh.cells.connect();
+        GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
+
+        /* Split */
+        const GEO::index_t new_c = mesh.cells.create_tets(1);
+        tet_edge_swap_2_3(mesh, 0, 3, new_c);
+
+        GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
+    }
 
     /* ============================================================================================================= */
 

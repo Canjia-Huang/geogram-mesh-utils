@@ -468,12 +468,12 @@ namespace geolio
         assert(new_c < M.cells.nb());
 
         const GEO::index_t v = M.cells.vertex(c, lf);
-        const GEO::index_t v0 = M.cells.facet_vertex(c, lf, 0);
-        const GEO::index_t v1 = M.cells.facet_vertex(c, lf, 1);
-        const GEO::index_t v2 = M.cells.facet_vertex(c, lf, 2);
         const GEO::index_t lv0 = TET_LF_INCIDENT_LV[lf][0];
         const GEO::index_t lv1 = TET_LF_INCIDENT_LV[lf][1];
         const GEO::index_t lv2 = TET_LF_INCIDENT_LV[lf][2];
+        const GEO::index_t v0 = M.cells.vertex(c, 0);
+        const GEO::index_t v1 = M.cells.vertex(c, 1);
+        const GEO::index_t v2 = M.cells.vertex(c, 2);
         const GEO::index_t nc0 = M.cells.adjacent(c, lv0);
         const GEO::index_t nc1 = M.cells.adjacent(c, lv1);
         const GEO::index_t nc2 = M.cells.adjacent(c, lv2);
@@ -552,6 +552,62 @@ namespace geolio
             assert(M.cells.find_tet_facet(nc_nc2, nv, nv0, nv1) != GEO::NO_INDEX);
             M.cells.set_adjacent(nc_nc2, M.cells.find_tet_facet(nc_nc2, nv, nv0, nv1), new_c);
         }
+
+        /* Copy attributes */
+        M.cell_corners.attributes().copy_item(M.cells.corner(new_c, 0), M.cells.corner(c, lf)); // need to set new_c first
+        M.cell_corners.attributes().copy_item(M.cells.corner(new_c, 1), M.cells.corner(nc, nlf)); // need to set new_c first
+        M.cell_corners.attributes().copy_item(M.cells.corner(c, 0), M.cells.corner(new_c, 0));
+        M.cell_corners.attributes().copy_item(M.cells.corner(c, 1), M.cells.corner(new_c, 1));
+        M.cell_corners.attributes().copy_item(M.cells.corner(nc, 0), M.cells.corner(new_c, 0));
+        M.cell_corners.attributes().copy_item(M.cells.corner(nc, 1), M.cells.corner(new_c, 1));
+        M.cell_facets.attributes().copy_item(M.cells.facet(new_c, 0), M.cells.facet(nc, nlv2));
+        M.cell_facets.attributes().copy_item(M.cells.facet(new_c, 1), M.cells.facet(c, lv1));
+        // `nc` remains M.cells.facet(nc, nlv0) and M.cells.facet(nc, nlv1) are useful, temporarily move to safety index (2, 3)
+        GEO::index_t new_nlv0 = 2;
+        GEO::index_t new_nlv1 = 3;
+        if (nlv1 == 2) { // nv0 -> 3
+            new_nlv0 = 3;
+            new_nlv1 = 2;
+        }
+        else if (nlv0 == 3) { // nv1 -> 2
+            new_nlv0 = 3;
+            new_nlv1 = 2;
+        }
+        if (nlv0 != new_nlv0)
+            M.cell_facets.attributes().copy_item(M.cells.facet(nc, new_nlv0), M.cells.facet(nc, nlv0));
+        if (nlv1 != new_nlv1)
+            M.cell_facets.attributes().copy_item(M.cells.facet(nc, new_nlv1), M.cells.facet(nc, nlv1));
+        // `c` remains M.cells.facet(c, lv0) and M.cells.facet(c, lv2) are useful, temporarily move to safety index (2, 3)
+        GEO::index_t new_lv0 = 2;
+        GEO::index_t new_lv2 = 3;
+        if (lv2 == 2) {
+            new_lv0 = 3;
+            new_lv2 = 2;
+        }
+        else if (lv0 == 3) {
+            new_lv0 = 3;
+            new_lv2 = 2;
+        }
+        if (lv0 != new_lv0)
+            M.cell_facets.attributes().copy_item(M.cells.facet(c, new_lv0), M.cells.facet(c, lv0));
+        if (lv2 != new_lv2)
+            M.cell_facets.attributes().copy_item(M.cells.facet(c, new_lv2), M.cells.facet(c, lv2));
+
+        M.cell_facets.attributes().copy_item(M.cells.facet(nc, 0), M.cells.facet(nc, new_nlv0));
+        M.cell_facets.attributes().copy_item(M.cells.facet(nc, 1), M.cells.facet(c, new_lv0));
+        M.cell_facets.attributes().copy_item(M.cells.facet(c, 0), M.cells.facet(nc, new_nlv1));
+        M.cell_facets.attributes().copy_item(M.cells.facet(c, 1), M.cells.facet(c, new_lv2));
+        /* Restore attributes */
+        M.cells.attributes().zero_item(c);
+        M.cells.attributes().zero_item(nc);
+        M.cell_corners.attributes().zero_item(M.cells.corner(c, 2));
+        M.cell_corners.attributes().zero_item(M.cells.corner(c, 3));
+        M.cell_corners.attributes().zero_item(M.cells.corner(nc, 2));
+        M.cell_corners.attributes().zero_item(M.cells.corner(nc, 3));
+        M.cell_facets.attributes().zero_item(M.cells.facet(c, new_lv0));
+        M.cell_facets.attributes().zero_item(M.cells.facet(c, new_lv2));
+        M.cell_facets.attributes().zero_item(M.cells.facet(nc, new_nlv0));
+        M.cell_facets.attributes().zero_item(M.cells.facet(nc, new_nlv1));
 
         return true;
     }
