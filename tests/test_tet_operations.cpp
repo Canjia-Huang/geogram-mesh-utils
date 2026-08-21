@@ -869,16 +869,62 @@ namespace geolio::test
         create_mesh(vertices, cells);
         GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
 
-        /* Split */
+        constexpr GEO::index_t c0 = 0;
+        constexpr GEO::index_t le0 = 0;
+
         std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>> ordered_c_le_lf;
-        const bool ON_BORDER = get_edge_incident_cells(mesh, 0, 0, ordered_c_le_lf);
+        const bool ON_BORDER = get_edge_incident_cells(mesh, c0, le0, ordered_c_le_lf);
         ASSERT_FALSE(ON_BORDER);
         ASSERT_EQ(ordered_c_le_lf.size(), 3);
 
+        const auto c1 = get<0>(ordered_c_le_lf[1]);
+
+        std::vector<GEO::index_t> cell_facet_vertices;
+        {
+            cell_facet_vertices.reserve(12*ordered_c_le_lf.size());
+            for (const auto& [c, _, __] : ordered_c_le_lf) {
+                for (GEO::index_t lf = 0; lf < 4; ++lf) {
+                    for (GEO::index_t lv = 0; lv < 3; ++lv)
+                        cell_facet_vertices.push_back(mesh.cells.facet_vertex(c, lf, lv));
+                }
+            }
+        }
+
+        /* Split */
         GEO::index_t disuse_c;
         tet_edge_swap_3_2(mesh, ordered_c_le_lf, disuse_c);
 
         /* Check */
+        {
+            EXPECT_EQ(mesh_c_idx[c0], DEFAULT_IDX);
+            EXPECT_EQ(mesh_c_idx[c1], DEFAULT_IDX);
+        }
+        {
+            for (const auto& c : {c0, c1}) {
+                for (GEO::index_t lv = 0; lv < 4; ++lv)
+                    EXPECT_EQ(mesh_cc_idx[mesh.cells.corner(c, lv)], DEFAULT_IDX);
+            }
+        }
+        {
+            for (const auto& c : {c0, c1}) {
+                std::vector<bool> found_lf(4, false);
+
+                for (const auto& [cc, _, __] : ordered_c_le_lf) {
+                    for (GEO::index_t lf = 0; lf < 4; ++lf) {
+                        if (const auto flf = mesh.cells.find_tet_facet(c, cell_facet_vertices[12*cc+3*lf+0], cell_facet_vertices[12*cc+3*lf+1], cell_facet_vertices[12*cc+3*lf+2]);
+                            flf != GEO::NO_INDEX) {
+                            found_lf[flf] = true;
+                            EXPECT_EQ(mesh_cf_idx[mesh.cells.facet(c, flf)], mesh_cf_original_idx[mesh.cells.facet(cc, lf)]);
+                        }
+                    }
+                }
+
+                for (GEO::index_t lf = 0; lf < 4; ++lf) {
+                    if (!found_lf[lf])
+                        EXPECT_EQ(mesh_cf_idx[mesh.cells.facet(c, lf)], DEFAULT_IDX);
+                }
+            }
+        }
 
 
         GEO::vector<GEO::index_t> cells_to_delete(mesh.cells.nb(), 0);

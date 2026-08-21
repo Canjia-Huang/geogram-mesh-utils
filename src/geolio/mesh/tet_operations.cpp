@@ -670,7 +670,8 @@ namespace geolio
     bool tet_edge_swap_3_2(
         GEO::Mesh& mesh,
         const std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>>& ordered_c_le_lf,
-        GEO::index_t& disuse_c
+        GEO::index_t& disuse_c,
+        const bool update_attributes
         ) {
         assert(ordered_c_le_lf.size() == 3);
         assert(mesh.cells.adjacent(get<0>(ordered_c_le_lf.back()), get<2>(ordered_c_le_lf.back())) != GEO::NO_CELL);
@@ -742,24 +743,29 @@ namespace geolio
             mesh.cells.set_adjacent(nc21, nlf, c1);
         }
 
-        /* Copy attributes */
-        const GEO::index_t c2_lv0 = mesh.cells.find_tet_vertex(c2, v0);
-        assert(c2_lv0 != GEO::NO_INDEX);
-        mesh.cell_facets.attributes().copy_item(mesh.cells.facet(c0, c0_lv2), mesh.cells.facet(c2, c2_lv0));
-        mesh.cell_facets.attributes().copy_item(mesh.cells.facet(c0, c0_lv3), mesh.cells.facet(c1, c1_lv0));
-        const GEO::index_t c2_lv1 = mesh.cells.find_tet_vertex(c2, v1);
-        assert(c2_lv1 != GEO::NO_INDEX);
-        mesh.cell_facets.attributes().copy_item(mesh.cells.facet(c1, c1_lv2), mesh.cells.facet(c2, c2_lv1));
-        mesh.cell_facets.attributes().copy_item(mesh.cells.facet(c1, c1_lv4), mesh.cells.facet(c0, c0_lv1));
-        /* Restore attributes */
-        mesh.cells.attributes().zero_item(c0);
-        mesh.cells.attributes().zero_item(c1);
-        for (GEO::index_t lv = 0; lv < 4; ++lv) {
-            mesh.cell_corners.attributes().zero_item(mesh.cells.corner(c0, lv));
-            mesh.cell_corners.attributes().zero_item(mesh.cells.corner(c1, lv));
+        if (update_attributes) {
+            /* Cells */
+            mesh.cells.attributes().zero_item(c0);
+            mesh.cells.attributes().zero_item(c1);
+
+            /* Cell corners */
+            for (GEO::index_t lv = 0; lv < 4; ++lv) {
+                mesh.cell_corners.attributes().zero_item(mesh.cells.corner(c0, lv));
+                mesh.cell_corners.attributes().zero_item(mesh.cells.corner(c1, lv));
+            }
+
+            /* Cell facets */
+            const GEO::index_t c2_lv0 = mesh.cells.find_tet_vertex(c2, v0);
+            assert(c2_lv0 != GEO::NO_INDEX);
+            mesh.cell_facets.attributes().copy_item(mesh.cells.facet(c0, c0_lv2), mesh.cells.facet(c2, c2_lv0));
+            mesh.cell_facets.attributes().copy_item(mesh.cells.facet(c0, c0_lv3), mesh.cells.facet(c1, c1_lv0));
+            const GEO::index_t c2_lv1 = mesh.cells.find_tet_vertex(c2, v1);
+            assert(c2_lv1 != GEO::NO_INDEX);
+            mesh.cell_facets.attributes().copy_item(mesh.cells.facet(c1, c1_lv2), mesh.cells.facet(c2, c2_lv1));
+            mesh.cell_facets.attributes().copy_item(mesh.cells.facet(c1, c1_lv4), mesh.cells.facet(c0, c0_lv1));
+            mesh.cell_facets.attributes().zero_item(mesh.cells.facet(c0, c0_lv1));
+            mesh.cell_facets.attributes().zero_item(mesh.cells.facet(c1, c1_lv0));
         }
-        mesh.cell_facets.attributes().zero_item(mesh.cells.facet(c0, c0_lv1));
-        mesh.cell_facets.attributes().zero_item(mesh.cells.facet(c1, c1_lv0));
 
         return true;
     }

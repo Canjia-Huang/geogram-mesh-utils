@@ -255,7 +255,8 @@ namespace geolio
     bool tet_edge_swap_3_2(
         GEO::Mesh& mesh,
         const std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>>& ordered_c_le_lf,
-        GEO::index_t& disuse_c);
+        GEO::index_t& disuse_c,
+        bool update_attributes = true);
 }
 
 #endif //GEOLIO_TETRAHEDRON_OPERATIONS_H
