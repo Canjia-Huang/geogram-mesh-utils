@@ -154,8 +154,10 @@ namespace geolio
      * @param[in]     new_v  Index of a pre-allocated vertex used as the split vertex.
      * @param[in]     new_c0 Index of the first pre-allocated tetrahedron created by the split.
      * @param[in]     new_c1 Index of the second pre-allocated tetrahedron created by the split.
-     * @param[in]     new_c2 Optional; index of the third pre-allocated tetrahedron used for interior facets.
-     * @param[in]     new_c3 Optional; index of the fourth pre-allocated tetrahedron used for interior facets.
+     * @param[in]     new_c2 Index of the third pre-allocated tetrahedron used for interior facets,
+     *                       If the lf neighbor is GEO::NO_CELL, it can be set to GEO::NO_CELL.
+     * @param[in]     new_c3 Index of the fourth pre-allocated tetrahedron used for interior facets.
+     *                       If the lf neighbor is GEO::NO_CELL, it can be set to GEO::NO_CELL.
      */
     void tet_facet_split(
         GEO::Mesh& mesh,
@@ -164,8 +166,9 @@ namespace geolio
         GEO::index_t new_v,
         GEO::index_t new_c0,
         GEO::index_t new_c1,
-        GEO::index_t new_c2 = GEO::NO_CELL,
-        GEO::index_t new_c3 = GEO::NO_CELL);
+        GEO::index_t new_c2,
+        GEO::index_t new_c3,
+        bool update_attributes = true);
 
     /**
      * @brief Split a tetrahedral edge by inserting one vertex and splitting all incident cells.
