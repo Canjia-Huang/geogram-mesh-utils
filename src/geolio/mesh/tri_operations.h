@@ -39,12 +39,13 @@ namespace geolio
         GEO::index_t lv,
         GEO::index_t new_v,
         GEO::index_t new_f0,
-        GEO::index_t new_f1);
+        GEO::index_t new_f1,
+        bool update_attributes = true);
 
     extern template void tri_edge_split<2>(
-        GEO::Mesh& M, GEO::index_t f, GEO::index_t lv, GEO::index_t new_v, GEO::index_t new_f0, GEO::index_t new_f1);
+        GEO::Mesh& M, GEO::index_t f, GEO::index_t lv, GEO::index_t new_v, GEO::index_t new_f0, GEO::index_t new_f1, bool update_attributes);
     extern template void tri_edge_split<3>(
-        GEO::Mesh& M, GEO::index_t f, GEO::index_t lv, GEO::index_t new_v, GEO::index_t new_f0, GEO::index_t new_f1);
+        GEO::Mesh& M, GEO::index_t f, GEO::index_t lv, GEO::index_t new_v, GEO::index_t new_f0, GEO::index_t new_f1, bool update_attributes);
 
     /**
      * @brief Check whether collapsing a triangle edge preserves local orientation.

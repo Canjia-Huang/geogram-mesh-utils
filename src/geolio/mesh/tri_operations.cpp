@@ -21,7 +21,8 @@ namespace geolio
         const GEO::index_t lv,
         const GEO::index_t new_v,
         const GEO::index_t new_f0,
-        const GEO::index_t new_f1
+        const GEO::index_t new_f1,
+        const bool update_attributes
         ) {
         assert(f < M.facets.nb());
         assert(M.facets.nb_vertices(f) == 3);
@@ -66,12 +67,16 @@ namespace geolio
             M.facets.set_adjacent(nf1, M.facets.find_vertex(nf1, v2), new_f0);
         }
 
-        /* Copy attributes */
-        M.facets.attributes().copy_item(new_f0, f);
-        M.facet_corners.attributes().copy_item(M.facets.corner(new_f0, lv0), M.facets.corner(f, lv0));
-        M.facet_corners.attributes().copy_item(M.facets.corner(new_f0, lv1), M.facets.corner(f, lv1));
-        /* Restore attributes */
-        M.facet_corners.attributes().zero_item(M.facets.corner(f, lv1));
+        if (update_attributes) {
+            /* Facet */
+            M.facets.attributes().copy_item(new_f0, f);
+
+            /* Facet corners */
+            M.facet_corners.attributes().zero_item(M.facets.corner(new_f0, lv0));
+            M.facet_corners.attributes().copy_item(M.facets.corner(new_f0, lv1), M.facets.corner(f, lv1));
+            M.facet_corners.attributes().copy_item(M.facets.corner(new_f0, lv2), M.facets.corner(f, lv2));
+            M.facet_corners.attributes().zero_item(M.facets.corner(f, lv1));
+        }
 
         /* == Split adjacent facet ================================================================================= */
         if (nf0 != GEO::NO_FACET) {
@@ -112,21 +117,25 @@ namespace geolio
                 M.facets.set_adjacent(nnf2, M.facets.find_vertex(nnf2, nv0), new_f1);
             }
 
-            /* Copy attributes */
-            M.facets.attributes().copy_item(new_f1, nf0);
-            M.facet_corners.attributes().copy_item(M.facets.corner(new_f1, nlv0), M.facets.corner(nf0, nlv0));
-            M.facet_corners.attributes().copy_item(M.facets.corner(new_f1, nlv2), M.facets.corner(nf0, nlv2));
-            /* Restore attributes */
-            M.facet_corners.attributes().zero_item(M.facets.corner(nf0, nlv2));
+            if (update_attributes) {
+                /* Facet */
+                M.facets.attributes().copy_item(new_f1, nf0);
+
+                /* Facet corners */
+                M.facet_corners.attributes().copy_item(M.facets.corner(new_f1, nlv0), M.facets.corner(nf0, nlv0));
+                M.facet_corners.attributes().zero_item(M.facets.corner(new_f1, nlv1));
+                M.facet_corners.attributes().copy_item(M.facets.corner(new_f1, nlv2), M.facets.corner(nf0, nlv2));
+                M.facet_corners.attributes().zero_item(M.facets.corner(nf0, nlv0));
+            }
         }
         else
             M.facets.set_adjacent(new_f0, lv0, GEO::NO_FACET);
     }
 
     template void tri_edge_split<2>(
-        GEO::Mesh& M, GEO::index_t f, GEO::index_t lv, GEO::index_t new_v, GEO::index_t new_f0, GEO::index_t new_f1);
+        GEO::Mesh& M, GEO::index_t f, GEO::index_t lv, GEO::index_t new_v, GEO::index_t new_f0, GEO::index_t new_f1, bool update_attributes);
     template void tri_edge_split<3>(
-        GEO::Mesh& M, GEO::index_t f, GEO::index_t lv, GEO::index_t new_v, GEO::index_t new_f0, GEO::index_t new_f1);
+        GEO::Mesh& M, GEO::index_t f, GEO::index_t lv, GEO::index_t new_v, GEO::index_t new_f0, GEO::index_t new_f1, bool update_attributes);
 
     bool is_tri_edge_collapse_valid(
         const GEO::Mesh& M,
