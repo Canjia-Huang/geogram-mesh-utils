@@ -184,8 +184,6 @@ namespace geolio
      * @param[in]     new_v            Index of the pre-allocated vertex to place on the edge.
      * @param[in,out] new_cs           Array of pre-allocated tetrahedron indices (one per
      *                                incident cell).
-     * @param[in]     r                Interpolation ratio used to position @p new_v on the edge
-     *                                (`0` at the first endpoint, `1` at the second).
      */
     void tet_edge_split(
         GEO::Mesh& M,
@@ -205,7 +203,6 @@ namespace geolio
      * @param[in,out] M         The tetrahedral mesh to modify.
      * @param[in]     _c         Index of a cell containing the target edge.
      * @param[in]     _le        Local edge index (0-5) in cell @p c.
-     * @param[in]     r         Interpolation ratio for the kept vertex position on the edge.
      * @param[out]    disuse_v  Receives the removed vertex index.
      * @param[out]    disuse_cs Receives indices of cells removed by the collapse.
      */
@@ -237,17 +234,17 @@ namespace geolio
 
     /**
      * @brief Perform a 3-2 edge swap operation on a tetrahedral mesh.
-     * @details This operation replaces 3 tetrahedra sharing a common edge with 2 tetrahedra by
-     *          removing the shared edge. Given a cell @p _c with a local edge @p _le, the function
-     *          collects the cells incident to that edge in ring order via get_edge_incident_cells()
-     *          and requires exactly 3 non-border cells. It then rewrites the vertices of the two
-     *          surviving cells and relinks the adjacency of the cavity; the removed cell index is
-     *          reported through @p disuse_c.
-     * @param[in,out] M        The tetrahedral mesh to modify.
-     * @param[in]     _c       Index of a seed cell containing the target edge.
-     * @param[in]     _le      Local edge index (0-5) in cell @p _c.
-     * @param[out]    disuse_c Reference to receive the index of the removed cell.
-     * @return true if the swap was performed successfully; false if preconditions are not met.
+     * @details This operation replaces the three tetrahedra around a common interior edge with
+     *          two tetrahedra by reconnecting the ring of cells that share the edge. The input
+     *          @p ordered_c_le_lf stores the three incident cells in circular order as
+     *          `(cell index, local edge index, local facet index)`, which identifies the edge
+     *          and the facet on each cell used to walk the cavity. The function rewrites the
+     *          vertices of the two surviving cells, relinks adjacent cells around the modified
+     *          cavity, and reports the removed cell index through @p disuse_c.
+     * @param[in,out] M                    The tetrahedral mesh to modify.
+     * @param[in]     ordered_c_le_lf      Three ordered tuples describing the edge-connected cell ring.
+     * @param[out]    disuse_c             Reference to receive the index of the cell removed by the 3-2 swap.
+     * @return true if the swap is performed successfully; false if the input ring is invalid or the operation cannot be applied.
      */
     bool tet_edge_swap_3_2(
         GEO::Mesh& M,
