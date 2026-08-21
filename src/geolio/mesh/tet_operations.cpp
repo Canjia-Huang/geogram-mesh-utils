@@ -604,6 +604,7 @@ namespace geolio
             /* Cells */
             mesh.cells.attributes().zero_item(c);
             mesh.cells.attributes().zero_item(nc);
+            mesh.cells.attributes().zero_item(new_c);
 
             /* Cell corners */
             mesh.cell_corners.attributes().copy_item(mesh.cells.corner(new_c, 0), mesh.cells.corner(c, lf)); // need to set new_c first

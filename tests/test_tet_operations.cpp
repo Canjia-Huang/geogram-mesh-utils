@@ -170,6 +170,16 @@ namespace geolio::test
             create_attributes();
         }
 
+        void random_attributes(
+            const GEO::index_t c
+            ) {
+            mesh_c_idx[c] = GEO::Numeric::random_int32();
+            for (GEO::index_t i = 0; i < 4; ++i) {
+                mesh_cc_idx[mesh.cells.corner(c, i)] = GEO::Numeric::random_int32();
+                mesh_cf_idx[mesh.cells.facet(c, i)] = GEO::Numeric::random_int32();
+            }
+        }
+
         GEO::Mesh mesh;
         GEO::Attribute<GEO::index_t> mesh_c_idx;
         GEO::Attribute<GEO::index_t> mesh_cc_idx;
@@ -249,6 +259,9 @@ namespace geolio::test
         const GEO::index_t new_c0 = mesh.cells.create_tets(3);
         const GEO::index_t new_c1 = new_c0+1;
         const GEO::index_t new_c2 = new_c1+1;
+        random_attributes(new_c0);
+        random_attributes(new_c1);
+        random_attributes(new_c2);
         tet_split(mesh, c0, new_v, new_c0, new_c1, new_c2);
         GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
 
@@ -405,6 +418,10 @@ namespace geolio::test
         const GEO::index_t new_c1 = new_c0+1;
         const GEO::index_t new_c2 = new_c1+1;
         const GEO::index_t new_c3 = new_c2+1;
+        random_attributes(new_c0);
+        random_attributes(new_c1);
+        random_attributes(new_c2);
+        random_attributes(new_c3);
         tet_facet_split(mesh, c0, lf3, new_v, new_c0, new_c1, new_c2, new_c3);
         GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
 
@@ -605,6 +622,8 @@ namespace geolio::test
             const GEO::index_t new_c = mesh.cells.create_tets(ordered_c_le_lf.size());
             std::iota(new_cs.begin(), new_cs.end(), new_c);
         }
+        for (const auto& c : new_cs)
+            random_attributes(c);
 
         tet_edge_split(mesh, ordered_c_le_lf, new_v, new_cs);
         GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
@@ -759,6 +778,7 @@ namespace geolio::test
 
         /* Swap */
         const GEO::index_t new_c = mesh.cells.create_tets(1);
+        random_attributes(new_c);
         tet_edge_swap_2_3(mesh, c0, lf3, new_c);
         GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
 
