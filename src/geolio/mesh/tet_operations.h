@@ -235,7 +235,8 @@ namespace geolio
         GEO::Mesh& mesh,
         GEO::index_t c,
         GEO::index_t lf,
-        GEO::index_t new_c);
+        GEO::index_t new_c,
+        bool update_attributes = true);
 
     /**
      * @brief Perform a 3-2 edge swap operation on a tetrahedral mesh.

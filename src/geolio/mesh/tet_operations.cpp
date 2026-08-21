@@ -501,7 +501,8 @@ namespace geolio
         GEO::Mesh& mesh,
         const GEO::index_t c,
         const GEO::index_t lf,
-        const GEO::index_t new_c
+        const GEO::index_t new_c,
+        const bool update_attributes
         ) {
         assert(c < mesh.cells.nb());
         assert(mesh.cells.type(c) == GEO::MeshCellType::MESH_TET);
@@ -599,60 +600,69 @@ namespace geolio
             mesh.cells.set_adjacent(nc_nc2, mesh.cells.find_tet_facet(nc_nc2, nv, nv0, nv1), new_c);
         }
 
-        /* Copy attributes */
-        mesh.cell_corners.attributes().copy_item(mesh.cells.corner(new_c, 0), mesh.cells.corner(c, lf)); // need to set new_c first
-        mesh.cell_corners.attributes().copy_item(mesh.cells.corner(new_c, 1), mesh.cells.corner(nc, nlf)); // need to set new_c first
-        mesh.cell_corners.attributes().copy_item(mesh.cells.corner(c, 0), mesh.cells.corner(new_c, 0));
-        mesh.cell_corners.attributes().copy_item(mesh.cells.corner(c, 1), mesh.cells.corner(new_c, 1));
-        mesh.cell_corners.attributes().copy_item(mesh.cells.corner(nc, 0), mesh.cells.corner(new_c, 0));
-        mesh.cell_corners.attributes().copy_item(mesh.cells.corner(nc, 1), mesh.cells.corner(new_c, 1));
-        mesh.cell_facets.attributes().copy_item(mesh.cells.facet(new_c, 0), mesh.cells.facet(nc, nlv2));
-        mesh.cell_facets.attributes().copy_item(mesh.cells.facet(new_c, 1), mesh.cells.facet(c, lv1));
-        // `nc` remains M.cells.facet(nc, nlv0) and M.cells.facet(nc, nlv1) are useful, temporarily move to safety index (2, 3)
-        GEO::index_t new_nlv0 = 2;
-        GEO::index_t new_nlv1 = 3;
-        if (nlv1 == 2) { // nv0 -> 3
-            new_nlv0 = 3;
-            new_nlv1 = 2;
+        if (update_attributes) {
+            /* Cells */
+            mesh.cells.attributes().zero_item(c);
+            mesh.cells.attributes().zero_item(nc);
+
+            /* Cell corners */
+            mesh.cell_corners.attributes().copy_item(mesh.cells.corner(new_c, 0), mesh.cells.corner(c, lf)); // need to set new_c first
+            mesh.cell_corners.attributes().copy_item(mesh.cells.corner(new_c, 1), mesh.cells.corner(nc, nlf)); // need to set new_c first
+            mesh.cell_corners.attributes().zero_item(mesh.cells.corner(new_c, 2));
+            mesh.cell_corners.attributes().zero_item(mesh.cells.corner(new_c, 3));
+            mesh.cell_corners.attributes().copy_item(mesh.cells.corner(c, 0), mesh.cells.corner(new_c, 0));
+            mesh.cell_corners.attributes().copy_item(mesh.cells.corner(c, 1), mesh.cells.corner(new_c, 1));
+            mesh.cell_corners.attributes().zero_item(mesh.cells.corner(c, 2));
+            mesh.cell_corners.attributes().zero_item(mesh.cells.corner(c, 3));
+            mesh.cell_corners.attributes().copy_item(mesh.cells.corner(nc, 0), mesh.cells.corner(new_c, 0));
+            mesh.cell_corners.attributes().copy_item(mesh.cells.corner(nc, 1), mesh.cells.corner(new_c, 1));
+            mesh.cell_corners.attributes().zero_item(mesh.cells.corner(nc, 2));
+            mesh.cell_corners.attributes().zero_item(mesh.cells.corner(nc, 3));
+
+            /* Cell facets */
+            mesh.cell_facets.attributes().copy_item(mesh.cells.facet(new_c, 0), mesh.cells.facet(nc, nlv2));
+            mesh.cell_facets.attributes().copy_item(mesh.cells.facet(new_c, 1), mesh.cells.facet(c, lv1));
+            mesh.cell_facets.attributes().zero_item(mesh.cells.facet(new_c, 2));
+            mesh.cell_facets.attributes().zero_item(mesh.cells.facet(new_c, 3));
+            // `nc` remains M.cells.facet(nc, nlv0) and M.cells.facet(nc, nlv1) are useful, temporarily move to safety index (2, 3)
+            GEO::index_t new_nlv0 = 2;
+            GEO::index_t new_nlv1 = 3;
+            if (nlv1 == 2) { // nv0 -> 3
+                new_nlv0 = 3;
+                new_nlv1 = 2;
+            }
+            else if (nlv0 == 3) { // nv1 -> 2
+                new_nlv0 = 3;
+                new_nlv1 = 2;
+            }
+            if (nlv0 != new_nlv0)
+                mesh.cell_facets.attributes().copy_item(mesh.cells.facet(nc, new_nlv0), mesh.cells.facet(nc, nlv0));
+            if (nlv1 != new_nlv1)
+                mesh.cell_facets.attributes().copy_item(mesh.cells.facet(nc, new_nlv1), mesh.cells.facet(nc, nlv1));
+            // `c` remains M.cells.facet(c, lv0) and M.cells.facet(c, lv2) are useful, temporarily move to safety index (2, 3)
+            GEO::index_t new_lv0 = 2;
+            GEO::index_t new_lv2 = 3;
+            if (lv2 == 2) {
+                new_lv0 = 3;
+                new_lv2 = 2;
+            }
+            else if (lv0 == 3) {
+                new_lv0 = 3;
+                new_lv2 = 2;
+            }
+            if (lv0 != new_lv0)
+                mesh.cell_facets.attributes().copy_item(mesh.cells.facet(c, new_lv0), mesh.cells.facet(c, lv0));
+            if (lv2 != new_lv2)
+                mesh.cell_facets.attributes().copy_item(mesh.cells.facet(c, new_lv2), mesh.cells.facet(c, lv2));
+            mesh.cell_facets.attributes().copy_item(mesh.cells.facet(nc, 0), mesh.cells.facet(nc, new_nlv0));
+            mesh.cell_facets.attributes().copy_item(mesh.cells.facet(nc, 1), mesh.cells.facet(c, new_lv0));
+            mesh.cell_facets.attributes().copy_item(mesh.cells.facet(c, 0), mesh.cells.facet(nc, new_nlv1));
+            mesh.cell_facets.attributes().copy_item(mesh.cells.facet(c, 1), mesh.cells.facet(c, new_lv2));
+            mesh.cell_facets.attributes().zero_item(mesh.cells.facet(c, new_lv0));
+            mesh.cell_facets.attributes().zero_item(mesh.cells.facet(c, new_lv2));
+            mesh.cell_facets.attributes().zero_item(mesh.cells.facet(nc, new_nlv0));
+            mesh.cell_facets.attributes().zero_item(mesh.cells.facet(nc, new_nlv1));
         }
-        else if (nlv0 == 3) { // nv1 -> 2
-            new_nlv0 = 3;
-            new_nlv1 = 2;
-        }
-        if (nlv0 != new_nlv0)
-            mesh.cell_facets.attributes().copy_item(mesh.cells.facet(nc, new_nlv0), mesh.cells.facet(nc, nlv0));
-        if (nlv1 != new_nlv1)
-            mesh.cell_facets.attributes().copy_item(mesh.cells.facet(nc, new_nlv1), mesh.cells.facet(nc, nlv1));
-        // `c` remains M.cells.facet(c, lv0) and M.cells.facet(c, lv2) are useful, temporarily move to safety index (2, 3)
-        GEO::index_t new_lv0 = 2;
-        GEO::index_t new_lv2 = 3;
-        if (lv2 == 2) {
-            new_lv0 = 3;
-            new_lv2 = 2;
-        }
-        else if (lv0 == 3) {
-            new_lv0 = 3;
-            new_lv2 = 2;
-        }
-        if (lv0 != new_lv0)
-            mesh.cell_facets.attributes().copy_item(mesh.cells.facet(c, new_lv0), mesh.cells.facet(c, lv0));
-        if (lv2 != new_lv2)
-            mesh.cell_facets.attributes().copy_item(mesh.cells.facet(c, new_lv2), mesh.cells.facet(c, lv2));
-        mesh.cell_facets.attributes().copy_item(mesh.cells.facet(nc, 0), mesh.cells.facet(nc, new_nlv0));
-        mesh.cell_facets.attributes().copy_item(mesh.cells.facet(nc, 1), mesh.cells.facet(c, new_lv0));
-        mesh.cell_facets.attributes().copy_item(mesh.cells.facet(c, 0), mesh.cells.facet(nc, new_nlv1));
-        mesh.cell_facets.attributes().copy_item(mesh.cells.facet(c, 1), mesh.cells.facet(c, new_lv2));
-        /* Restore attributes */
-        mesh.cells.attributes().zero_item(c);
-        mesh.cells.attributes().zero_item(nc);
-        mesh.cell_corners.attributes().zero_item(mesh.cells.corner(c, 2));
-        mesh.cell_corners.attributes().zero_item(mesh.cells.corner(c, 3));
-        mesh.cell_corners.attributes().zero_item(mesh.cells.corner(nc, 2));
-        mesh.cell_corners.attributes().zero_item(mesh.cells.corner(nc, 3));
-        mesh.cell_facets.attributes().zero_item(mesh.cells.facet(c, new_lv0));
-        mesh.cell_facets.attributes().zero_item(mesh.cells.facet(c, new_lv2));
-        mesh.cell_facets.attributes().zero_item(mesh.cells.facet(nc, new_nlv0));
-        mesh.cell_facets.attributes().zero_item(mesh.cells.facet(nc, new_nlv1));
 
         return true;
     }
