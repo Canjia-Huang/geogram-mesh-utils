@@ -99,6 +99,14 @@ namespace geolio::test
             create_attributes();
         }
 
+        void random_attributes(
+            const GEO::index_t f
+            ) {
+            mesh_f_idx[f] = GEO::Numeric::random_int32();
+            for (GEO::index_t i = 0; i < 3; ++i)
+                mesh_fc_idx[mesh.facets.corner(f, i)] = GEO::Numeric::random_int32();
+        }
+
         GEO::Mesh mesh;
         GEO::Attribute<GEO::index_t> mesh_f_idx;
         GEO::Attribute<GEO::index_t> mesh_fc_idx;
@@ -178,6 +186,8 @@ namespace geolio::test
         const GEO::index_t new_v = mesh.vertices.create_vertices(1);
         const GEO::index_t new_f0 = mesh.facets.create_triangles(2);
         const GEO::index_t new_f1 = new_f0+1;
+        random_attributes(new_f0);
+        random_attributes(new_f1);
         tri_edge_split<3>(mesh, f0, lv0, new_v, new_f0, new_f1);
         GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
 
