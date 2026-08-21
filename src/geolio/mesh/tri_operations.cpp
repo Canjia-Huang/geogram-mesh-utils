@@ -118,7 +118,7 @@ namespace geolio
             }
 
             if (update_attributes) {
-                /* Facet */
+                /* Facets */
                 mesh.facets.attributes().copy_item(new_f1, nf0);
 
                 /* Facet corners */
@@ -354,36 +354,6 @@ namespace geolio
             }
         }
 
-        /* Check inversion */
-        // if (M.vertices.dimension() == 2) {
-        //     const auto& p0 = M.vertices.point<2>(v0);
-        //     const auto& p1 = M.vertices.point<2>(v1);
-        //     const auto& p2 = M.vertices.point<2>(v2);
-        //     const auto& p3 = M.vertices.point<2>(v3);
-        //     const auto normal0 = cross(p1-p0, p2-p0) > 0;
-        //     const auto normal1 = cross(p0-p1, p3-p1) > 0;
-        //     if (normal0 != normal1)
-        //         return false; // the two facets are initially oriented in opposite directions
-        //     const auto normal2 = cross(p3-p0, p2-p0) > 0;
-        //     const auto normal3 = cross(p2-p1, p3-p1) > 0;
-        //     if (normal2 != normal0 || normal3 != normal0)
-        //         return false; // inverse after swapping
-        // }
-        // else {
-        //     assert(M.vertices.dimension() == 3);
-        //     const auto& p0 = M.vertices.point(v0);
-        //     const auto& p1 = M.vertices.point(v1);
-        //     const auto& p2 = M.vertices.point(v2);
-        //     const auto& p3 = M.vertices.point(v3);
-        //     const auto normal0 = GEO::cross(p1-p0, p2-p0);
-        //     const auto normal1 = GEO::cross(p0-p1, p3-p1);
-        //     const auto ave_normal = normal0+normal1;
-        //     const auto normal2 = GEO::cross(p3-p0, p2-p0);
-        //     const auto normal3 = GEO::cross(p2-p1, p3-p1);
-        //     if (GEO::dot(normal2, ave_normal) < 1e-10 || GEO::dot(normal3, ave_normal) < 1e-10)
-        //         return false;
-        // }
-
         return true;
     }
 
@@ -448,7 +418,7 @@ namespace geolio
         }
 
         if (update_attributes) {
-            /* Facet */
+            /* Facets */
             mesh.facets.attributes().zero_item(f);
             mesh.facets.attributes().zero_item(af);
 
