@@ -307,8 +307,7 @@ namespace geolio
         GEO::Mesh& M,
         const std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>>& ordered_c_le_lf,
         const GEO::index_t new_v,
-        const std::vector<GEO::index_t>& new_cs,
-        const double r
+        const std::vector<GEO::index_t>& new_cs
         ) {
         assert(new_v < M.vertices.nb());
         assert(new_cs.size() == ordered_c_le_lf.size());
@@ -322,7 +321,7 @@ namespace geolio
         const GEO::index_t ev1 = M.cells.edge_vertex(start_c, start_le, 1);
 
         /* Set new vertex */
-        M.vertices.point(new_v) = (1-r)*M.vertices.point(ev0) + r*M.vertices.point(ev1);
+        M.vertices.point(new_v) = 0.5 * (M.vertices.point(ev0) + M.vertices.point(ev1));
 
         for (GEO::index_t i = 0; i < INCIDENT_CELLS_NB; ++i) {
             const auto& [c, _, lf0] = ordered_c_le_lf[i];
@@ -391,13 +390,11 @@ namespace geolio
         const GEO::index_t _c,
         const GEO::index_t _le,
         GEO::index_t& disuse_v,
-        std::vector<GEO::index_t>& disuse_cs,
-        const double r
+        std::vector<GEO::index_t>& disuse_cs
         ) {
         assert(_c < M.cells.nb());
         assert(M.cells.type(_c) == GEO::MeshCellType::MESH_TET);
         assert(_le < 6);
-        assert(r >= 0 && r <= 1);
 
         const auto& ev0 = M.cells.edge_vertex(_c, _le, 0);
         const auto& ev1 = M.cells.edge_vertex(_c, _le, 1);
@@ -405,7 +402,7 @@ namespace geolio
         /* Move vertex */
         auto& ep0 = M.vertices.point(ev0);
         const auto& ep1 = M.vertices.point(ev1);
-        ep0 = (1-r)*ep0 + r*ep1;
+        ep0 = 0.5 * (ep0 + ep1);
         disuse_v = ev1;
 
         /* Find all adjacent tets */

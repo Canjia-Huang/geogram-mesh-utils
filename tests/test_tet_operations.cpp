@@ -354,7 +354,7 @@ namespace geolio::test
             std::vector<GEO::index_t> new_cells(EDGE_INCIDENT_TETS_NB);
             std::iota(new_cells.begin(), new_cells.end(), new_c);
 
-            tet_edge_split(mesh, ordered_c_le_lf, new_v, new_cells, GEO::Numeric::random_float32());
+            tet_edge_split(mesh, ordered_c_le_lf, new_v, new_cells);
         }
     };
 
@@ -412,11 +412,9 @@ namespace geolio::test
     class TetEdgeCollapseTest : public TetOperationsTest {
     protected:
         void perform_operation(const GEO::index_t c, const GEO::index_t le) override {
-            const double r = GEO::Numeric::random_float32();
-
             GEO::index_t disuse_v;
             std::vector<GEO::index_t> disuse_cs;
-            tet_edge_collapse(mesh, c, le, disuse_v, disuse_cs, r);
+            tet_edge_collapse(mesh, c, le, disuse_v, disuse_cs);
 
             /* Clean disuse vertices and cells */
             GEO::vector<GEO::index_t> cells_to_delete(mesh.cells.nb(), 0);

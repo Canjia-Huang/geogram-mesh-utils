@@ -191,8 +191,7 @@ namespace geolio
         GEO::Mesh& M,
         const std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>>& ordered_c_le_lf,
         GEO::index_t new_v,
-        const std::vector<GEO::index_t>& new_cs,
-        double r = 0.5);
+        const std::vector<GEO::index_t>& new_cs);
 
     /**
      * @brief Collapse a tetrahedral edge by moving one endpoint along the edge and updating the
@@ -215,8 +214,7 @@ namespace geolio
         GEO::index_t _c,
         GEO::index_t _le,
         GEO::index_t& disuse_v,
-        std::vector<GEO::index_t>& disuse_cs,
-        double r = 0.5);
+        std::vector<GEO::index_t>& disuse_cs);
 
     /**
      * @brief Perform a 2-3 facet swap operation on a tetrahedral mesh.
