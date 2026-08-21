@@ -93,7 +93,7 @@ namespace geolio::test
                 new_f0 = mesh.facets.create_triangles(2);
                 new_f1 = new_f0+1;
             }
-            tri_edge_split<3>(mesh, f, lv, new_v, new_f0, new_f1, GEO::Numeric::random_float32());
+            tri_edge_split<3>(mesh, f, lv, new_v, new_f0, new_f1);
         }
     };
 
@@ -137,7 +137,7 @@ namespace geolio::test
         const GEO::index_t new_v = mesh.vertices.create_vertices(1);
         const GEO::index_t new_f0 = mesh.facets.create_triangles(2);
         const GEO::index_t new_f1 = new_f0+1;
-        tri_edge_split<3>(mesh, 3, 0, new_v, new_f0, new_f1, 0.4);
+        tri_edge_split<3>(mesh, 3, 0, new_v, new_f0, new_f1);
         EXPECT_EQ(mesh_f_idx[3], 3);
         EXPECT_EQ(mesh_f_idx[2], 2);
         EXPECT_EQ(mesh_f_idx[new_f0], 3);
@@ -172,15 +172,13 @@ namespace geolio::test
             const GEO::index_t f,
             const GEO::index_t lv
             ) override {
-            const double r = GEO::Numeric::random_float32();
-
             if (!is_tri_edge_collapse_valid(mesh, f, lv))
                 return;
 
             const bool EDGE_ON_BORDER = original_mesh.facets.adjacent(f, lv) == GEO::NO_FACET;
 
             GEO::index_t disuse_v, disuse_f0, disuse_f1;
-            tri_edge_collapse<3>(mesh, f, lv, disuse_v, disuse_f0, disuse_f1, r);
+            tri_edge_collapse<3>(mesh, f, lv, disuse_v, disuse_f0, disuse_f1);
 
             /* Clean disuse vertices and facets */
             GEO::vector<GEO::index_t> facets_to_delete(mesh.facets.nb(), 0);

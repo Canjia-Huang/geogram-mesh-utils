@@ -21,13 +21,11 @@ namespace geolio
         const GEO::index_t lv,
         const GEO::index_t new_v,
         const GEO::index_t new_f0,
-        const GEO::index_t new_f1,
-        const double r
+        const GEO::index_t new_f1
         ) {
         assert(f < M.facets.nb());
         assert(M.facets.nb_vertices(f) == 3);
         assert(lv < 3);
-        assert(r >= 0 && r <= 1);
         assert(new_v < M.vertices.nb());
         assert(new_f0 < M.facets.nb());
 
@@ -51,7 +49,7 @@ namespace geolio
         /* Set new point */
         const auto& p0 = M.facets.point<DIM>(f, lv0);
         const auto& p1 = M.facets.point<DIM>(f, lv1);
-        M.vertices.point<DIM>(new_v) = (1-r)*p0 + r*p1;
+        M.vertices.point<DIM>(new_v) = 0.5 * (p0 + p1);
 
         /* Set facet vertices  */
         M.facets.set_vertex(f, lv1, new_v);
@@ -126,11 +124,9 @@ namespace geolio
     }
 
     template void tri_edge_split<2>(
-        GEO::Mesh& M, GEO::index_t f, GEO::index_t lv, GEO::index_t new_v, GEO::index_t new_f0, GEO::index_t new_f1,
-        double r);
+        GEO::Mesh& M, GEO::index_t f, GEO::index_t lv, GEO::index_t new_v, GEO::index_t new_f0, GEO::index_t new_f1);
     template void tri_edge_split<3>(
-        GEO::Mesh& M, GEO::index_t f, GEO::index_t lv, GEO::index_t new_v, GEO::index_t new_f0, GEO::index_t new_f1,
-        double r);
+        GEO::Mesh& M, GEO::index_t f, GEO::index_t lv, GEO::index_t new_v, GEO::index_t new_f0, GEO::index_t new_f1);
 
     bool is_tri_edge_collapse_valid(
         const GEO::Mesh& M,
@@ -201,13 +197,11 @@ namespace geolio
         const GEO::index_t lv,
         GEO::index_t& disuse_v,
         GEO::index_t& disuse_f0,
-        GEO::index_t& disuse_f1,
-        const double r
+        GEO::index_t& disuse_f1
         ) {
         assert(f < M.facets.nb());
         assert(M.facets.nb_vertices(f) == 3);
         assert(lv < 3);
-        assert(r >= 0 && r <= 1);
 
         /*
          *  v0 --------+            ++
@@ -231,7 +225,7 @@ namespace geolio
         /* Set collapsed point (v0) */
         const auto& p0 = M.vertices.point<DIM>(v0);
         const auto& p1 = M.vertices.point<DIM>(v1);
-        M.vertices.point<DIM>(v0) = (1-r)*p0 + r*p1;
+        M.vertices.point<DIM>(v0) = 0.5 * (p0 + p1);
         disuse_v = v1;
         disuse_f0 = f;
         disuse_f1 = af0; // facet or GEO::NO_FACET
@@ -302,10 +296,10 @@ namespace geolio
 
     template void tri_edge_collapse<2>(
         GEO::Mesh& M, GEO::index_t f, GEO::index_t lv, GEO::index_t& disuse_v, GEO::index_t& disuse_f0,
-        GEO::index_t& disuse_f1, double r);
+        GEO::index_t& disuse_f1);
     template void tri_edge_collapse<3>(
         GEO::Mesh& M, GEO::index_t f, GEO::index_t lv, GEO::index_t& disuse_v, GEO::index_t& disuse_f0,
-        GEO::index_t& disuse_f1, double r);
+        GEO::index_t& disuse_f1);
 
     bool is_tri_edge_swap_valid(
         const GEO::Mesh& M,

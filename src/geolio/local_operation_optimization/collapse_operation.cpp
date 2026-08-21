@@ -177,6 +177,9 @@ namespace geolio
         assert(f < this->mesh_.facets.nb());
         assert(lv < 3);
 
+        const auto ev0 = this->mesh_.facets.vertex(f, lv);
+        const auto ep0 = this->mesh_.vertices.point(ev0);
+
         disuse_v0 = GEO::NO_VERTEX;
         disuse_v1 = GEO::NO_VERTEX;
         disuse_v2 = GEO::NO_VERTEX;
@@ -194,22 +197,25 @@ namespace geolio
             return;
         }
 
-        double R = 0.5; // mid point
+        bool pull_ev1_to_ev0 = false;
         if (const auto& ev0 = this->mesh_.facets.vertex(f, lv);
             this->manager_.mesh_v_fixed[ev0]) // pull ev1 -> ev0
-            R = 0;
+            pull_ev1_to_ev0 = true;
         { // The fixed edge involving ev0 also pull ev1 -> ev0.
             std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_f_and_lv;
             get_vertex_incident_facets(this->mesh_, f, lv, ordered_f_and_lv);
             for (const auto& [ff, llv] : ordered_f_and_lv) {
                 if (this->manager_.mesh_fc_fixed[this->mesh_.facets.corner(ff, llv)]) {
-                    R = 0;
+                    pull_ev1_to_ev0 = true;
                     break;
                 }
             }
         }
 
-        tri_edge_collapse<DIM>(this->mesh_, f, lv, disuse_v0, disuse_f0, disuse_f1, R);
+        tri_edge_collapse<DIM>(this->mesh_, f, lv, disuse_v0, disuse_f0, disuse_f1);
+
+        if (pull_ev1_to_ev0)
+            this->mesh_.vertices.point(ev0) = ep0;
     }
 
     template<GEO::index_t DIM>
