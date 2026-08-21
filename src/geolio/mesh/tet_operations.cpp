@@ -194,6 +194,24 @@ namespace geolio
                 assert(nlf != GEO::NO_INDEX);
                 M.cells.set_adjacent(nc1, nlf, new_c1);
             }
+
+            /* Copy attributes */
+            M.cells.attributes().copy_item(new_c0, c);
+            M.cells.attributes().copy_item(new_c1, c);
+            M.cell_corners.attributes().copy_item(M.cells.corner(new_c0, lv1), M.cells.corner(c, lv1));
+            M.cell_corners.attributes().copy_item(M.cells.corner(new_c0, lv2), M.cells.corner(c, lv2));
+            M.cell_corners.attributes().copy_item(M.cells.corner(new_c0, lv3), M.cells.corner(c, lv3));
+            M.cell_corners.attributes().copy_item(M.cells.corner(new_c1, lv0), M.cells.corner(c, lv0));
+            M.cell_corners.attributes().copy_item(M.cells.corner(new_c1, lv2), M.cells.corner(c, lv2));
+            M.cell_corners.attributes().copy_item(M.cells.corner(new_c1, lv3), M.cells.corner(c, lv3));
+            M.cell_facets.attributes().copy_item(M.cells.facet(new_c0, lv0), M.cells.facet(c, lv0));
+            M.cell_facets.attributes().copy_item(M.cells.facet(new_c0, lv3), M.cells.facet(c, lv3));
+            M.cell_facets.attributes().copy_item(M.cells.facet(new_c1, lv1), M.cells.facet(c, lv1));
+            M.cell_facets.attributes().copy_item(M.cells.facet(new_c1, lv3), M.cells.facet(c, lv3));
+            /* Restore attributes */
+            M.cell_corners.attributes().zero_item(M.cells.corner(c, lv2));
+            M.cell_facets.attributes().zero_item(M.cells.facet(c, lv0));
+            M.cell_facets.attributes().zero_item(M.cells.facet(c, lv1));
         }
 
         if (const auto& ac = M.cells.adjacent(c, lf);
@@ -264,6 +282,24 @@ namespace geolio
                 assert(nlf != GEO::NO_INDEX);
                 M.cells.set_adjacent(nc2, nlf, new_c3);
             }
+
+            /* Copy attributes */
+            M.cells.attributes().copy_item(new_c2, ac);
+            M.cells.attributes().copy_item(new_c3, ac);
+            M.cell_corners.attributes().copy_item(M.cells.corner(new_c2, lv1), M.cells.corner(ac, lv1));
+            M.cell_corners.attributes().copy_item(M.cells.corner(new_c2, lv2), M.cells.corner(ac, lv2));
+            M.cell_corners.attributes().copy_item(M.cells.corner(new_c2, lv3), M.cells.corner(ac, lv3));
+            M.cell_corners.attributes().copy_item(M.cells.corner(new_c3, lv0), M.cells.corner(ac, lv0));
+            M.cell_corners.attributes().copy_item(M.cells.corner(new_c3, lv1), M.cells.corner(ac, lv1));
+            M.cell_corners.attributes().copy_item(M.cells.corner(new_c3, lv3), M.cells.corner(ac, lv3));
+            M.cell_facets.attributes().copy_item(M.cells.facet(new_c2, lv0), M.cells.facet(ac, lv0));
+            M.cell_facets.attributes().copy_item(M.cells.facet(new_c2, lv3), M.cells.facet(ac, lv3));
+            M.cell_facets.attributes().copy_item(M.cells.facet(new_c3, lv2), M.cells.facet(ac, lv2));
+            M.cell_facets.attributes().copy_item(M.cells.facet(new_c3, lv3), M.cells.facet(ac, lv3));
+            /* Restore attributes */
+            M.cell_corners.attributes().zero_item(M.cells.corner(ac, lv1));
+            M.cell_facets.attributes().zero_item(M.cells.facet(ac, lv0));
+            M.cell_facets.attributes().zero_item(M.cells.facet(ac, lv2));
         }
     }
 
