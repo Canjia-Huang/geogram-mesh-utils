@@ -551,13 +551,9 @@ namespace geolio::test
         for_each_c_le();
     }
 
-    TEST_F(TetEdgeSplitTest, manage_attributes) {
-        mesh.clear();
+    class TetEdgeSplitSimpleTest : public TetOperationsSimpleTest {};
 
-        GEO::Attribute<GEO::index_t> mesh_c_idx(mesh.cells.attributes(), "idx");
-        GEO::Attribute<GEO::index_t> mesh_cc_idx(mesh.cell_corners.attributes(), "idx");
-        GEO::Attribute<GEO::index_t> mesh_cf_idx(mesh.cell_facets.attributes(), "idx");
-
+    TEST_F(TetEdgeSplitSimpleTest, manage_attributes) {
         const std::vector<GEO::vec3> vertices = {
             GEO::vec3(0, 2, 0), GEO::vec3(-1.732, -1, 0), GEO::vec3(1.732, -1, 0),
             GEO::vec3(0, 0, 2), GEO::vec3(0, 0, -2)
@@ -567,33 +563,116 @@ namespace geolio::test
             4, 1, 2, 3,
             4, 2, 0, 3
         };
-        mesh.vertices.create_vertices(vertices.size());
-        for (const auto& v : mesh.vertices)
-            mesh.vertices.point(v) = vertices[v];
-        mesh.cells.create_tets(cells.size()/4);
-        for (const auto& c : mesh.cells) {
-            mesh_c_idx[c] = c;
+        create_mesh(vertices, cells);
+        GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
 
-            for (GEO::index_t lv = 0; lv < 4; ++lv) {
-                mesh.cells.set_vertex(c, lv, cells[4*c+lv]);
-
-                mesh_cc_idx[mesh.cells.corner(c, lv)] = mesh.cells.corner(c, lv);
-                mesh_cf_idx[mesh.cells.facet(c, lv)] = mesh.cells.facet(c, lv);
+        constexpr GEO::index_t c0 = 0;
+        constexpr GEO::index_t le0 = 5;
+        std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>> ordered_c_le_lf;
+        {
+            get_edge_incident_cells(mesh, c0, le0, ordered_c_le_lf);
+        }
+        std::vector<GEO::index_t> cell_vertices;
+        {
+            cell_vertices.reserve(ordered_c_le_lf.size()*4);
+            for (const auto& [c, _, __] : ordered_c_le_lf) {
+                for (GEO::index_t lv = 0; lv < 4; ++lv)
+                    cell_vertices.push_back(mesh.cells.vertex(c, lv));
             }
         }
-        mesh.cells.connect();
-        GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
+        std::vector<GEO::index_t> cell_facet_vertices;
+        std::vector<GEO::vec3> cell_facet_normals;
+        {
+            cell_facet_vertices.reserve(ordered_c_le_lf.size()*12);
+            cell_facet_normals.reserve(ordered_c_le_lf.size()*4);
+            for (const auto& [c, _, __] : ordered_c_le_lf) {
+                for (GEO::index_t lf = 0; lf < 4; ++lf) {
+                    for (GEO::index_t lv = 0; lv < 3; ++lv)
+                        cell_facet_vertices.push_back(mesh.cells.facet_vertex(c, lf, lv));
+                    cell_facet_normals.push_back(GEO::triangle_normal<GEO::vec3>(
+                        mesh.vertices.point(mesh.cells.facet_vertex(c, lf, 2)),
+                        mesh.vertices.point(mesh.cells.facet_vertex(c, lf, 1)),
+                        mesh.vertices.point(mesh.cells.facet_vertex(c, lf, 0))
+                        ));
+                }
+            }
+        }
 
         /* Split */
         const GEO::index_t new_v = mesh.vertices.create_vertices(1);
-        std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>> ordered_c_le_lf;
-        get_edge_incident_cells(mesh, 0, 5, ordered_c_le_lf);
-        const GEO::index_t new_c = mesh.cells.create_tets(ordered_c_le_lf.size());
         std::vector<GEO::index_t> new_cs(ordered_c_le_lf.size());
-        std::iota(new_cs.begin(), new_cs.end(), new_c);
-        tet_edge_split(mesh, ordered_c_le_lf, new_v, new_cs);
+        {
+            const GEO::index_t new_c = mesh.cells.create_tets(ordered_c_le_lf.size());
+            std::iota(new_cs.begin(), new_cs.end(), new_c);
+        }
 
+        tet_edge_split(mesh, ordered_c_le_lf, new_v, new_cs);
         GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
+
+        /* Check */
+        for (GEO::index_t i = 0, i_end = ordered_c_le_lf.size(); i < i_end; ++i) {
+            const auto& cur_c = get<0>(ordered_c_le_lf[i]);
+            const auto& new_c = new_cs[i];
+            {
+                EXPECT_EQ(mesh_c_idx[cur_c],        mesh_c_original_idx[cur_c]);
+                EXPECT_EQ(mesh_c_idx[new_c],    mesh_c_original_idx[cur_c]);
+            }
+            {
+                for (const auto& c : {cur_c, new_c}) {
+                    for (GEO::index_t lv = 0; lv < 4; ++lv) {
+                        if (const auto& v = mesh.cells.vertex(c, lv);
+                            v == cell_vertices[4*cur_c+0])
+                            EXPECT_EQ(mesh_cc_idx[mesh.cells.corner(c, lv)], mesh_cc_original_idx[mesh.cells.corner(cur_c, 0)]);
+                        else if (v == cell_vertices[4*cur_c+1])
+                            EXPECT_EQ(mesh_cc_idx[mesh.cells.corner(c, lv)], mesh_cc_original_idx[mesh.cells.corner(cur_c, 1)]);
+                        else if (v == cell_vertices[4*cur_c+2])
+                            EXPECT_EQ(mesh_cc_idx[mesh.cells.corner(c, lv)], mesh_cc_original_idx[mesh.cells.corner(cur_c, 2)]);
+                        else if (v == cell_vertices[4*cur_c+3])
+                            EXPECT_EQ(mesh_cc_idx[mesh.cells.corner(c, lv)], mesh_cc_original_idx[mesh.cells.corner(cur_c, 3)]);
+                        else
+                            EXPECT_EQ(mesh_cc_idx[mesh.cells.corner(c, lv)], DEFAULT_IDX);
+                    }
+                }
+            }
+            {
+                for (const auto& c : {cur_c, new_c}) {
+                    std::vector<bool> found_lf(4, false);
+
+                    for (GEO::index_t lf = 0; lf < 4; ++lf) {
+                        const auto lf_nor = cell_facet_normals[4*cur_c+lf];
+
+                        for (GEO::index_t flf = 0; flf < 4; ++flf) {
+                            const auto flf_nor = GEO::triangle_normal<GEO::vec3>(
+                                mesh.vertices.point(mesh.cells.facet_vertex(c, flf, 2)),
+                                mesh.vertices.point(mesh.cells.facet_vertex(c, flf, 1)),
+                                mesh.vertices.point(mesh.cells.facet_vertex(c, flf, 0)));
+
+                            if (GEO::Geom::angle(lf_nor, flf_nor) > 0.01)
+                                continue;
+
+                            GEO::index_t cnt = 0;
+                            for (GEO::index_t lv = 0; lv < 3; ++lv) {
+                                if (const auto& v = mesh.cells.facet_vertex(c, flf, lv);
+                                    v == cell_facet_vertices[12*cur_c+lf*3+0] ||
+                                    v == cell_facet_vertices[12*cur_c+lf*3+1] ||
+                                    v == cell_facet_vertices[12*cur_c+lf*3+2] ||
+                                    v == new_v)
+                                    ++cnt;
+                            }
+                            if (cnt == 3) {
+                                found_lf[flf] = true;
+                                EXPECT_EQ(mesh_cf_idx[mesh.cells.facet(c, flf)], mesh_cf_original_idx[mesh.cells.facet(cur_c, lf)]);
+                            }
+                        }
+                    }
+
+                    for (GEO::index_t lf = 0; lf < 4; ++lf) {
+                        if (!found_lf[lf])
+                            EXPECT_EQ(mesh_cf_idx[mesh.cells.facet(c, lf)], DEFAULT_IDX);
+                    }
+                }
+            }
+        }
     }
 
     /* ============================================================================================================= */

@@ -193,7 +193,8 @@ namespace geolio
         GEO::Mesh& mesh,
         const std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>>& ordered_c_le_lf,
         GEO::index_t new_v,
-        const std::vector<GEO::index_t>& new_cs);
+        const std::vector<GEO::index_t>& new_cs,
+        bool update_attributes = true);
 
     /**
      * @brief Collapse a tetrahedral edge by moving one endpoint along the edge and updating the

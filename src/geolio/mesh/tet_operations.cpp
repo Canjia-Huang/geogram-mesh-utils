@@ -348,7 +348,8 @@ namespace geolio
         GEO::Mesh& mesh,
         const std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>>& ordered_c_le_lf,
         const GEO::index_t new_v,
-        const std::vector<GEO::index_t>& new_cs
+        const std::vector<GEO::index_t>& new_cs,
+        const bool update_attributes
         ) {
         assert(new_v < mesh.vertices.nb());
         assert(new_cs.size() == ordered_c_le_lf.size());
@@ -412,17 +413,24 @@ namespace geolio
                 mesh.cells.set_adjacent(nc1, nlf, new_c);
             }
 
-            /* Copy attributes */
-            mesh.cells.attributes().copy_item(new_c, c);
-            mesh.cell_corners.attributes().copy_item(mesh.cells.corner(new_c, lv0), mesh.cells.corner(c, lv0));
-            mesh.cell_corners.attributes().copy_item(mesh.cells.corner(new_c, lv2), mesh.cells.corner(c, lv2));
-            mesh.cell_corners.attributes().copy_item(mesh.cells.corner(new_c, lv3), mesh.cells.corner(c, lv3));
-            mesh.cell_facets.attributes().copy_item(mesh.cells.facet(new_c, lv1), mesh.cells.facet(c, lv1));
-            mesh.cell_facets.attributes().copy_item(mesh.cells.facet(new_c, lv2), mesh.cells.facet(c, lv2));
-            mesh.cell_facets.attributes().copy_item(mesh.cells.facet(new_c, lv3), mesh.cells.facet(c, lv3));
-            /* Restore attributes */
-            mesh.cell_corners.attributes().zero_item(mesh.cells.corner(c, lv0));
-            mesh.cell_facets.attributes().zero_item(mesh.cells.facet(c, lv1));
+            if (update_attributes) {
+                /* Cells */
+                mesh.cells.attributes().copy_item(new_c, c);
+
+                /* Cell corners */
+                mesh.cell_corners.attributes().copy_item(mesh.cells.corner(new_c, lv0), mesh.cells.corner(c, lv0));
+                mesh.cell_corners.attributes().zero_item(mesh.cells.corner(new_c, lv1));
+                mesh.cell_corners.attributes().copy_item(mesh.cells.corner(new_c, lv2), mesh.cells.corner(c, lv2));
+                mesh.cell_corners.attributes().copy_item(mesh.cells.corner(new_c, lv3), mesh.cells.corner(c, lv3));
+                mesh.cell_corners.attributes().zero_item(mesh.cells.corner(c, lv0));
+
+                /* Cell facets */
+                mesh.cell_facets.attributes().zero_item(mesh.cells.facet(new_c, lv0));
+                mesh.cell_facets.attributes().copy_item(mesh.cells.facet(new_c, lv1), mesh.cells.facet(c, lv1));
+                mesh.cell_facets.attributes().copy_item(mesh.cells.facet(new_c, lv2), mesh.cells.facet(c, lv2));
+                mesh.cell_facets.attributes().copy_item(mesh.cells.facet(new_c, lv3), mesh.cells.facet(c, lv3));
+                mesh.cell_facets.attributes().zero_item(mesh.cells.facet(c, lv1));
+            }
         }
     }
 
