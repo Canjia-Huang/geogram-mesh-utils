@@ -253,8 +253,7 @@ namespace geolio
      */
     bool tet_edge_swap_3_2(
         GEO::Mesh& M,
-        GEO::index_t _c,
-        GEO::index_t _le,
+        const std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>>& ordered_c_le_lf,
         GEO::index_t& disuse_c);
 }
 

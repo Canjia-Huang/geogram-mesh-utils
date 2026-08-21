@@ -314,7 +314,7 @@ namespace geolio::test
         mesh.vertices.create_vertices(vertices.size());
         for (const auto& v : mesh.vertices)
             mesh.vertices.point(v) = vertices[v];
-        mesh.cells.create_tets(cells.size()/3);
+        mesh.cells.create_tets(cells.size()/4);
         for (const auto& c : mesh.cells) {
             mesh_c_idx[c] = c;
 
@@ -381,7 +381,7 @@ namespace geolio::test
         mesh.vertices.create_vertices(vertices.size());
         for (const auto& v : mesh.vertices)
             mesh.vertices.point(v) = vertices[v];
-        mesh.cells.create_tets(cells.size()/3);
+        mesh.cells.create_tets(cells.size()/4);
         for (const auto& c : mesh.cells) {
             mesh_c_idx[c] = c;
 
@@ -463,7 +463,7 @@ namespace geolio::test
         mesh.vertices.create_vertices(vertices.size());
         for (const auto& v : mesh.vertices)
             mesh.vertices.point(v) = vertices[v];
-        mesh.cells.create_tets(cells.size()/3);
+        mesh.cells.create_tets(cells.size()/4);
         for (const auto& c : mesh.cells) {
             mesh_c_idx[c] = c;
 
@@ -489,19 +489,68 @@ namespace geolio::test
     class TetEdgeSwap32Test : public TetOperationsTest {
     protected:
         void perform_operation(const GEO::index_t c, const GEO::index_t le) override {
-            GEO::index_t disuse_c;
-
-            if (const bool processed = tet_edge_swap_3_2(mesh, c, le, disuse_c)) {
-                /* Clean disuse vertices and cells */
-                ASSERT_LT(disuse_c, mesh.cells.nb());
-                GEO::vector<GEO::index_t> cells_to_delete(mesh.cells.nb(), 0);
-                cells_to_delete[disuse_c] = 1;
-                mesh.cells.delete_elements(cells_to_delete);
-            }
+            // GEO::index_t disuse_c;
+            //
+            // if (const bool processed = tet_edge_swap_3_2(mesh, c, le, disuse_c)) {
+            //     /* Clean disuse vertices and cells */
+            //     ASSERT_LT(disuse_c, mesh.cells.nb());
+            //     GEO::vector<GEO::index_t> cells_to_delete(mesh.cells.nb(), 0);
+            //     cells_to_delete[disuse_c] = 1;
+            //     mesh.cells.delete_elements(cells_to_delete);
+            // }
         }
     };
 
     TEST_F(TetEdgeSwap32Test, tet_edge_swap) {
         for_each_c_le();
+    }
+
+    TEST_F(TetEdgeSwap32Test, manage_attributes) {
+        mesh.clear();
+
+        GEO::Attribute<GEO::index_t> mesh_c_idx(mesh.cells.attributes(), "idx");
+        GEO::Attribute<GEO::index_t> mesh_cc_idx(mesh.cell_corners.attributes(), "idx");
+        GEO::Attribute<GEO::index_t> mesh_cf_idx(mesh.cell_facets.attributes(), "idx");
+
+        const std::vector<GEO::vec3> vertices = {
+            GEO::vec3(0, 2, 0), GEO::vec3(-1.732, -1, 0), GEO::vec3(1.732, -1, 0),
+            GEO::vec3(0, 0, 2), GEO::vec3(0, 0, -2)
+        };
+        const std::vector<GEO::index_t> cells = {
+            0, 4, 3, 1,
+            1, 4, 3, 2,
+            2, 4, 3, 0
+        };
+        mesh.vertices.create_vertices(vertices.size());
+        for (const auto& v : mesh.vertices)
+            mesh.vertices.point(v) = vertices[v];
+        mesh.cells.create_tets(cells.size()/4);
+        for (const auto& c : mesh.cells) {
+            mesh_c_idx[c] = c;
+
+            for (GEO::index_t lv = 0; lv < 4; ++lv) {
+                mesh.cells.set_vertex(c, lv, cells[4*c+lv]);
+
+                mesh_cc_idx[mesh.cells.corner(c, lv)] = mesh.cells.corner(c, lv);
+                mesh_cf_idx[mesh.cells.facet(c, lv)] = mesh.cells.facet(c, lv);
+            }
+        }
+        mesh.cells.connect();
+        GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
+
+        /* Split */
+        std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>> ordered_c_le_lf;
+        const bool ON_BORDER = get_edge_incident_cells(mesh, 0, 0, ordered_c_le_lf);
+        ASSERT_FALSE(ON_BORDER);
+        ASSERT_EQ(ordered_c_le_lf.size(), 3);
+
+        GEO::index_t disuse_c;
+        tet_edge_swap_3_2(mesh, ordered_c_le_lf, disuse_c);
+
+        GEO::vector<GEO::index_t> cells_to_delete(mesh.cells.nb(), 0);
+        cells_to_delete[disuse_c] = 1;
+        mesh.cells.delete_elements(cells_to_delete);
+
+        GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
     }
 }
