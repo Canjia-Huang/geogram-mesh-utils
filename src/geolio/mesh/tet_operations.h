@@ -124,12 +124,13 @@ namespace geolio
      *          three additional tetrahedra (@p new_c0, @p new_c1, @p new_c2) are filled. Each of
      *          the four resulting cells keeps three original vertices plus @p new_v, and the
      *          cell-to-cell adjacency is relinked, including the neighboring cells of @p c.
-     * @param[in,out] mesh      The tetrahedral mesh to modify
-     * @param[in]     c      Index of the tetrahedron to split
-     * @param[in]     new_v  Index of a pre-allocated vertex used as the split vertex
-     * @param[in]     new_c0 Index of the first pre-allocated tetrahedron created by the split
-     * @param[in]     new_c1 Index of the second pre-allocated tetrahedron created by the split
-     * @param[in]     new_c2 Index of the third pre-allocated tetrahedron created by the split
+     * @param[in,out] mesh           The tetrahedral mesh to modify.
+     * @param[in]     c              Index of the tetrahedron to split.
+     * @param[in]     new_v          Index of a pre-allocated vertex used as the split vertex.
+     * @param[in]     new_c0         Index of the first pre-allocated tetrahedron created by the split.
+     * @param[in]     new_c1         Index of the second pre-allocated tetrahedron created by the split.
+     * @param[in]     new_c2         Index of the third pre-allocated tetrahedron created by the split.
+     * @param[in]     update_attributes If true, per-cell attributes are copied/restored on the new tetrahedra.
      */
     void tet_split(
         GEO::Mesh& mesh,
@@ -148,16 +149,15 @@ namespace geolio
      *          adjacent tetrahedron is split symmetrically into @p new_c2 and @p new_c3, and all
      *          cell-to-cell adjacencies (including neighbors of the original two cells) are
      *          relinked. For a boundary facet only @p new_c0 and @p new_c1 are used.
-     * @param[in,out] mesh      The tetrahedral mesh to modify.
-     * @param[in]     c      Index of the tetrahedron that owns the target facet.
-     * @param[in]     lf     Local facet index (0-3) in cell @p c.
-     * @param[in]     new_v  Index of a pre-allocated vertex used as the split vertex.
-     * @param[in]     new_c0 Index of the first pre-allocated tetrahedron created by the split.
-     * @param[in]     new_c1 Index of the second pre-allocated tetrahedron created by the split.
-     * @param[in]     new_c2 Index of the third pre-allocated tetrahedron used for interior facets,
-     *                       If the lf neighbor is GEO::NO_CELL, it can be set to GEO::NO_CELL.
-     * @param[in]     new_c3 Index of the fourth pre-allocated tetrahedron used for interior facets.
-     *                       If the lf neighbor is GEO::NO_CELL, it can be set to GEO::NO_CELL.
+     * @param[in,out] mesh           The tetrahedral mesh to modify.
+     * @param[in]     c              Index of the tetrahedron that owns the target facet.
+     * @param[in]     lf             Local facet index (0-3) in cell @p c.
+     * @param[in]     new_v          Index of a pre-allocated vertex used as the split vertex.
+     * @param[in]     new_c0         Index of the first pre-allocated tetrahedron created by the split.
+     * @param[in]     new_c1         Index of the second pre-allocated tetrahedron created by the split.
+     * @param[in]     new_c2         Index of the third pre-allocated tetrahedron used for interior facets; set to GEO::NO_CELL for boundary facets.
+     * @param[in]     new_c3         Index of the fourth pre-allocated tetrahedron used for interior facets; set to GEO::NO_CELL for boundary facets.
+     * @param[in]     update_attributes If true, per-cell attributes are preserved on all new tetrahedra.
      */
     void tet_facet_split(
         GEO::Mesh& mesh,
@@ -176,18 +176,16 @@ namespace geolio
      *          is a tuple (cell, local_edge, local_facet) describing a tetrahedron incident to
      *          the target edge; the vector must be in ring/chain order around the edge
      *          (as produced by get_edge_incident_cells()). The function places @p new_v on the
-     *          edge at interpolation ratio @p r (`0` at the first endpoint, `1` at the second),
-     *          then splits every incident tetrahedron into two, relinking cell-to-cell
-     *          adjacencies. The @p new_cs array must contain one pre-allocated cell index per
+     *          edge at interpolation factor @p r (0 at the first endpoint, 1 at the second), then
+     *          splits every incident tetrahedron into two and relinks the surrounding cell-to-cell
+     *          adjacency. The @p new_cs array must contain one pre-allocated cell index per
      *          incident tetrahedron; entries are consumed in the same order and reset to
      *          GEO::NO_CELL on return.
      * @param[in,out] mesh                The tetrahedral mesh to modify.
-     * @param[in]     ordered_c_le_lf  Ordered list of (cell, local_edge, local_facet) tuples for
-     *                                all tetrahedra incident to the edge, in ring/chain order
-     *                                (can be obtained by @p get_edge_incident_cells).
-     * @param[in]     new_v            Index of the pre-allocated vertex to place on the edge.
-     * @param[in,out] new_cs           Array of pre-allocated tetrahedron indices (one per
-     *                                incident cell).
+     * @param[in]     ordered_c_le_lf     Ordered list of (cell, local_edge, local_facet) tuples for all tetrahedra incident to the edge, in ring/chain order.
+     * @param[in]     new_v               Index of the pre-allocated vertex to place on the edge.
+     * @param[in]     new_cs              Array of pre-allocated tetrahedron indices (one per incident cell).
+     * @param[in]     update_attributes   If true, per-cell attributes are copied/restored on the new tetrahedra.
      */
     void tet_edge_split(
         GEO::Mesh& mesh,
@@ -197,19 +195,17 @@ namespace geolio
         bool update_attributes = true);
 
     /**
-     * @brief Collapse a tetrahedral edge by moving one endpoint along the edge and updating the
-     *        local cavity connectivity.
-     * @details The edge is identified by local edge index @p _le in cell @p _c. Parameter @p r
-     *          controls the new endpoint position by interpolation on the edge segment (`0` keeps
-     *          the first endpoint, `1` keeps the second endpoint). The function collects the cells
-     *          incident to the edge and to the removed endpoint, relinks the adjacency of the
-     *          surviving cavity cells, rewrites the removed endpoint to the surviving vertex in all
-     *          remaining cells, and reports the removed vertex and cells through output arguments.
+     * @brief Collapse a tetrahedral edge by moving one endpoint along the edge and updating the local cavity connectivity.
+     * @details The edge is identified by local edge index @p _le in cell @p _c. The function
+     *          interpolates the surviving endpoint along the edge segment, rewrites the removed
+     *          endpoint to the surviving vertex in all remaining cells, relinks the adjacency of
+     *          the surviving cavity cells, and reports the removed vertex and cells through output
+     *          arguments.
      * @param[in,out] mesh         The tetrahedral mesh to modify.
-     * @param[in]     _c         Index of a cell containing the target edge.
-     * @param[in]     _le        Local edge index (0-5) in cell @p c.
-     * @param[out]    disuse_v  Receives the removed vertex index.
-     * @param[out]    disuse_cs Receives indices of cells removed by the collapse.
+     * @param[in]     _c           Index of a cell containing the target edge.
+     * @param[in]     _le          Local edge index (0-5) in cell @p _c.
+     * @param[out]    disuse_v     Receives the removed vertex index.
+     * @param[out]    disuse_cs    Receives indices of cells removed by the collapse.
      */
     void tet_edge_collapse(
         GEO::Mesh& mesh,
@@ -225,10 +221,11 @@ namespace geolio
      *          the function identifies the adjacent tetrahedron across the facet, rewrites the
      *          vertices of all three resulting cells (the original two plus the pre-allocated
      *          @p new_c), and relinks every cell-to-cell adjacency around the transformed cavity.
-     * @param[in,out] mesh      The tetrahedral mesh to modify.
-     * @param[in]     c      Index of the seed cell containing the target facet.
-     * @param[in]     lf     Local facet index (0-3) of cell @p c.
-     * @param[in]     new_c  Index of the pre-allocated cell used to store the newly created tetrahedron.
+     * @param[in,out] mesh            The tetrahedral mesh to modify.
+     * @param[in]     c               Index of the seed cell containing the target facet.
+     * @param[in]     lf              Local facet index (0-3) of cell @p c.
+     * @param[in]     new_c           Index of the pre-allocated cell used to store the newly created tetrahedron.
+     * @param[in]     update_attributes If true, per-cell attributes are preserved on the modified cells.
      * @return true if the swap is performed successfully; false if the target facet is on the border or the operation cannot be applied.
      */
     bool tet_edge_swap_2_3(
@@ -247,9 +244,10 @@ namespace geolio
      *          and the facet on each cell used to walk the cavity. The function rewrites the
      *          vertices of the two surviving cells, relinks adjacent cells around the modified
      *          cavity, and reports the removed cell index through @p disuse_c.
-     * @param[in,out] mesh                    The tetrahedral mesh to modify.
-     * @param[in]     ordered_c_le_lf      Three ordered tuples describing the edge-connected cell ring.
-     * @param[out]    disuse_c             Reference to receive the index of the cell removed by the 3-2 swap.
+     * @param[in,out] mesh               The tetrahedral mesh to modify.
+     * @param[in]     ordered_c_le_lf    Three ordered tuples describing the edge-connected cell ring.
+     * @param[out]    disuse_c           Reference to receive the index of the cell removed by the 3-2 swap.
+     * @param[in]     update_attributes  If true, per-cell attributes are copied/restored around the modified cavity.
      * @return true if the swap is performed successfully; false if the input ring is invalid or the operation cannot be applied.
      */
     bool tet_edge_swap_3_2(
