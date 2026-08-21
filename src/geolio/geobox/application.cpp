@@ -369,6 +369,7 @@ namespace geolio::geobox
             return false;
         }
 
+        /* Create object */
         const auto object_ptr = std::make_shared<MeshObject>(
             get_filename(filename),
             my_colormaps_,
@@ -376,7 +377,9 @@ namespace geolio::geobox
 
         objects_.push_back(object_ptr);
 
+        /* Focus */
         camera_focus(*object_ptr);
+        selected_object_ = object_ptr;
 
         return true;
     }
