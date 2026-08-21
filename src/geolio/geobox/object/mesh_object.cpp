@@ -158,6 +158,10 @@ namespace geolio::geobox
 
         draw_points();
         draw_surface();
+        // draw_surface()'s border pass leaves MeshGfx's mesh color set to the
+        // border color; restore it so the edges and the volume wireframe use
+        // the mesh color.
+        mesh_gfx_.set_mesh_color(mesh_color_.x, mesh_color_.y, mesh_color_.z);
         draw_edges();
         draw_volume(lighting);
     }
