@@ -10,21 +10,31 @@
 namespace geolio
 {
     /**
-     * @brief Split a triangle edge and update mesh connectivity.
-     * @details Given triangle facet @p f and local vertex index @p lv, insert a new vertex @p new_v
-     *          on the directed edge (lv -> (lv+1)%3). The new vertex position is set to the point
-     *          interpolated on that edge (for example the midpoint). Facet @p f is replaced by two
-     *          triangles that include @p new_v. If an adjacent facet exists across that edge, it is
-     *          also split so manifold connectivity is preserved. The function updates vertex
-     *          coordinates, facet vertex indices, facet-to-facet adjacency, and copies/restores
-     *          per-facet and per-corner attributes when @p update_attributes is true.
+     * @brief Split a triangle edge by inserting a vertex and update connectivity.
+     * @details For triangle facet @p f and local vertex index @p lv, inserts a new vertex @p new_v
+     *          on the oriented edge from local vertex lv to (lv+1)%3. The new vertex coordinates
+     *          are set to the interpolated point on that edge (typically the midpoint). Facet @p f
+     *          is replaced by two triangles that reference @p new_v. If the opposite facet exists,
+     *          it is also split and both facets' adjacency is updated so manifold connectivity is
+     *          preserved. Per-facet and per-corner attributes are copied/restored when
+     *          @p update_attributes is true.
+     *
+     * Preconditions:
+     *  - @p new_v, @p new_f0 and (if used) @p new_f1 must be unused (preallocated) indices.
+     *  - The mesh must allow writing vertex coordinates and facet connectivity.
+     *
+     * Side effects:
+     *  - Adds/sets coordinates for @p new_v and rewrites facet indices for @p f and the new facets.
+     *  - Updates facet-to-facet adjacency for the affected triangles.
+     *
      * @tparam DIM Coordinate dimension (2 or 3) used to read/write vertex coordinates.
-     * @param[in,out] mesh The mesh to modify. Storage for vertices and facets must be accessible.
+     * @param[in,out] mesh Mesh to modify (topology and geometry are mutated).
      * @param[in] f Index of the triangle facet to split.
-     * @param[in] lv Local vertex index in {0,1,2} identifying the edge between lv and (lv+1)%3.
-     * @param[in] new_v Index of a pre-allocated vertex; its coordinates are set to the interpolated point.
-     * @param[in] new_f0 Index of a pre-allocated facet used for one of the two new facets replacing @p f.
-     * @param[in] new_f1 Index of a pre-allocated facet used to split the adjacent facet; ignored if the edge is a boundary.
+     * @param[in] lv Local vertex index in {0,1,2} specifying the edge (lv -> (lv+1)%3).
+     * @param[in] new_v Index of a pre-allocated vertex; its coordinates will be written.
+     * @param[in] new_f0 Index of a pre-allocated facet used to store one of the new triangles.
+     * @param[in] new_f1 Index of a pre-allocated facet used to split the adjacent triangle; ignored if the edge is a boundary.
+     * @param[in] update_attributes When true, per-facet/per-corner attributes are preserved on the new elements.
      */
     template <GEO::index_t DIM>
     void tri_edge_split(
@@ -114,15 +124,23 @@ namespace geolio
 
     /**
      * @brief Swap (flip) an interior edge shared by two triangles.
-     * @details For facet @p f and local edge @p lv, replace the shared diagonal of the two incident
-     *          triangles by the other diagonal of the local quadrilateral. The facet indices remain
-     *          unchanged; the function updates each facet's vertex connectivity and the surrounding
-     *          facet-to-facet adjacency. Per-facet and per-corner attributes are copied/restored when
-     *          @p update_attributes is true.
-     * @param[in,out] mesh Mesh whose connectivity and adjacency are modified.
+     * @details For triangle facet @p f and local vertex index @p lv, flips the interior edge
+     *          opposite to local vertex lv: the two incident triangles that form a convex
+     *          quadrilateral will have their shared diagonal replaced by the other diagonal.
+     *          The operation keeps facet indices but rewrites their vertex connectivity and
+     *          updates facet-to-facet adjacency around the quad. When @p update_attributes is
+     *          true, per-facet and per-corner attributes are copied to preserve data consistency.
+     *
+     * Preconditions and validity checks:
+     *  - The edge must be interior (have an adjacent facet). Boundary edges are not flipped.
+     *  - The flip is rejected if it would create duplicate edges, non-manifold connectivity, or
+     *    degenerate/inverted triangles. Use is_tri_edge_swap_valid() to test beforehand.
+     *
+     * @param[in,out] mesh Mesh to modify (topology and adjacency are mutated).
      * @param[in] f Index of one incident facet of the interior edge to flip.
      * @param[in] lv Local vertex index in {0,1,2} in facet @p f identifying the edge opposite local vertex @p lv.
-     * @return true if the flip was applied; false if the edge is on the boundary or the operation is invalid.
+     * @param[in] update_attributes If true, per-facet/per-corner attributes are preserved on the updated facets.
+     * @return true if the flip was performed; false if the edge is a boundary or the operation was invalid.
      */
     bool tri_edge_swap(
         GEO::Mesh& mesh,
