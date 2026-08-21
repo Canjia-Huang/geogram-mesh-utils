@@ -96,7 +96,7 @@ namespace geolio
             mesh.cell_corners.attributes().copy_item(mesh.cells.corner(new_c0, 2), mesh.cells.corner(c, 2));
             mesh.cell_corners.attributes().copy_item(mesh.cells.corner(new_c0, 3), mesh.cells.corner(c, 3));
             mesh.cell_corners.attributes().copy_item(mesh.cells.corner(new_c1, 0), mesh.cells.corner(c, 0));
-            mesh.cell_corners.attributes().zero_item(mesh.cells.corner(new_c1, 0));
+            mesh.cell_corners.attributes().zero_item(mesh.cells.corner(new_c1, 1));
             mesh.cell_corners.attributes().copy_item(mesh.cells.corner(new_c1, 2), mesh.cells.corner(c, 2));
             mesh.cell_corners.attributes().copy_item(mesh.cells.corner(new_c1, 3), mesh.cells.corner(c, 3));
             mesh.cell_corners.attributes().copy_item(mesh.cells.corner(new_c2, 0), mesh.cells.corner(c, 0));

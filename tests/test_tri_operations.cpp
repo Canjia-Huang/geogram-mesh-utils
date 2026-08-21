@@ -91,13 +91,8 @@ namespace geolio::test
 
             mesh.facets.create_triangles(facets.size()/3);
             for (const auto& f : mesh.facets) {
-                mesh_f_idx[f] = f;
-                for (GEO::index_t lv = 0; lv < 3; ++lv) {
+                for (GEO::index_t lv = 0; lv < 3; ++lv)
                     mesh.facets.set_vertex(f, lv, facets[3*f+lv]);
-
-                    const auto fc = mesh.facets.corner(f, lv);
-                    mesh_fc_idx[fc] = fc;
-                }
             }
             mesh.facets.connect();
 
