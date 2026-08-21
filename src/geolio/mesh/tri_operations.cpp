@@ -16,7 +16,7 @@ namespace geolio
 {
     template <GEO::index_t DIM>
     void tri_edge_split(
-        GEO::Mesh& M,
+        GEO::Mesh& mesh,
         const GEO::index_t f,
         const GEO::index_t lv,
         const GEO::index_t new_v,
@@ -24,11 +24,11 @@ namespace geolio
         const GEO::index_t new_f1,
         const bool update_attributes
         ) {
-        assert(f < M.facets.nb());
-        assert(M.facets.nb_vertices(f) == 3);
+        assert(f < mesh.facets.nb());
+        assert(mesh.facets.nb_vertices(f) == 3);
         assert(lv < 3);
-        assert(new_v < M.vertices.nb());
-        assert(new_f0 < M.facets.nb());
+        assert(new_v < mesh.vertices.nb());
+        assert(new_f0 < mesh.facets.nb());
 
         /*
          *  +-------- v0        +-------- v0
@@ -42,46 +42,46 @@ namespace geolio
         const GEO::index_t lv1 = (lv+1)%3;
         const GEO::index_t lv2 = (lv+2)%3;
         // const GEO::index_t v0 = M.facets.vertex(f, lv0);
-        const GEO::index_t v1 = M.facets.vertex(f, lv1);
-        const GEO::index_t v2 = M.facets.vertex(f, lv2);
-        const GEO::index_t nf0 = M.facets.adjacent(f, lv0);
-        const GEO::index_t nf1 = M.facets.adjacent(f, lv1);
+        const GEO::index_t v1 = mesh.facets.vertex(f, lv1);
+        const GEO::index_t v2 = mesh.facets.vertex(f, lv2);
+        const GEO::index_t nf0 = mesh.facets.adjacent(f, lv0);
+        const GEO::index_t nf1 = mesh.facets.adjacent(f, lv1);
 
         /* Set new point */
-        const auto& p0 = M.facets.point<DIM>(f, lv0);
-        const auto& p1 = M.facets.point<DIM>(f, lv1);
-        M.vertices.point<DIM>(new_v) = 0.5 * (p0 + p1);
+        const auto& p0 = mesh.facets.point<DIM>(f, lv0);
+        const auto& p1 = mesh.facets.point<DIM>(f, lv1);
+        mesh.vertices.point<DIM>(new_v) = 0.5 * (p0 + p1);
 
         /* Set facet vertices  */
-        M.facets.set_vertex(f, lv1, new_v);
-        M.facets.set_vertex(new_f0, lv0, new_v);
-        M.facets.set_vertex(new_f0, lv1, v1);
-        M.facets.set_vertex(new_f0, lv2, v2);
+        mesh.facets.set_vertex(f, lv1, new_v);
+        mesh.facets.set_vertex(new_f0, lv0, new_v);
+        mesh.facets.set_vertex(new_f0, lv1, v1);
+        mesh.facets.set_vertex(new_f0, lv2, v2);
 
         /* Set facet adjacency */
-        M.facets.set_adjacent(f, lv1, new_f0);
-        M.facets.set_adjacent(new_f0, lv1, nf1);
-        M.facets.set_adjacent(new_f0, lv2, f);
+        mesh.facets.set_adjacent(f, lv1, new_f0);
+        mesh.facets.set_adjacent(new_f0, lv1, nf1);
+        mesh.facets.set_adjacent(new_f0, lv2, f);
         if (nf1 != GEO::NO_FACET) {
-            assert(M.facets.find_vertex(nf1, v2) != GEO::NO_INDEX);
-            M.facets.set_adjacent(nf1, M.facets.find_vertex(nf1, v2), new_f0);
+            assert(mesh.facets.find_vertex(nf1, v2) != GEO::NO_INDEX);
+            mesh.facets.set_adjacent(nf1, mesh.facets.find_vertex(nf1, v2), new_f0);
         }
 
         if (update_attributes) {
             /* Facet */
-            M.facets.attributes().copy_item(new_f0, f);
+            mesh.facets.attributes().copy_item(new_f0, f);
 
             /* Facet corners */
-            M.facet_corners.attributes().zero_item(M.facets.corner(new_f0, lv0));
-            M.facet_corners.attributes().copy_item(M.facets.corner(new_f0, lv1), M.facets.corner(f, lv1));
-            M.facet_corners.attributes().copy_item(M.facets.corner(new_f0, lv2), M.facets.corner(f, lv2));
-            M.facet_corners.attributes().zero_item(M.facets.corner(f, lv1));
+            mesh.facet_corners.attributes().zero_item(mesh.facets.corner(new_f0, lv0));
+            mesh.facet_corners.attributes().copy_item(mesh.facets.corner(new_f0, lv1), mesh.facets.corner(f, lv1));
+            mesh.facet_corners.attributes().copy_item(mesh.facets.corner(new_f0, lv2), mesh.facets.corner(f, lv2));
+            mesh.facet_corners.attributes().zero_item(mesh.facets.corner(f, lv1));
         }
 
         /* == Split adjacent facet ================================================================================= */
         if (nf0 != GEO::NO_FACET) {
-            assert(new_f1 < M.facets.nb());
-            assert(M.facets.nb_vertices(new_f1) == 3);
+            assert(new_f1 < mesh.facets.nb());
+            assert(mesh.facets.nb_vertices(new_f1) == 3);
 
             /*
              * nv2 ----- nv1       nv2 ----- nv1
@@ -91,74 +91,74 @@ namespace geolio
              *  | /       |         | /     \ |
              * nv0 -------+        nv0 -------+
              */
-            const GEO::index_t nlv0 = M.facets.find_vertex(nf0, v1);
+            const GEO::index_t nlv0 = mesh.facets.find_vertex(nf0, v1);
             assert(nlv0 != GEO::NO_INDEX);
             const GEO::index_t nlv1 = (nlv0+1)%3;
             const GEO::index_t nlv2 = (nlv0+2)%3;
-            const GEO::index_t nv0 = M.facets.vertex(nf0, nlv0);
+            const GEO::index_t nv0 = mesh.facets.vertex(nf0, nlv0);
             // const GEO::index_t nv1 = M.facets.vertex(af0, nlv1);
-            const GEO::index_t nv2 = M.facets.vertex(nf0, nlv2);
-            const GEO::index_t nnf2 = M.facets.adjacent(nf0, nlv2);
+            const GEO::index_t nv2 = mesh.facets.vertex(nf0, nlv2);
+            const GEO::index_t nnf2 = mesh.facets.adjacent(nf0, nlv2);
 
             /* Set facet vertices */
-            M.facets.set_vertex(nf0, nlv0, new_v);
-            M.facets.set_vertex(new_f1, nlv0, nv0);
-            M.facets.set_vertex(new_f1, nlv1, new_v);
-            M.facets.set_vertex(new_f1, nlv2, nv2);
+            mesh.facets.set_vertex(nf0, nlv0, new_v);
+            mesh.facets.set_vertex(new_f1, nlv0, nv0);
+            mesh.facets.set_vertex(new_f1, nlv1, new_v);
+            mesh.facets.set_vertex(new_f1, nlv2, nv2);
 
             /* Set facet adjacency */
-            M.facets.set_adjacent(new_f0, lv0, new_f1);
-            M.facets.set_adjacent(nf0, nlv2, new_f1);
-            M.facets.set_adjacent(new_f1, nlv0, new_f0);
-            M.facets.set_adjacent(new_f1, nlv1, nf0);
-            M.facets.set_adjacent(new_f1, nlv2, nnf2);
+            mesh.facets.set_adjacent(new_f0, lv0, new_f1);
+            mesh.facets.set_adjacent(nf0, nlv2, new_f1);
+            mesh.facets.set_adjacent(new_f1, nlv0, new_f0);
+            mesh.facets.set_adjacent(new_f1, nlv1, nf0);
+            mesh.facets.set_adjacent(new_f1, nlv2, nnf2);
             if (nnf2 != GEO::NO_FACET) {
-                assert(M.facets.find_vertex(new_f1, nv0) != GEO::NO_INDEX);
-                M.facets.set_adjacent(nnf2, M.facets.find_vertex(nnf2, nv0), new_f1);
+                assert(mesh.facets.find_vertex(new_f1, nv0) != GEO::NO_INDEX);
+                mesh.facets.set_adjacent(nnf2, mesh.facets.find_vertex(nnf2, nv0), new_f1);
             }
 
             if (update_attributes) {
                 /* Facet */
-                M.facets.attributes().copy_item(new_f1, nf0);
+                mesh.facets.attributes().copy_item(new_f1, nf0);
 
                 /* Facet corners */
-                M.facet_corners.attributes().copy_item(M.facets.corner(new_f1, nlv0), M.facets.corner(nf0, nlv0));
-                M.facet_corners.attributes().zero_item(M.facets.corner(new_f1, nlv1));
-                M.facet_corners.attributes().copy_item(M.facets.corner(new_f1, nlv2), M.facets.corner(nf0, nlv2));
-                M.facet_corners.attributes().zero_item(M.facets.corner(nf0, nlv0));
+                mesh.facet_corners.attributes().copy_item(mesh.facets.corner(new_f1, nlv0), mesh.facets.corner(nf0, nlv0));
+                mesh.facet_corners.attributes().zero_item(mesh.facets.corner(new_f1, nlv1));
+                mesh.facet_corners.attributes().copy_item(mesh.facets.corner(new_f1, nlv2), mesh.facets.corner(nf0, nlv2));
+                mesh.facet_corners.attributes().zero_item(mesh.facets.corner(nf0, nlv0));
             }
         }
         else
-            M.facets.set_adjacent(new_f0, lv0, GEO::NO_FACET);
+            mesh.facets.set_adjacent(new_f0, lv0, GEO::NO_FACET);
     }
 
     template void tri_edge_split<2>(
-        GEO::Mesh& M, GEO::index_t f, GEO::index_t lv, GEO::index_t new_v, GEO::index_t new_f0, GEO::index_t new_f1, bool update_attributes);
+        GEO::Mesh& mesh, GEO::index_t f, GEO::index_t lv, GEO::index_t new_v, GEO::index_t new_f0, GEO::index_t new_f1, bool update_attributes);
     template void tri_edge_split<3>(
-        GEO::Mesh& M, GEO::index_t f, GEO::index_t lv, GEO::index_t new_v, GEO::index_t new_f0, GEO::index_t new_f1, bool update_attributes);
+        GEO::Mesh& mesh, GEO::index_t f, GEO::index_t lv, GEO::index_t new_v, GEO::index_t new_f0, GEO::index_t new_f1, bool update_attributes);
 
     bool is_tri_edge_collapse_valid(
-        const GEO::Mesh& M,
+        const GEO::Mesh& mesh,
         const GEO::index_t f,
         const GEO::index_t lv
         ) {
-        assert(f < M.facets.nb());
-        assert(M.facets.nb_vertices(f) == 3);
+        assert(f < mesh.facets.nb());
+        assert(mesh.facets.nb_vertices(f) == 3);
         assert(lv < 3);
 
         const GEO::index_t lv0 = lv;
         const GEO::index_t lv1 = (lv+1)%3;
         // const GEO::index_t lv2 = (lv+2)%3;
-        const GEO::index_t v0 = M.facets.vertex(f, lv0);
-        const GEO::index_t v1 = M.facets.vertex(f, lv1);
-        const auto af = M.facets.adjacent(f, lv);
+        const GEO::index_t v0 = mesh.facets.vertex(f, lv0);
+        const GEO::index_t v1 = mesh.facets.vertex(f, lv1);
+        const auto af = mesh.facets.adjacent(f, lv);
 
         /* Find all incident vertices */
         std::vector<std::pair<GEO::index_t, GEO::index_t>> v0_ordered_f_and_lv;
-        const bool v0_on_boundary = get_vertex_incident_facets(M, f, lv0, v0_ordered_f_and_lv);
+        const bool v0_on_boundary = get_vertex_incident_facets(mesh, f, lv0, v0_ordered_f_and_lv);
 
         std::vector<std::pair<GEO::index_t, GEO::index_t>> v1_ordered_f_and_lv;
-        const bool v1_on_boundary = get_vertex_incident_facets(M, f, lv1, v1_ordered_f_and_lv);
+        const bool v1_on_boundary = get_vertex_incident_facets(mesh, f, lv1, v1_ordered_f_and_lv);
 
         if (v0_on_boundary && v1_on_boundary && af != GEO::NO_FACET) /* will create a new non-manifold vertex */
             return false;
@@ -166,8 +166,8 @@ namespace geolio
         /* After collapse, no identical triangles can exist */
         std::unordered_set<std::pair<GEO::index_t, GEO::index_t>, PairHash> other_vertices_pair;
         for (const auto& [nf, nlv] : v0_ordered_f_and_lv) {
-            const auto& nv1 = M.facets.vertex(nf, (nlv+1)%3);
-            const auto& nv2 = M.facets.vertex(nf, (nlv+2)%3);
+            const auto& nv1 = mesh.facets.vertex(nf, (nlv+1)%3);
+            const auto& nv2 = mesh.facets.vertex(nf, (nlv+2)%3);
             assert(nv1 != v0);
             assert(nv2 != v0);
             if (nv1 == nv2)
@@ -181,8 +181,8 @@ namespace geolio
                 return false; // Identical triangles in an adjacent face group.
         }
         for (const auto& [nf, nlv] : v1_ordered_f_and_lv) {
-            const auto& nv1 = M.facets.vertex(nf, (nlv+1)%3);
-            const auto& nv2 = M.facets.vertex(nf, (nlv+2)%3);
+            const auto& nv1 = mesh.facets.vertex(nf, (nlv+1)%3);
+            const auto& nv2 = mesh.facets.vertex(nf, (nlv+2)%3);
             assert(nv1 != v1);
             assert(nv2 != v1);
             if (nv1 == nv2)
@@ -201,15 +201,15 @@ namespace geolio
 
     template <GEO::index_t DIM>
     void tri_edge_collapse(
-        GEO::Mesh& M,
+        GEO::Mesh& mesh,
         const GEO::index_t f,
         const GEO::index_t lv,
         GEO::index_t& disuse_v,
         GEO::index_t& disuse_f0,
         GEO::index_t& disuse_f1
         ) {
-        assert(f < M.facets.nb());
-        assert(M.facets.nb_vertices(f) == 3);
+        assert(f < mesh.facets.nb());
+        assert(mesh.facets.nb_vertices(f) == 3);
         assert(lv < 3);
 
         /*
@@ -224,38 +224,38 @@ namespace geolio
         const GEO::index_t lv0 = lv;
         const GEO::index_t lv1 = (lv+1)%3;
         const GEO::index_t lv2 = (lv+2)%3;
-        const GEO::index_t v0 = M.facets.vertex(f, lv0);
-        const GEO::index_t v1 = M.facets.vertex(f, lv1);
-        const GEO::index_t v2 = M.facets.vertex(f, lv2);
-        const GEO::index_t af0 = M.facets.adjacent(f, lv0);
-        const GEO::index_t af1 = M.facets.adjacent(f, lv1);
-        const GEO::index_t af2 = M.facets.adjacent(f, lv2);
+        const GEO::index_t v0 = mesh.facets.vertex(f, lv0);
+        const GEO::index_t v1 = mesh.facets.vertex(f, lv1);
+        const GEO::index_t v2 = mesh.facets.vertex(f, lv2);
+        const GEO::index_t af0 = mesh.facets.adjacent(f, lv0);
+        const GEO::index_t af1 = mesh.facets.adjacent(f, lv1);
+        const GEO::index_t af2 = mesh.facets.adjacent(f, lv2);
 
         /* Set collapsed point (v0) */
-        const auto& p0 = M.vertices.point<DIM>(v0);
-        const auto& p1 = M.vertices.point<DIM>(v1);
-        M.vertices.point<DIM>(v0) = 0.5 * (p0 + p1);
+        const auto& p0 = mesh.vertices.point<DIM>(v0);
+        const auto& p1 = mesh.vertices.point<DIM>(v1);
+        mesh.vertices.point<DIM>(v0) = 0.5 * (p0 + p1);
         disuse_v = v1;
         disuse_f0 = f;
         disuse_f1 = af0; // facet or GEO::NO_FACET
 
         /* Find all (f, lv) that incident to v1 (before performing collapse) */
         std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_f_and_lv;
-        get_vertex_incident_facets(M, f, lv1, ordered_f_and_lv);
+        get_vertex_incident_facets(mesh, f, lv1, ordered_f_and_lv);
 
         /* Set facet adjacency */
         if (af1 != GEO::NO_FACET) {
-            assert(M.facets.find_vertex(af1, v2) != GEO::NO_INDEX);
-            M.facets.set_adjacent(af1, M.facets.find_vertex(af1, v2), af2);
+            assert(mesh.facets.find_vertex(af1, v2) != GEO::NO_INDEX);
+            mesh.facets.set_adjacent(af1, mesh.facets.find_vertex(af1, v2), af2);
         }
         if (af2 != GEO::NO_FACET) {
-            assert(M.facets.find_vertex(af2, v0) != GEO::NO_INDEX);
-            M.facets.set_adjacent(af2, M.facets.find_vertex(af2, v0), af1);
+            assert(mesh.facets.find_vertex(af2, v0) != GEO::NO_INDEX);
+            mesh.facets.set_adjacent(af2, mesh.facets.find_vertex(af2, v0), af1);
         }
 
         /* == Collapse adjacent facet ============================================================================== */
         if (af0 != GEO::NO_FACET) {
-            assert(M.facets.nb_vertices(af0) == 3);
+            assert(mesh.facets.nb_vertices(af0) == 3);
 
             /*
              *  +-------- nv1                 ++
@@ -266,101 +266,90 @@ namespace geolio
              *    / naf2 \ |                \  |
              *  +-------- nv0                 ++
              */
-            const GEO::index_t nlv0 = M.facets.find_vertex(af0, v1);
+            const GEO::index_t nlv0 = mesh.facets.find_vertex(af0, v1);
             assert(nlv0 != GEO::NO_INDEX);
             const GEO::index_t nlv1 = (nlv0+1)%3;
             const GEO::index_t nlv2 = (nlv0+2)%3;
-            const GEO::index_t nv0 = M.facets.vertex(af0, nlv0);
+            const GEO::index_t nv0 = mesh.facets.vertex(af0, nlv0);
             // const GEO::index_t nv1 = M.facets.vertex(af0, nlv1);
-            const GEO::index_t nv2 = M.facets.vertex(af0, nlv2);
-            const GEO::index_t naf1 = M.facets.adjacent(af0, nlv1);
-            const GEO::index_t naf2 = M.facets.adjacent(af0, nlv2);
+            const GEO::index_t nv2 = mesh.facets.vertex(af0, nlv2);
+            const GEO::index_t naf1 = mesh.facets.adjacent(af0, nlv1);
+            const GEO::index_t naf2 = mesh.facets.adjacent(af0, nlv2);
 
             /* Set facet adjacency */
             if (naf1 != GEO::NO_FACET) {
-                assert(M.facets.find_vertex(naf1, nv2) != GEO::NO_INDEX);
-                M.facets.set_adjacent(naf1, M.facets.find_vertex(naf1, nv2), naf2);
+                assert(mesh.facets.find_vertex(naf1, nv2) != GEO::NO_INDEX);
+                mesh.facets.set_adjacent(naf1, mesh.facets.find_vertex(naf1, nv2), naf2);
             }
             if (naf2 != GEO::NO_FACET) {
-                assert(M.facets.find_vertex(naf2, nv0) != GEO::NO_INDEX);
-                M.facets.set_adjacent(naf2, M.facets.find_vertex(naf2, nv0), naf1);
+                assert(mesh.facets.find_vertex(naf2, nv0) != GEO::NO_INDEX);
+                mesh.facets.set_adjacent(naf2, mesh.facets.find_vertex(naf2, nv0), naf1);
             }
         }
 
         /* Set facet vertices */
         for (const auto& [adj_f, adj_lv] : ordered_f_and_lv)
-            M.facets.set_vertex(adj_f, adj_lv, v0);
-
-        /* Restore attributes */
-        // M.vertices.attributes().zero_item(disuse_v);
-        // M.facets.attributes().zero_item(disuse_f0);
-        // for (GEO::index_t i = 0; i < 3; ++i)
-        //     M.facet_corners.attributes().zero_item(M.facets.corner(disuse_f0, i));
-        // if (disuse_f1 != GEO::NO_FACET) {
-        //     M.facets.attributes().zero_item(disuse_f1);
-        //     for (GEO::index_t i = 0; i < 3; ++i)
-        //         M.facet_corners.attributes().zero_item(M.facets.corner(disuse_f1, i));
-        // }
+            mesh.facets.set_vertex(adj_f, adj_lv, v0);
     }
 
     template void tri_edge_collapse<2>(
-        GEO::Mesh& M, GEO::index_t f, GEO::index_t lv, GEO::index_t& disuse_v, GEO::index_t& disuse_f0,
+        GEO::Mesh& mesh, GEO::index_t f, GEO::index_t lv, GEO::index_t& disuse_v, GEO::index_t& disuse_f0,
         GEO::index_t& disuse_f1);
     template void tri_edge_collapse<3>(
-        GEO::Mesh& M, GEO::index_t f, GEO::index_t lv, GEO::index_t& disuse_v, GEO::index_t& disuse_f0,
+        GEO::Mesh& mesh, GEO::index_t f, GEO::index_t lv, GEO::index_t& disuse_v, GEO::index_t& disuse_f0,
         GEO::index_t& disuse_f1);
 
     bool is_tri_edge_swap_valid(
-        const GEO::Mesh& M,
+        const GEO::Mesh& mesh,
         const GEO::index_t f,
         const GEO::index_t lv
         ) {
-        assert(f < M.facets.nb());
-        assert(M.facets.nb_vertices(f) == 3);
+        assert(f < mesh.facets.nb());
+        assert(mesh.facets.nb_vertices(f) == 3);
         assert(lv < 3);
 
-        const GEO::index_t af = M.facets.adjacent(f, lv);
+        const GEO::index_t af = mesh.facets.adjacent(f, lv);
         if (af == GEO::NO_FACET)
             return false;
 
         const GEO::index_t lv1 = (lv+1)%3;
         const GEO::index_t lv2 = (lv+2)%3;
         // const GEO::index_t v0 = M.facets.vertex(f, lv);
-        const GEO::index_t v1 = M.facets.vertex(f, lv1);
-        const GEO::index_t v2 = M.facets.vertex(f, lv2);
+        const GEO::index_t v1 = mesh.facets.vertex(f, lv1);
+        const GEO::index_t v2 = mesh.facets.vertex(f, lv2);
 
-        const GEO::index_t nlv0 = M.facets.find_vertex(af, v1);
+        const GEO::index_t nlv0 = mesh.facets.find_vertex(af, v1);
         assert(nlv0 != GEO::NO_INDEX);
         const GEO::index_t nlv1 = (nlv0+1)%3;
         const GEO::index_t nlv2 = (nlv0+2)%3;
-        const GEO::index_t v3 = M.facets.vertex(af, nlv2);
+        const GEO::index_t v3 = mesh.facets.vertex(af, nlv2);
 
         /* Not allow two existing edges to exist in an adjacent facet */
-        if (const auto nf1 = M.facets.adjacent(f, lv1);
+        if (const auto nf1 = mesh.facets.adjacent(f, lv1);
             nf1 != GEO::NO_FACET) {
             for (GEO::index_t nlv = 0; nlv < 3; ++nlv) {
-                if (M.facets.vertex(nf1, nlv) == v3)
+                if (mesh.facets.vertex(nf1, nlv) == v3)
                     return false;
             }
         }
-        if (const auto nf2 = M.facets.adjacent(f, lv2);
+        if (const auto nf2 = mesh.facets.adjacent(f, lv2);
             nf2 != GEO::NO_FACET) {
             for (GEO::index_t nlv = 0; nlv < 3; ++nlv) {
-                if (M.facets.vertex(nf2, nlv) == v3)
+                if (mesh.facets.vertex(nf2, nlv) == v3)
                     return false;
             }
         }
-        if (const auto& anf1 = M.facets.adjacent(af, nlv1);
+        if (const auto& anf1 = mesh.facets.adjacent(af, nlv1);
             anf1 != GEO::NO_FACET) {
             for (GEO::index_t nlv = 0; nlv < 3; ++nlv) {
-                if (M.facets.vertex(anf1, nlv) == v2)
+                if (mesh.facets.vertex(anf1, nlv) == v2)
                     return false;
             }
         }
-        if (const auto& anf2 = M.facets.adjacent(af, nlv2);
+        if (const auto& anf2 = mesh.facets.adjacent(af, nlv2);
             anf2 != GEO::NO_FACET) {
             for (GEO::index_t nlv = 0; nlv < 3; ++nlv) {
-                if (M.facets.vertex(anf2, nlv) == v2)
+                if (mesh.facets.vertex(anf2, nlv) == v2)
                     return false;
             }
         }
@@ -399,15 +388,16 @@ namespace geolio
     }
 
     bool tri_edge_swap(
-        GEO::Mesh& M,
+        GEO::Mesh& mesh,
         const GEO::index_t f,
-        const GEO::index_t lv
+        const GEO::index_t lv,
+        const bool update_attributes
         ) {
-        assert(f < M.facets.nb());
-        assert(M.facets.nb_vertices(f) == 3);
+        assert(f < mesh.facets.nb());
+        assert(mesh.facets.nb_vertices(f) == 3);
         assert(lv < 3);
 
-        const GEO::index_t af = M.facets.adjacent(f, lv);
+        const GEO::index_t af = mesh.facets.adjacent(f, lv);
         if (af == GEO::NO_FACET)
             return false;
 
@@ -424,47 +414,50 @@ namespace geolio
         const GEO::index_t lv1 = (lv+1)%3;
         const GEO::index_t lv2 = (lv+2)%3;
         // const GEO::index_t v0 = M.facets.vertex(f, lv);
-        const GEO::index_t v1 = M.facets.vertex(f, lv1);
-        const GEO::index_t v2 = M.facets.vertex(f, lv2);
+        const GEO::index_t v1 = mesh.facets.vertex(f, lv1);
+        const GEO::index_t v2 = mesh.facets.vertex(f, lv2);
 
-        const GEO::index_t af1 = M.facets.adjacent(f, lv1);
+        const GEO::index_t af1 = mesh.facets.adjacent(f, lv1);
         // const GEO::index_t af2 = M.facets.adjacent(f, lv2);
 
-        const GEO::index_t nlv0 = M.facets.find_vertex(af, v1);
+        const GEO::index_t nlv0 = mesh.facets.find_vertex(af, v1);
         assert(nlv0 != GEO::NO_INDEX);
         const GEO::index_t nlv1 = (nlv0+1)%3;
         const GEO::index_t nlv2 = (nlv0+2)%3;
-        const GEO::index_t v3 = M.facets.vertex(af, nlv2);
+        const GEO::index_t v3 = mesh.facets.vertex(af, nlv2);
 
-        const GEO::index_t af0 = M.facets.adjacent(af, nlv1);
+        const GEO::index_t af0 = mesh.facets.adjacent(af, nlv1);
         // const GEO::index_t af3 = M.facets.adjacent(af, nlv2);
 
         /* Set vertices */
-        M.facets.set_vertex(f, lv1, v3);
-        M.facets.set_vertex(af, nlv1, v2);
+        mesh.facets.set_vertex(f, lv1, v3);
+        mesh.facets.set_vertex(af, nlv1, v2);
 
         /* Set adjacency */
-        M.facets.set_adjacent(f, lv, af0);
-        M.facets.set_adjacent(f, lv1, af);
-        M.facets.set_adjacent(af, nlv0, af1);
-        M.facets.set_adjacent(af, nlv1, f);
+        mesh.facets.set_adjacent(f, lv, af0);
+        mesh.facets.set_adjacent(f, lv1, af);
+        mesh.facets.set_adjacent(af, nlv0, af1);
+        mesh.facets.set_adjacent(af, nlv1, f);
         if (af0 != GEO::NO_FACET) {
-            assert(M.facets.find_vertex(af0, v3) != GEO::NO_INDEX);
-            M.facets.set_adjacent(af0, M.facets.find_vertex(af0, v3), f);
+            assert(mesh.facets.find_vertex(af0, v3) != GEO::NO_INDEX);
+            mesh.facets.set_adjacent(af0, mesh.facets.find_vertex(af0, v3), f);
         }
         if (af1 != GEO::NO_FACET) {
-            assert(M.facets.find_vertex(af1, v2) != GEO::NO_INDEX);
-            M.facets.set_adjacent(af1, M.facets.find_vertex(af1, v2), af);
+            assert(mesh.facets.find_vertex(af1, v2) != GEO::NO_INDEX);
+            mesh.facets.set_adjacent(af1, mesh.facets.find_vertex(af1, v2), af);
         }
 
-        /* Copy attributes */
-        M.facet_corners.attributes().copy_item(M.facets.corner(f, lv), M.facets.corner(af, nlv1));
-        M.facet_corners.attributes().copy_item(M.facets.corner(af, nlv0), M.facets.corner(f, lv1));
-        /* Restore attributes */
-        M.facets.attributes().zero_item(f);
-        M.facets.attributes().zero_item(af);
-        M.facet_corners.attributes().zero_item(M.facets.corner(f, lv1));
-        M.facet_corners.attributes().zero_item(M.facets.corner(af, nlv1));
+        if (update_attributes) {
+            /* Facet */
+            mesh.facets.attributes().zero_item(f);
+            mesh.facets.attributes().zero_item(af);
+
+            /* Facet corners */
+            mesh.facet_corners.attributes().copy_item(mesh.facets.corner(f, lv1), mesh.facets.corner(af, nlv2));
+            mesh.facet_corners.attributes().copy_item(mesh.facets.corner(af, nlv1), mesh.facets.corner(f, lv2));
+            mesh.facet_corners.attributes().zero_item(mesh.facets.corner(f, lv));
+            mesh.facet_corners.attributes().zero_item(mesh.facets.corner(af, nlv0));
+        }
 
         return true;
     }
