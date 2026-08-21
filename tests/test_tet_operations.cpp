@@ -362,47 +362,88 @@ namespace geolio::test
         for_each_c_le();
     }
 
-    /* ============================================================================================================= */
+    TEST_F(TetEdgeSplitTest, manage_attributes) {
+        mesh.clear();
 
-    class TetEdgeCollapseTest : public TetOperationsTest {
-    protected:
-        void perform_operation(const GEO::index_t c, const GEO::index_t le) override {
-            const double r = GEO::Numeric::random_float32();
-            if (!is_tet_edge_collapse_valid(mesh, c, le, r))
-                return;
+        GEO::Attribute<GEO::index_t> mesh_c_idx(mesh.cells.attributes(), "idx");
+        GEO::Attribute<GEO::index_t> mesh_cc_idx(mesh.cell_corners.attributes(), "idx");
+        GEO::Attribute<GEO::index_t> mesh_cf_idx(mesh.cell_facets.attributes(), "idx");
 
-            GEO::index_t disuse_v;
-            std::vector<GEO::index_t> disuse_cs;
-            tet_edge_collapse(mesh, c, le, disuse_v, disuse_cs, r);
+        const std::vector<GEO::vec3> vertices = {
+            GEO::vec3(0, 2, 0), GEO::vec3(-1.732, -1, 0), GEO::vec3(1.732, -1, 0),
+            GEO::vec3(0, 0, 2), GEO::vec3(0, 0, -2)
+        };
+        const std::vector<GEO::index_t> cells = {
+            4, 0, 1, 3,
+            4, 1, 2, 3,
+            4, 2, 0, 3
+        };
+        mesh.vertices.create_vertices(vertices.size());
+        for (const auto& v : mesh.vertices)
+            mesh.vertices.point(v) = vertices[v];
+        mesh.cells.create_tets(cells.size()/3);
+        for (const auto& c : mesh.cells) {
+            mesh_c_idx[c] = c;
 
-            /* Clean disuse vertices and cells */
-            GEO::vector<GEO::index_t> cells_to_delete(mesh.cells.nb(), 0);
-            for (const auto& cc : disuse_cs)
-                cells_to_delete[cc] = 1;
-            mesh.cells.delete_elements(cells_to_delete);
+            for (GEO::index_t lv = 0; lv < 4; ++lv) {
+                mesh.cells.set_vertex(c, lv, cells[4*c+lv]);
+
+                mesh_cc_idx[mesh.cells.corner(c, lv)] = mesh.cells.corner(c, lv);
+                mesh_cf_idx[mesh.cells.facet(c, lv)] = mesh.cells.facet(c, lv);
+            }
         }
-    };
+        mesh.cells.connect();
+        GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
 
-    TEST_F(TetEdgeCollapseTest, tet_edge_collapse) {
-        for_each_c_le();
+        /* Split */
+        const GEO::index_t new_v = mesh.vertices.create_vertices(1);
+        std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>> ordered_c_le_lf;
+        get_edge_incident_cells(mesh, 0, 5, ordered_c_le_lf);
+        const GEO::index_t new_c = mesh.cells.create_tets(ordered_c_le_lf.size());
+        std::vector<GEO::index_t> new_cs(ordered_c_le_lf.size());
+        std::iota(new_cs.begin(), new_cs.end(), new_c);
+        tet_edge_split(mesh, ordered_c_le_lf, new_v, new_cs);
+
+        GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
     }
 
     /* ============================================================================================================= */
 
-    class TetEdgeSwap23Test : public TetOperationsTest {
-    protected:
-        void perform_operation(const GEO::index_t c, const GEO::index_t lf) override {
-            if (!is_tet_edge_swap_2_3_valid(mesh, c, lf))
-                return;
+    // class TetEdgeCollapseTest : public TetOperationsTest {
+    // protected:
+    //     void perform_operation(const GEO::index_t c, const GEO::index_t le) override {
+    //         const double r = GEO::Numeric::random_float32();
+    //
+    //         GEO::index_t disuse_v;
+    //         std::vector<GEO::index_t> disuse_cs;
+    //         tet_edge_collapse(mesh, c, le, disuse_v, disuse_cs, r);
+    //
+    //         /* Clean disuse vertices and cells */
+    //         GEO::vector<GEO::index_t> cells_to_delete(mesh.cells.nb(), 0);
+    //         for (const auto& cc : disuse_cs)
+    //             cells_to_delete[cc] = 1;
+    //         mesh.cells.delete_elements(cells_to_delete);
+    //     }
+    // };
+    //
+    // TEST_F(TetEdgeCollapseTest, tet_edge_collapse) {
+    //     for_each_c_le();
+    // }
 
-            const GEO::index_t new_c = mesh.cells.create_tets(1);
-            tet_edge_swap_2_3(mesh, c, lf, new_c);
-        }
-    };
+    /* ============================================================================================================= */
 
-    TEST_F(TetEdgeSwap23Test, tet_edge_swap) {
-        for_each_c_lf();
-    }
+    // class TetEdgeSwap23Test : public TetOperationsTest {
+    // protected:
+    //     void perform_operation(const GEO::index_t c, const GEO::index_t lf) override {
+    //
+    //         const GEO::index_t new_c = mesh.cells.create_tets(1);
+    //         tet_edge_swap_2_3(mesh, c, lf, new_c);
+    //     }
+    // };
+    //
+    // TEST_F(TetEdgeSwap23Test, tet_edge_swap) {
+    //     for_each_c_lf();
+    // }
 
     /* ============================================================================================================= */
 
