@@ -362,9 +362,44 @@ namespace geolio::geobox
             ImGui::Text("GEOGRAM website (version: %s): ", GEO::Environment::instance()->get_value("version").c_str());
             ImGui::Text("https://github.com/BrunoLevy/geogram");
 
-            ImGui::Text("\n");
-
             ImGui::EndMenu();
+        }
+    }
+
+    void GeoBoxApplication::draw_windows_menu(
+        ) {
+        {
+            bool needs_to_close = false;
+            needs_to_close = ImGui::BeginMenu(GEO::icon_UTF8("font") + " Font size");
+            if (phone_screen_ || needs_to_close) {
+                static GEO::index_t font_sizes[] = {10, 12, 14, 16, 18, 22};
+                for (unsigned int font_size : font_sizes) {
+                    bool selected = (get_font_size() == font_size);
+                    if(ImGui::MenuItem(
+                            GEO::String::to_string(font_size),
+                           nullptr,
+                           &selected))
+                        set_font_size(font_size);
+
+                }
+                if (needs_to_close)
+                    ImGui::EndMenu();
+            }
+        }
+        {
+            bool needs_to_close = false;
+            needs_to_close = ImGui::BeginMenu(GEO::icon_UTF8("cog") + " Style");
+            if(phone_screen_ || needs_to_close) {
+                std::vector<std::string> styles;
+                GEO::String::split_string(get_styles(), ';', styles);
+                for (const auto & style : styles) {
+                    bool selected = (get_style() == style);
+                    if(ImGui::MenuItem(style, nullptr, &selected))
+                        set_style(style);
+                }
+                if(needs_to_close)
+                    ImGui::EndMenu();
+            }
         }
     }
 
