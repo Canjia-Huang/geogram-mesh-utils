@@ -34,7 +34,7 @@ namespace geolio::geobox
 
         virtual void draw_scene(bool lighting) = 0;
 
-        virtual void reload() = 0;
+        // virtual void reload() = 0;
 
         virtual void get_bbox(double* xyzmin, double* xyzmax) const = 0;
 
