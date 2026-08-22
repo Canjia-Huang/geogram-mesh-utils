@@ -6,14 +6,16 @@
 #define GEOLIO_BASE_OBJECT_H
 
 #include <geolio/common/utils.h>
+#include <geolio/common/parse_filepath.h>
 
 namespace geolio::geobox
 {
     class BaseObject {
     public:
         explicit BaseObject(
-            const std::string& name
-            ) : name_(name),
+            const std::string& filepath
+            ) : filepath_(filepath),
+                name_(get_filename(filepath)),
                 unique_id_(generate_random_string(22))
         {}
 
@@ -25,13 +27,19 @@ namespace geolio::geobox
 
         void set_visible(const bool visible) { visible_ = visible; }
 
-        virtual void draw_object_properties() = 0;
+        virtual void draw_object_properties(
+            ) {
+            // TODO: reload buttom
+        }
 
         virtual void draw_scene(bool lighting) = 0;
+
+        virtual void reload() = 0;
 
         virtual void get_bbox(double* xyzmin, double* xyzmax) const = 0;
 
     protected:
+        const std::string filepath_;
         const std::string name_;
         const std::string unique_id_;
         bool visible_ = true;

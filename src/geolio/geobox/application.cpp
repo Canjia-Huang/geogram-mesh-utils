@@ -359,19 +359,19 @@ namespace geolio::geobox
     }
 
     bool GeoBoxApplication::load(
-        const std::string& filename
+        const std::string& filepath
         ) {
         home();
 
         GEO::Mesh mesh;
-        if (!mesh.load(filename)) {
-            LOG::ERROR("Cannot load mesh from `{}`!", filename);
+        if (!mesh.load(filepath)) {
+            LOG::ERROR("Cannot load mesh from `{}`!", filepath);
             return false;
         }
 
         /* Create object */
         const auto object_ptr = std::make_shared<MeshObject>(
-            get_filename(filename),
+            filepath,
             my_colormaps_,
             mesh);
 

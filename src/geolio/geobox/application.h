@@ -45,7 +45,7 @@ namespace geolio::geobox
 
         void camera_focus(const BaseObject& object);
 
-        bool load(const std::string& filename) override;
+        bool load(const std::string& filepath) override;
 
         std::vector<geolio::geobox::ColormapInfo> my_colormaps_;
 
