@@ -395,14 +395,15 @@ namespace geolio
             mesh.cells.set_adjacent(c, lv1, new_c);
             mesh.cells.set_adjacent(new_c, lv0, c);
             mesh.cells.set_adjacent(new_c, lv1, nc1);
-            if (mesh.cells.adjacent(c, lv2) != GEO::NO_CELL) {
-                assert(mesh.cells.adjacent(c, lv2) == get<0>(ordered_c_le_lf[(i+INCIDENT_CELLS_NB-1)%INCIDENT_CELLS_NB]));
-                mesh.cells.set_adjacent(new_c, lv2, new_cs[(i+INCIDENT_CELLS_NB-1)%INCIDENT_CELLS_NB]);
-            }
-            if (mesh.cells.adjacent(c, lv3) != GEO::NO_CELL) {
-                assert(mesh.cells.adjacent(c, lv3) == get<0>(ordered_c_le_lf[(i+1)%INCIDENT_CELLS_NB]));
-                mesh.cells.set_adjacent(new_c, lv3, new_cs[(i+1)%INCIDENT_CELLS_NB]);
-            }
+            mesh.cells.set_adjacent(new_c, lv2,
+                mesh.cells.adjacent(c, lv2) == GEO::NO_CELL ?
+                    GEO::NO_CELL :
+                    new_cs[(i+INCIDENT_CELLS_NB-1)%INCIDENT_CELLS_NB]);
+            mesh.cells.set_adjacent(new_c, lv3,
+                mesh.cells.adjacent(c, lv3) == GEO::NO_CELL ?
+                    GEO::NO_CELL :
+                    new_cs[(i+1)%INCIDENT_CELLS_NB]);
+
             if (nc1 != GEO::NO_CELL) {
                 const GEO::index_t nlf = mesh.cells.find_tet_facet(
                     nc1,
