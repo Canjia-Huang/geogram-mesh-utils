@@ -28,7 +28,8 @@ namespace geolio::geobox
         ) {
         ImGui::PushID(this);
 
-        BaseObject::draw_object_properties();
+        if (ImGui::Button("Reload", ImVec2(-1, 0)))
+            reload();
 
         ImGui::Separator();
         if (ImGui::CollapsingHeader("Info")) {

@@ -11,44 +11,94 @@
 
 namespace geolio::geobox
 {
-    // ref <geogram_gfx/gui/simple_mesh_application.cpp> SimpleMeshApplication
+    /**
+     * @brief Mesh-backed object rendered by GeoBox.
+     * @details This class wraps a GEO::Mesh and exposes the viewer controls needed to
+     *          display vertices, surface facets, edges, and volume cells.
+     * @ref <geogram_gfx/gui/simple_mesh_application.cpp> SimpleMeshApplication
+     */
     class MeshObject : public BaseObject {
     public:
+        /**
+         * @brief Constructs a mesh object from a display name and a mesh instance.
+         * @param[in] name Name used to identify the object in the UI.
+         * @param[in] colormaps Available colormap textures for scalar attribute rendering.
+         * @param[in] mesh Source mesh data to render.
+         */
         explicit MeshObject(
             const std::string& name,
             const std::vector<ColormapInfo>& colormaps,
             const GEO::Mesh& mesh);
 
+        /**
+         * @brief Draws the object-specific property widgets.
+         */
         void draw_object_properties() override;
 
+        /**
+         * @brief Renders the mesh object in the scene.
+         * @param[in] lighting If true, enable lighting for shaded volume or surface rendering.
+         */
         void draw_scene(bool lighting) override;
 
-        void reload() override;
+        /**
+         * @brief Reloads the mesh object from its source representation.
+         */
+        void reload();
 
+        /**
+         * @brief Returns the bounding box of the mesh in world coordinates.
+         * @param[out] xyzmin Minimum coordinates in x, y, z order.
+         * @param[out] xyzmax Maximum coordinates in x, y, z order.
+         */
         void get_bbox(double* xyzmin, double* xyzmax) const override;
 
     protected:
-        // ref <geogram_gfx/gui/simple_mesh_application.cpp> draw_points()
+        /**
+         * @brief Draws the mesh vertices.
+         * @ref <geogram_gfx/gui/simple_mesh_application.cpp> draw_points()
+         */
         void draw_points();
 
-        // ref <geogram_gfx/gui/simple_mesh_application.cpp> draw_surface()
+        /**
+         * @brief Draws the mesh surface facets.
+         * @ref <geogram_gfx/gui/simple_mesh_application.cpp> draw_surface()
+         */
         void draw_surface();
 
-        // ref <geogram_gfx/gui/simple_mesh_application.cpp> draw_edges()
+        /**
+         * @brief Draws the mesh edges.
+         * @ref <geogram_gfx/gui/simple_mesh_application.cpp> draw_edges()
+         */
         void draw_edges();
 
-        // ref <geogram_gfx/gui/simple_mesh_application.cpp> draw_volume()
+        /**
+         * @brief Draws the tetrahedral or volumetric cells.
+         * @param[in] lighting If true, use lighting when drawing the volume.
+         * @ref <geogram_gfx/gui/simple_mesh_application.cpp> draw_volume()
+         */
         void draw_volume(bool lighting);
 
-        // ref <geogram_gfx/gui/simple_mesh_application.cpp> autorange()
+        /**
+         * @brief Autoscales the attribute range for display.
+         * @ref <geogram_gfx/gui/simple_mesh_application.cpp> autorange()
+         */
         void autorange();
 
-        // ref <geogram_gfx/gui/simple_mesh_application.cpp> attribute_names()
+        /**
+         * @brief Returns a list of available scalar attribute names.
+         * @return Comma-separated attribute names for the mesh.
+         * @ref <geogram_gfx/gui/simple_mesh_application.cpp> attribute_names()
+         */
         std::string attribute_names() const {
             return mesh_.get_scalar_attributes();
         }
 
-        // ref <geogram_gfx/gui/simple_mesh_application.cpp> set_attribute()
+        /**
+         * @brief Selects the active attribute used for scalar coloring.
+         * @param[in] attribute Name of the mesh attribute to visualize.
+         * @ref <geogram_gfx/gui/simple_mesh_application.cpp> set_attribute()
+         */
         void set_attribute(const std::string& attribute);
 
         GEO::Mesh mesh_;
@@ -79,17 +129,15 @@ namespace geolio::geobox
         bool show_colored_cells_ = false;
         bool show_hexes_ = true;
         bool show_connectors_ = true;
-
         const std::vector<ColormapInfo>& colormaps_;
-        bool colormaps_initialized_ = false;
 
         bool show_attributes_ = false;
         GEO::index_t current_colormap_index_ = 0;
-        std::string       attribute_ = "vertices.point[0]";
-        std::string       attribute_name_ = "point[0]";
+        std::string attribute_ = "vertices.point[0]";
+        std::string attribute_name_ = "point[0]";
         GEO::MeshElementsFlags attribute_subelements_ = GEO::MESH_VERTICES;
-        float             attribute_min_ = 0;
-        float             attribute_max_ = 0;
+        float attribute_min_ = 0;
+        float attribute_max_ = 0;
     };
 }
 

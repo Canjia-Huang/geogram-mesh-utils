@@ -19,13 +19,33 @@
 
 namespace geolio::geobox
 {
+    /**
+     * @brief Stores a generated OpenGL colormap texture and its display name.
+     */
     struct ColormapInfo {
+        /**
+         * @brief Constructs an empty colormap entry with an invalid texture id.
+         */
         ColormapInfo() : texture(0) {
         }
+
+        /**
+         * @brief OpenGL texture object id for the colormap.
+         */
         GLuint texture;
+
+        /**
+         * @brief Human-readable name of the colormap.
+         */
         std::string name;
     };
 
+    /**
+     * @brief Builds a single OpenGL texture from an XPM colormap definition.
+     * @param[in] name Display name associated with the colormap.
+     * @param[in] xpm_data Pointer array describing the XPM image data.
+     * @param[out] colormaps Output list that receives the newly created texture entry.
+     */
     inline void init_colormap(
         const std::string& name,
         const char** xpm_data,
@@ -46,6 +66,10 @@ namespace geolio::geobox
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 
+    /**
+     * @brief Initializes the built-in GeoBox colormap list.
+     * @param[out] colormaps Vector to populate with the available colormap entries.
+     */
     inline void init_colormaps(
         std::vector<ColormapInfo>& colormaps
         ) {
