@@ -219,10 +219,13 @@ namespace geolio::geobox
         else
             mesh_gfx_.unset_scalar_attribute();
 
-        draw_points();
+        // Opaque geometry first, then the points on top: transparent points do
+        // not write depth, so drawing them first would let the surface occlude
+        // them; drawing them last keeps them visible on the surface.
         draw_surface();
         draw_edges();
         draw_volume(lighting);
+        draw_points();
     }
 
     void MeshObject::reload(
@@ -261,14 +264,20 @@ namespace geolio::geobox
                 glDepthMask(GL_FALSE);
                 glEnable(GL_BLEND);
                 glBlendEquation(GL_FUNC_ADD);
-                glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             }
             mesh_gfx_.set_points_color(
                 vertices_color_.x, vertices_color_.y, vertices_color_.z,
                 1.0f - vertices_transparency_
             );
             mesh_gfx_.set_points_size(vertices_size_);
+
+            // Vertices sit exactly on the surface, so the default GL_LESS
+            // depth test would cull them at equal depth; use an inclusive test
+            // so they stay visible on top of the model.
+            glDepthFunc(GL_LEQUAL);
             mesh_gfx_.draw_vertices();
+            glDepthFunc(GL_LESS);
 
             if(vertices_transparency_ != 0.0f) {
                 glDisable(GL_BLEND);
