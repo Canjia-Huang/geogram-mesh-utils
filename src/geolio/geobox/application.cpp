@@ -333,6 +333,8 @@ namespace geolio::geobox
         const auto selected_object = selected_object_.lock();
         if (!selected_object)
             return;
+        if (!selected_object->visible())
+            return;
 
         selected_object->draw_object_properties();
     }
