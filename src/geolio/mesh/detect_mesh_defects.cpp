@@ -18,7 +18,7 @@ namespace geolio
         std::vector<GEO::index_t>& duplicate_triangles
         ) {
         std::vector<bool> mesh_f_duplicate(mesh.facets.nb(), false);
-        std::unordered_set<std::array<GEO::index_t, 3>, Array3Hash<GEO::index_t>> duplicate_triangles_set;
+        std::unordered_set<std::array<GEO::index_t, 3>, ArrayHash<GEO::index_t, 3>> duplicate_triangles_set;
         for (const auto& f : mesh.facets) {
             if (mesh.facets.nb_vertices(f) != 3)
                 continue;

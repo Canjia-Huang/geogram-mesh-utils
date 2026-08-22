@@ -6,10 +6,13 @@
 #include <array>
 #include <cassert>
 #include <tuple>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 #include "mesh_operations.h"
 #include "geolio/common/array_hash.h"
+#include "geolio/common/pair_hash.h"
 
 namespace geolio
 {
@@ -467,7 +470,8 @@ namespace geolio
             adjacent_cells.insert(c);
 
         /* After collapse, no identical tetrahedra can exist */
-        std::unordered_set<std::array<GEO::index_t, 3>, Array3Hash<GEO::index_t>> other_vertices_array;
+        std::unordered_set<std::pair<GEO::index_t, GEO::index_t>, PairHash> other_vertices_pair;
+        std::unordered_set<std::array<GEO::index_t, 3>, ArrayHash<GEO::index_t, 3>> other_vertices_array;
         for (const auto& [nc, nlv] : v0_c_and_lv) {
             const auto& nv1 = mesh.cells.vertex(nc, (nlv+1)%4);
             const auto& nv2 = mesh.cells.vertex(nc, (nlv+2)%4);
@@ -477,13 +481,25 @@ namespace geolio
             assert(nv3 != v0);
             if (nv1 == nv2 || nv2 == nv3 || nv3 == nv1) // Exist degenerate adjacent facet.
                 return false;
+
             if (nv1 == v1 || nv2 == v1 || nv3 == v1) {
                 if (!adjacent_cells.contains(nc)) // Non-manifold edge.
                     return false;
+
+                std::pair<GEO::index_t, GEO::index_t> cvs;
+                if (nv1 == v1)
+                    cvs = std::minmax(nv2, nv3);
+                else if (nv2 == v1)
+                    cvs = std::minmax(nv1, nv3);
+                else // nv3 == v1
+                    cvs = std::minmax(nv1, nv2);
+                if (!other_vertices_pair.insert(cvs).second) // Result in identical facet after collapsing
+                    return false;
             }
+
             std::array<GEO::index_t, 3> cvs = {nv1, nv2, nv3};
             std::ranges::sort(cvs);
-            if (!other_vertices_array.insert(cvs).second) // Identical triangles in an adjacent face group.
+            if (!other_vertices_array.insert(cvs).second) // Identical triangles in an adjacent facet group.
                 return false;
         }
         for (const auto& [nc, nlv] : v1_c_and_lv) {
@@ -495,13 +511,25 @@ namespace geolio
             assert(nv3 != v1);
             if (nv1 == nv2 || nv2 == nv3 || nv3 == nv1) // Exist degenerate adjacent facet.
                 return false;
+
             if (nv1 == v0 || nv2 == v0 || nv3 == v0) {
                 if (!adjacent_cells.contains(nc)) // Non-manifold edge.
                     return false;
+
+                std::pair<GEO::index_t, GEO::index_t> cvs;
+                if (nv1 == v0)
+                    cvs = std::minmax(nv2, nv3);
+                else if (nv2 == v0)
+                    cvs = std::minmax(nv1, nv3);
+                else // nv3 == v1
+                    cvs = std::minmax(nv1, nv2);
+                if (!other_vertices_pair.insert(cvs).second) // Result in identical facet after collapsing
+                    return false;
             }
+
             std::array<GEO::index_t, 3> cvs = {nv1, nv2, nv3};
             std::ranges::sort(cvs);
-            if (!other_vertices_array.insert(cvs).second) // Identical triangles in an adjacent face group.
+            if (!other_vertices_array.insert(cvs).second) // Identical triangles in an adjacent facet group.
                 return false;
         }
 

@@ -718,11 +718,7 @@ namespace geolio::test
     };
 
     TEST_F(TetEdgeCollapseTest, tet_edge_collapse) {
-        // for_each_c_le();
-
-        mesh.save("debug0.geogram");
-        perform_operation(0, 1);
-        mesh.save("debug1.geogram");
+        for_each_c_le();
     }
 
     /* ============================================================================================================= */
