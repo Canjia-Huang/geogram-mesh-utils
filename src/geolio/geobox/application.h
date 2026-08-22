@@ -47,7 +47,7 @@ namespace geolio::geobox
 
         void draw_windows_menu() override;
 
-        void camera_focus(const BaseObject& object);
+        void camera_focus(const std::shared_ptr<BaseObject>& object_ptr = nullptr);
 
         bool load(const std::string& filepath) override;
 
