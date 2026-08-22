@@ -166,7 +166,22 @@ namespace geolio::geobox
         double* xyzmin,
         double* xyzmax
         ) const {
-        GEO::get_bbox(mesh_, xyzmin, xyzmax);
+        if (mesh_.vertices.dimension() == 2) {
+            for(GEO::coord_index_t c = 0; c < 2; c++) {
+                xyzmin[c] = GEO::Numeric::max_float64();
+                xyzmax[c] = GEO::Numeric::min_float64();
+            }
+            xyzmin[2] = 0;
+            xyzmax[2] = 0;
+            for(const GEO::vec2& p: mesh_.vertices.points<2>()) {
+                for(GEO::coord_index_t c = 0; c < 2; c++) {
+                    xyzmin[c] = std::min(xyzmin[c], p[c]);
+                    xyzmax[c] = std::max(xyzmax[c], p[c]);
+                }
+            }
+        }
+        else
+            GEO::get_bbox(mesh_, xyzmin, xyzmax);
     }
 
     void MeshObject::draw_points(
