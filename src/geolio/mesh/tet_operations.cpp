@@ -294,10 +294,15 @@ namespace geolio
             M.cells.set_adjacent(c, lv1, new_c);
             M.cells.set_adjacent(new_c, lv0, c);
             M.cells.set_adjacent(new_c, lv1, nc1);
-            if (M.cells.adjacent(c, lv2) != GEO::NO_CELL)
-                M.cells.set_adjacent(new_c, lv2, new_cs[(i+INCIDENT_CELLS_NB-1)%INCIDENT_CELLS_NB]);
-            if (M.cells.adjacent(c, lv3) != GEO::NO_CELL)
-                M.cells.set_adjacent(new_c, lv3, new_cs[(i+1)%INCIDENT_CELLS_NB]);
+            M.cells.set_adjacent(new_c, lv2,
+                M.cells.adjacent(c, lv2) == GEO::NO_CELL ?
+                    GEO::NO_CELL :
+                    new_cs[(i+INCIDENT_CELLS_NB-1)%INCIDENT_CELLS_NB]);
+            M.cells.set_adjacent(new_c, lv3,
+                M.cells.adjacent(c, lv3) == GEO::NO_CELL ?
+                    GEO::NO_CELL :
+                    new_cs[(i+1)%INCIDENT_CELLS_NB]);
+
             if (nc1 != GEO::NO_CELL) {
                 const GEO::index_t nlf = M.cells.find_tet_facet(
                     nc1,
