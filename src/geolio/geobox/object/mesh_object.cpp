@@ -284,14 +284,6 @@ namespace geolio::geobox
                 glDepthMask(GL_TRUE);
             }
         }
-
-        // if(show_vertices_selection_) {
-        //     mesh_gfx_.set_points_color(1.0, 0.0, 0.0);
-        //     mesh_gfx_.set_points_size(2.0f * vertices_size_);
-        //     mesh_gfx_.set_vertices_selection("selection");
-        //     mesh_gfx_.draw_vertices();
-        //     mesh_gfx_.set_vertices_selection("");
-        // }
     }
 
     void MeshObject::draw_surface(
@@ -310,8 +302,7 @@ namespace geolio::geobox
             surface_color_.x, surface_color_.y, surface_color_.z, alpha);
         if (show_surface_sides_) {
             mesh_gfx_.set_backface_surface_color(
-                surface_color_2_.x, surface_color_2_.y, surface_color_2_.z, alpha
-            );
+                surface_color_2_.x, surface_color_2_.y, surface_color_2_.z, alpha);
         }
 
         mesh_gfx_.set_show_mesh(show_mesh_);
@@ -323,21 +314,21 @@ namespace geolio::geobox
             glupSetSpecular(0.4f);
             mesh_gfx_.draw_surface();
             glupSetSpecular(specular_backup);
-        }
 
-        if (show_surface_borders_) {
-            mesh_gfx_.set_mesh_color(
-                surface_borders_color_.x,
-                surface_borders_color_.y,
-                surface_borders_color_.z);
-            mesh_gfx_.set_mesh_border_width(
-                static_cast<GEO::index_t>(surface_borders_width_ * 10.0f));
-            mesh_gfx_.draw_surface_borders();
+            if (show_surface_borders_) {
+                mesh_gfx_.set_mesh_color(
+                    surface_borders_color_.x,
+                    surface_borders_color_.y,
+                    surface_borders_color_.z);
+                mesh_gfx_.set_mesh_border_width(
+                    static_cast<GEO::index_t>(surface_borders_width_ * 10.0f));
+                mesh_gfx_.draw_surface_borders();
 
-            // The border pass above leaves MeshGfx's mesh color set to the border
-            // color; restore it so later passes (edges, volume wireframe) use the
-            // mesh color.
-            mesh_gfx_.set_mesh_color(mesh_color_.x, mesh_color_.y, mesh_color_.z);
+                // The border pass above leaves MeshGfx's mesh color set to the border
+                // color; restore it so later passes (edges, volume wireframe) use the
+                // mesh color.
+                mesh_gfx_.set_mesh_color(mesh_color_.x, mesh_color_.y, mesh_color_.z);
+            }
         }
 
         if (surface_transparency_ != 0.0f) {

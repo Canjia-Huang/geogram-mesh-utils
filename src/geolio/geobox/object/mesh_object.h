@@ -55,7 +55,6 @@ namespace geolio::geobox
         GEO::MeshGfx mesh_gfx_;
 
         bool show_vertices_ = false;
-        // bool show_vertices_selection_ = false;
         float vertices_size_ = 1.0f;
         GEO::vec4f vertices_color_ = GEO::vec4f(0.0f, 1.0f, 0.0f, 1.0f);
         float vertices_transparency_ = 0.0f;
