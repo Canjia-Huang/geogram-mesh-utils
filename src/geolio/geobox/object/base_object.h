@@ -7,6 +7,8 @@
 
 #include <geolio/common/utils.h>
 #include <geolio/common/parse_filepath.h>
+#include <geogram_gfx/imgui_ext/imgui_ext.h>
+#include <geogram_gfx/third_party/imgui/imgui.h>
 
 namespace geolio::geobox
 {
@@ -29,12 +31,13 @@ namespace geolio::geobox
 
         virtual void draw_object_properties(
             ) {
-            // TODO: reload buttom
+            if (ImGui::Button("Reload", ImVec2(-1, 0)))
+                reload();
         }
 
         virtual void draw_scene(bool lighting) = 0;
 
-        // virtual void reload() = 0;
+        virtual void reload() = 0;
 
         virtual void get_bbox(double* xyzmin, double* xyzmax) const = 0;
 

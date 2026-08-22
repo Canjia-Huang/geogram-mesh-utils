@@ -23,6 +23,8 @@ namespace geolio::geobox
 
         void draw_scene(bool lighting) override;
 
+        void reload() override;
+
         void get_bbox(double* xyzmin, double* xyzmax) const override;
 
     protected:

@@ -28,6 +28,8 @@ namespace geolio::geobox
         ) {
         ImGui::PushID(this);
 
+        BaseObject::draw_object_properties();
+
         ImGui::Separator();
         if (ImGui::CollapsingHeader("Info")) {
             /* == Element count ==================================================================================== */
@@ -206,6 +208,13 @@ namespace geolio::geobox
         draw_surface();
         draw_edges();
         draw_volume(lighting);
+    }
+
+    void MeshObject::reload(
+        ) {
+        if (GEO::Mesh mesh;
+            mesh.load(filepath_))
+            mesh_.copy(mesh);
     }
 
     void MeshObject::get_bbox(
