@@ -57,7 +57,7 @@ namespace geolio
             return true;
 
         /* Collapse */
-        get_vertex_incident_facets(this->mesh_, edge.f, edge.lv, ordered_f_and_lv_0_); // before collapse
+        get_vertex_incident_facets(this->mesh_, edge.f, edge.lv,       ordered_f_and_lv_0_); // before collapse
         get_vertex_incident_facets(this->mesh_, edge.f, (edge.lv+1)%3, ordered_f_and_lv_1_); // before collapse
 
         GEO::index_t disuse_v0, disuse_v1, disuse_v2, disuse_f0, disuse_f1;
@@ -178,7 +178,7 @@ namespace geolio
         assert(lv < 3);
 
         const auto ev0 = this->mesh_.facets.vertex(f, lv);
-        const auto ep0 = this->mesh_.vertices.point(ev0);
+        const auto ep0 = this->mesh_.vertices.template point<DIM>(ev0);
 
         disuse_v0 = GEO::NO_VERTEX;
         disuse_v1 = GEO::NO_VERTEX;
@@ -198,8 +198,7 @@ namespace geolio
         }
 
         bool pull_ev1_to_ev0 = false;
-        if (const auto& ev0 = this->mesh_.facets.vertex(f, lv);
-            this->manager_.mesh_v_fixed[ev0]) // pull ev1 -> ev0
+        if (this->manager_.mesh_v_fixed[ev0]) // pull ev1 -> ev0
             pull_ev1_to_ev0 = true;
         { // The fixed edge involving ev0 also pull ev1 -> ev0.
             std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_f_and_lv;
@@ -215,7 +214,7 @@ namespace geolio
         tri_edge_collapse<DIM>(this->mesh_, f, lv, disuse_v0, disuse_f0, disuse_f1);
 
         if (pull_ev1_to_ev0)
-            this->mesh_.vertices.point(ev0) = ep0;
+            this->mesh_.vertices.template point<DIM>(ev0) = ep0;
     }
 
     template<GEO::index_t DIM>
