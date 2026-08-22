@@ -28,107 +28,153 @@ namespace geolio::geobox
         ) {
         ImGui::PushID(this);
 
-        const auto s = static_cast<float>(ImGui::scaling());
-
-        /* == Attributes =========================================================================================== */
-        ImGui::Checkbox("attributes", &show_attributes_);
-        if (show_attributes_) {
-            if (attribute_min_ == 0.0f && attribute_max_ == 0.0f)
-                autorange();
-
-            if (ImGui::Button(
-                (attribute_ + "##Attribute").c_str(),
-                ImVec2(-1, 0)))
-                ImGui::OpenPopup("##Attributes");
-
-            if (ImGui::BeginPopup("##Attributes")) {
-                std::vector<std::string> attributes;
-                GEO::String::split_string(attribute_names(), ';', attributes);
-
-                for (const auto& attribute : attributes) {
-                    if (ImGui::Button(attribute.c_str())) {
-                        set_attribute(attribute);
-                        ImGui::CloseCurrentPopup();
-                    }
-                }
-                ImGui::EndPopup();
-            }
-
-            ImGui::InputFloat("min", &attribute_min_);
-            ImGui::InputFloat("max", &attribute_max_);
-            if (ImGui::Button("autorange", ImVec2(-1, 0)))
-                autorange();
-
-            if (ImGui::ImageButton(
-                "choose_colormap",
-                static_cast<ImTextureID>(colormaps_[current_colormap_index_].texture),
-                ImVec2(0.95f * ImGui::GetContentRegionAvail().x, 8.0f*s))
-                ) {
-                ImGui::OpenPopup("##Colormap");
-            }
-            if (ImGui::BeginPopup("##Colormap")) {
-                for (GEO::index_t i = 0; i < colormaps_.size(); ++i) {
-                    if (ImGui::ImageButton(
-                        colormaps_[i].name.c_str(),
-			            static_cast<ImTextureID>(colormaps_[i].texture),
-                        ImVec2(100.0f*s, 8.0f*s))
-                        ) {
-                        current_colormap_index_   = i;
-                        ImGui::CloseCurrentPopup();
-                    }
-                }
-                ImGui::EndPopup();
-            }
-        }
-
-        /* == Vertices ============================================================================================= */
         ImGui::Separator();
-        ImGui::Checkbox("##VertOnOff", &show_vertices_);
-        ImGui::SameLine();
-        ImGui::ColorEdit3WithPalette("Vert.", vertices_color_.data());
+        if (ImGui::CollapsingHeader("Info")) {
+            /* == Element count ==================================================================================== */
+            if (ImGui::BeginTable(
+                "##InfoTable", 2,
+                ImGuiTableFlags_Borders | ImGuiTableFlags_SizingStretchSame)
+                ) {
+                ImGui::TableSetupColumn("Element");
+                ImGui::TableSetupColumn("Count");
+                ImGui::TableHeadersRow();
 
-        if (show_vertices_) {
-            ImGui::Checkbox("selection", &show_vertices_selection_);
-            ImGui::SliderFloat("sz.", &vertices_size_, 0.1f, 5.0f, "%.1f");
-            ImGui::InputFloat("trsp.", &vertices_transparency_, 0.0f, 1.0f, "%.3f");
-        }
+                if (mesh_.vertices.nb() > 0) {
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::Text("vertices");
+                    ImGui::TableSetColumnIndex(1);
+                    ImGui::Text("%u", static_cast<unsigned int>(mesh_.vertices.nb()));
+                }
+                if (mesh_.edges.nb() > 0) {
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::Text("edges");
+                    ImGui::TableSetColumnIndex(1);
+                    ImGui::Text("%u", static_cast<unsigned int>(mesh_.edges.nb()));
+                }
+                if (mesh_.facets.nb() > 0) {
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::Text("facets");
+                    ImGui::TableSetColumnIndex(1);
+                    ImGui::Text("%u", static_cast<unsigned int>(mesh_.facets.nb()));
+                }
+                if (mesh_.cells.nb() > 0) {
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::Text("cells");
+                    ImGui::TableSetColumnIndex(1);
+                    ImGui::Text("%u", static_cast<unsigned int>(mesh_.cells.nb()));
+                }
 
-        /* == Facets =============================================================================================== */
-        if (mesh_.facets.nb() != 0) {
-            ImGui::Separator();
-            ImGui::Checkbox("##SurfOnOff", &show_surface_);
-            ImGui::SameLine();
-            ImGui::ColorEdit3WithPalette("Surf.", surface_color_.data());
-            if (show_surface_) {
-                ImGui::Checkbox("##SidesOnOff", &show_surface_sides_);
-                ImGui::SameLine();
-                ImGui::ColorEdit3WithPalette("2sided", surface_color_2_.data());
-
-                ImGui::Checkbox("##MeshOnOff", &show_mesh_);
-                ImGui::SameLine();
-                ImGui::ColorEdit3WithPalette("mesh", mesh_color_.data());
-                if (show_mesh_)
-                    ImGui::SliderFloat("wid.##mesh", &mesh_width_, 0.1f, 2.0f, "%.1f");
-
-                ImGui::Checkbox("##BordersOnOff", &show_surface_borders_);
-                ImGui::SameLine();
-                ImGui::ColorEdit3WithPalette("borders", surface_borders_color_.data());
-                if (show_surface_borders_)
-                    ImGui::SliderFloat("wid.##borders", &surface_borders_width_, 0.1f, 2.0f, "%.1f");
+                ImGui::EndTable();
             }
         }
 
-        /* == Cells ================================================================================================ */
-        if (mesh_.cells.nb() != 0) {
+        if (ImGui::CollapsingHeader("Render", ImGuiTreeNodeFlags_DefaultOpen)) {
+            const auto s = static_cast<float>(ImGui::scaling());
+
+            /* == Attributes ======================================================================================= */
+            ImGui::Checkbox("attributes", &show_attributes_);
+            if (show_attributes_) {
+                if (attribute_min_ == 0.0f && attribute_max_ == 0.0f)
+                    autorange();
+
+                if (ImGui::Button(
+                    (attribute_ + "##Attribute").c_str(),
+                    ImVec2(-1, 0)))
+                    ImGui::OpenPopup("##Attributes");
+
+                if (ImGui::BeginPopup("##Attributes")) {
+                    std::vector<std::string> attributes;
+                    GEO::String::split_string(attribute_names(), ';', attributes);
+
+                    for (const auto& attribute : attributes) {
+                        if (ImGui::Button(attribute.c_str())) {
+                            set_attribute(attribute);
+                            ImGui::CloseCurrentPopup();
+                        }
+                    }
+                    ImGui::EndPopup();
+                }
+
+                ImGui::InputFloat("min", &attribute_min_);
+                ImGui::InputFloat("max", &attribute_max_);
+                if (ImGui::Button("autorange", ImVec2(-1, 0)))
+                    autorange();
+
+                if (ImGui::ImageButton(
+                    "choose_colormap",
+                    static_cast<ImTextureID>(colormaps_[current_colormap_index_].texture),
+                    ImVec2(0.95f * ImGui::GetContentRegionAvail().x, 8.0f*s))
+                    ) {
+                    ImGui::OpenPopup("##Colormap");
+                }
+                if (ImGui::BeginPopup("##Colormap")) {
+                    for (GEO::index_t i = 0; i < colormaps_.size(); ++i) {
+                        if (ImGui::ImageButton(
+                            colormaps_[i].name.c_str(),
+			                static_cast<ImTextureID>(colormaps_[i].texture),
+                            ImVec2(100.0f*s, 8.0f*s))
+                            ) {
+                            current_colormap_index_   = i;
+                            ImGui::CloseCurrentPopup();
+                        }
+                    }
+                    ImGui::EndPopup();
+                }
+            }
+
+            /* == Vertices ========================================================================================= */
             ImGui::Separator();
-            ImGui::Checkbox("##VolumeOnOff", &show_volume_);
+            ImGui::Checkbox("##VertOnOff", &show_vertices_);
             ImGui::SameLine();
-            ImGui::ColorEdit3WithPalette("Volume", volume_color_.data());
-            if (show_volume_) {
-                ImGui::SliderFloat("shrk.", &cells_shrink_, 0.0f, 1.0f, "%.2f");
-                if (!mesh_.cells.are_simplices()) {
-                    ImGui::Checkbox("colored cells", &show_colored_cells_);
-                    ImGui::Checkbox("hexes", &show_hexes_);
+            ImGui::ColorEdit3WithPalette("Vert.", vertices_color_.data());
+
+            if (show_vertices_) {
+                ImGui::Checkbox("selection", &show_vertices_selection_);
+                ImGui::SliderFloat("sz.", &vertices_size_, 0.1f, 5.0f, "%.1f");
+                ImGui::InputFloat("trsp.", &vertices_transparency_, 0.0f, 1.0f, "%.3f");
+            }
+
+            /* == Facets =========================================================================================== */
+            if (mesh_.facets.nb() != 0) {
+                ImGui::Separator();
+                ImGui::Checkbox("##SurfOnOff", &show_surface_);
+                ImGui::SameLine();
+                ImGui::ColorEdit3WithPalette("Surf.", surface_color_.data());
+                if (show_surface_) {
+                    ImGui::Checkbox("##SidesOnOff", &show_surface_sides_);
+                    ImGui::SameLine();
+                    ImGui::ColorEdit3WithPalette("2sided", surface_color_2_.data());
+
+                    ImGui::Checkbox("##MeshOnOff", &show_mesh_);
+                    ImGui::SameLine();
+                    ImGui::ColorEdit3WithPalette("mesh", mesh_color_.data());
+                    if (show_mesh_)
+                        ImGui::SliderFloat("wid.##mesh", &mesh_width_, 0.1f, 2.0f, "%.1f");
+
+                    ImGui::Checkbox("##BordersOnOff", &show_surface_borders_);
+                    ImGui::SameLine();
+                    ImGui::ColorEdit3WithPalette("borders", surface_borders_color_.data());
+                    if (show_surface_borders_)
+                        ImGui::SliderFloat("wid.##borders", &surface_borders_width_, 0.1f, 2.0f, "%.1f");
+                }
+            }
+
+            /* == Cells ============================================================================================ */
+            if (mesh_.cells.nb() != 0) {
+                ImGui::Separator();
+                ImGui::Checkbox("##VolumeOnOff", &show_volume_);
+                ImGui::SameLine();
+                ImGui::ColorEdit3WithPalette("Volume", volume_color_.data());
+                if (show_volume_) {
+                    ImGui::SliderFloat("shrk.", &cells_shrink_, 0.0f, 1.0f, "%.2f");
+                    if (!mesh_.cells.are_simplices()) {
+                        ImGui::Checkbox("colored cells", &show_colored_cells_);
+                        ImGui::Checkbox("hexes", &show_hexes_);
+                    }
                 }
             }
         }
