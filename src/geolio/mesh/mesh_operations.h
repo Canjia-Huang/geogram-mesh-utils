@@ -22,7 +22,7 @@ namespace geolio
      *          The traversal handles arbitrary polygonal (including hybrid) meshes. For
      *          non-manifold vertices, only the connected component reachable from the seed
      *          facet is explored.
-     * @param[in] M Input mesh.
+     * @param[in] mesh Input mesh.
      * @param[in] start_f Seed facet index incident to the target vertex.
      * @param[in] start_lv Local vertex index of the target vertex in @p start_f.
      * @param[out] ordered_f_lv Output ordered one-ring list. Each element is (f, lv), where
@@ -31,7 +31,7 @@ namespace geolio
      * @return true if the target vertex is on the mesh border; false if it is an interior vertex.
      */
     bool get_vertex_incident_facets(
-        const GEO::Mesh& M,
+        const GEO::Mesh& mesh,
         GEO::index_t start_f,
         GEO::index_t start_lv,
         std::vector<std::pair<GEO::index_t, GEO::index_t>>& ordered_f_lv);
@@ -46,7 +46,7 @@ namespace geolio
      *          currently supports tetrahedra and hexahedra. For non-manifold
      *          configurations, only the component reachable from the seed cell is
      *          collected.
-     * @param[in] M Input mesh.
+     * @param[in] mesh Input mesh.
      * @param[in] start_c Seed cell index incident to the target vertex.
      * @param[in] start_lv Local vertex index of the target vertex in @p start_c.
      * @param[out] c_and_lv Output incident list. Each element is (c, lv), where
@@ -55,7 +55,7 @@ namespace geolio
      * @return true if any incident side of the vertex reaches the border; false otherwise.
      */
     bool get_vertex_incident_cells(
-        const GEO::Mesh& M,
+        const GEO::Mesh& mesh,
         GEO::index_t start_c,
         GEO::index_t start_lv,
         std::vector<std::pair<GEO::index_t, GEO::index_t>>& c_and_lv);
@@ -69,7 +69,7 @@ namespace geolio
      *          a closed loop; for border edges it additionally walks in the opposite
      *          direction to order the sequence from one border side to the other. Only
      *          tetrahedral and hexahedral cells are currently supported.
-     * @param[in] M Input mesh.
+     * @param[in] mesh Input mesh.
      * @param[in] start_c Seed cell containing the target edge.
      * @param[in] start_le Local edge index in @p start_c.
      * @param[out] ordered_c_le_lf Output ordered incident list of (c, le, lf).
@@ -77,7 +77,7 @@ namespace geolio
      * @return true if the target edge is on the border; false if it is interior.
      */
     bool get_edge_incident_cells(
-        const GEO::Mesh& M,
+        const GEO::Mesh& mesh,
         GEO::index_t start_c,
         GEO::index_t start_le,
         std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>>& ordered_c_le_lf);
@@ -89,7 +89,7 @@ namespace geolio
      *          `facet_vertex(start_c, start_lf, (start_lv+1)%N)`, where `N` is the
      *          number of vertices of the facet (3 for tetrahedra, 4 for hexahedra).
      *          The function then delegates to the local-edge overload.
-     * @param[in] M Input mesh.
+     * @param[in] mesh Input mesh.
      * @param[in] start_c Seed cell index.
      * @param[in] start_lf Local facet index in @p start_c.
      * @param[in] start_lv Local vertex slot inside @p start_lf; together with the
@@ -99,7 +99,7 @@ namespace geolio
      * @return true if the derived edge is on the border; false if it is interior.
      */
     bool get_edge_incident_cells(
-        const GEO::Mesh& M,
+        const GEO::Mesh& mesh,
         GEO::index_t start_c,
         GEO::index_t start_lf,
         GEO::index_t start_lv,

@@ -153,14 +153,14 @@ namespace geolio
         const GEO::index_t v1 = mesh.facets.vertex(f, lv1);
         const auto af = mesh.facets.adjacent(f, lv);
 
-        /* Find all incident vertices */
+        /* Find all incident facets */
         std::vector<std::pair<GEO::index_t, GEO::index_t>> v0_ordered_f_and_lv;
         const bool v0_on_boundary = get_vertex_incident_facets(mesh, f, lv0, v0_ordered_f_and_lv);
 
         std::vector<std::pair<GEO::index_t, GEO::index_t>> v1_ordered_f_and_lv;
         const bool v1_on_boundary = get_vertex_incident_facets(mesh, f, lv1, v1_ordered_f_and_lv);
 
-        if (v0_on_boundary && v1_on_boundary && af != GEO::NO_FACET) /* will create a new non-manifold vertex */
+        if (v0_on_boundary && v1_on_boundary && af != GEO::NO_FACET) // will create a new non-manifold vertex
             return false;
 
         /* After collapse, no identical triangles can exist */
