@@ -55,7 +55,7 @@ namespace geolio::geobox
         GEO::MeshGfx mesh_gfx_;
 
         bool show_vertices_ = false;
-        bool show_vertices_selection_ = false;
+        // bool show_vertices_selection_ = false;
         float vertices_size_ = 1.0f;
         GEO::vec4f vertices_color_ = GEO::vec4f(0.0f, 1.0f, 0.0f, 1.0f);
         float vertices_transparency_ = 0.0f;
@@ -64,6 +64,7 @@ namespace geolio::geobox
         bool show_surface_sides_ = false;
         GEO::vec4f surface_color_ = GEO::vec4f(0.5f, 0.5f, 1.0f, 1.0f);
         GEO::vec4f surface_color_2_ = GEO::vec4f(1.0f, 0.5f, 0.0f, 1.0f);
+        float surface_transparency_ = 0.0f;
 
         bool show_mesh_ = true;
         float mesh_width_ = 0.1f;

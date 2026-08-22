@@ -135,9 +135,12 @@ namespace geolio::geobox
             ImGui::ColorEdit3WithPalette("Vert.", vertices_color_.data());
 
             if (show_vertices_) {
-                ImGui::Checkbox("selection", &show_vertices_selection_);
+                ImGui::Indent();
+
                 ImGui::SliderFloat("sz.", &vertices_size_, 0.1f, 5.0f, "%.1f");
-                ImGui::InputFloat("trsp.", &vertices_transparency_, 0.0f, 1.0f, "%.3f");
+                ImGui::SliderFloat("trsp.##vertices", &vertices_transparency_, 0.0f, 1.0f, "%.2f");
+
+                ImGui::Unindent();
             }
 
             /* == Facets =========================================================================================== */
@@ -146,10 +149,15 @@ namespace geolio::geobox
                 ImGui::Checkbox("##SurfOnOff", &show_surface_);
                 ImGui::SameLine();
                 ImGui::ColorEdit3WithPalette("Surf.", surface_color_.data());
+
                 if (show_surface_) {
+                    ImGui::Indent();
+
                     ImGui::Checkbox("##SidesOnOff", &show_surface_sides_);
                     ImGui::SameLine();
                     ImGui::ColorEdit3WithPalette("2sided", surface_color_2_.data());
+
+                    ImGui::SliderFloat("trsp.##surface", &surface_transparency_, 0.0f, 1.0f, "%.2f");
 
                     ImGui::Checkbox("##MeshOnOff", &show_mesh_);
                     ImGui::SameLine();
@@ -162,6 +170,8 @@ namespace geolio::geobox
                     ImGui::ColorEdit3WithPalette("borders", surface_borders_color_.data());
                     if (show_surface_borders_)
                         ImGui::SliderFloat("wid.##borders", &surface_borders_width_, 0.1f, 2.0f, "%.1f");
+
+                    ImGui::Unindent();
                 }
             }
 
@@ -171,12 +181,17 @@ namespace geolio::geobox
                 ImGui::Checkbox("##VolumeOnOff", &show_volume_);
                 ImGui::SameLine();
                 ImGui::ColorEdit3WithPalette("Volume", volume_color_.data());
+
                 if (show_volume_) {
+                    ImGui::Indent();
+
                     ImGui::SliderFloat("shrk.", &cells_shrink_, 0.0f, 1.0f, "%.2f");
                     if (!mesh_.cells.are_simplices()) {
                         ImGui::Checkbox("colored cells", &show_colored_cells_);
                         ImGui::Checkbox("hexes", &show_hexes_);
                     }
+
+                    ImGui::Unindent();
                 }
             }
         }
@@ -261,24 +276,32 @@ namespace geolio::geobox
             }
         }
 
-        if(show_vertices_selection_) {
-            mesh_gfx_.set_points_color(1.0, 0.0, 0.0);
-            mesh_gfx_.set_points_size(2.0f * vertices_size_);
-            mesh_gfx_.set_vertices_selection("selection");
-            mesh_gfx_.draw_vertices();
-            mesh_gfx_.set_vertices_selection("");
-        }
+        // if(show_vertices_selection_) {
+        //     mesh_gfx_.set_points_color(1.0, 0.0, 0.0);
+        //     mesh_gfx_.set_points_size(2.0f * vertices_size_);
+        //     mesh_gfx_.set_vertices_selection("selection");
+        //     mesh_gfx_.draw_vertices();
+        //     mesh_gfx_.set_vertices_selection("");
+        // }
     }
 
     void MeshObject::draw_surface(
         ) {
         mesh_gfx_.set_mesh_color(0.0, 0.0, 0.0);
 
+        const float alpha = 1.0f - surface_transparency_;
+        if (surface_transparency_ != 0.0f) {
+            glDepthMask(GL_FALSE);
+            glEnable(GL_BLEND);
+            glBlendEquation(GL_FUNC_ADD);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        }
+
         mesh_gfx_.set_surface_color(
-            surface_color_.x, surface_color_.y, surface_color_.z);
+            surface_color_.x, surface_color_.y, surface_color_.z, alpha);
         if (show_surface_sides_) {
             mesh_gfx_.set_backface_surface_color(
-                surface_color_2_.x, surface_color_2_.y, surface_color_2_.z
+                surface_color_2_.x, surface_color_2_.y, surface_color_2_.z, alpha
             );
         }
 
@@ -306,6 +329,11 @@ namespace geolio::geobox
             // color; restore it so later passes (edges, volume wireframe) use the
             // mesh color.
             mesh_gfx_.set_mesh_color(mesh_color_.x, mesh_color_.y, mesh_color_.z);
+        }
+
+        if (surface_transparency_ != 0.0f) {
+            glDisable(GL_BLEND);
+            glDepthMask(GL_TRUE);
         }
     }
 
