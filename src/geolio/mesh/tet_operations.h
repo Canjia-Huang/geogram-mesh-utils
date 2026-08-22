@@ -194,6 +194,17 @@ namespace geolio
         const std::vector<GEO::index_t>& new_cs,
         bool update_attributes = true);
 
+    /**
+     * @brief Check whether a tetrahedral edge collapse is topologically valid.
+     * @details The operation removes one endpoint of the edge by merging it into the other,
+     *          and then rewrites all incident cells. This validation rejects cases that would
+     *          create a non-manifold vertex, degenerate facets, or duplicate tetrahedra in the
+     *          surrounding cavity.
+     * @param[in] mesh Input tetrahedral mesh.
+     * @param[in] c    Index of a tetrahedron containing the target edge.
+     * @param[in] le   Local edge index (0-5) in cell @p c.
+     * @return true if collapsing edge (@p c, @p le) is valid; false otherwise.
+     */
     bool is_tet_edge_collapse_valid(
         const GEO::Mesh& mesh,
         GEO::index_t c,
@@ -219,6 +230,17 @@ namespace geolio
         GEO::index_t& disuse_v,
         std::vector<GEO::index_t>& disuse_cs);
 
+    /**
+     * @brief Check whether a 2-3 facet swap is geometrically and topologically valid.
+     * @details This validates the local operation that replaces two tetrahedra sharing a
+     *          facet by three tetrahedra. The check ensures the shared facet is interior,
+     *          and that the resulting cavity does not introduce duplicate vertices on the
+     *          incident neighborhoods of the two swapped tetrahedra.
+     * @param[in] mesh Input tetrahedral mesh.
+     * @param[in] c    Index of the seed tetrahedron containing the target facet.
+     * @param[in] lf   Local facet index (0-3) in cell @p c.
+     * @return true if the 2-3 swap on facet (@p c, @p lf) is valid; false otherwise.
+     */
     bool is_tet_edge_swap_2_3_valid(
         const GEO::Mesh& mesh,
         GEO::index_t c,
