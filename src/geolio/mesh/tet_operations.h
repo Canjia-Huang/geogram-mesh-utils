@@ -219,6 +219,11 @@ namespace geolio
         GEO::index_t& disuse_v,
         std::vector<GEO::index_t>& disuse_cs);
 
+    bool is_tet_edge_swap_2_3_valid(
+        const GEO::Mesh& mesh,
+        GEO::index_t c,
+        GEO::index_t lf);
+
     /**
      * @brief Perform a 2-3 facet swap operation on a tetrahedral mesh.
      * @details This operation replaces two tetrahedra that share a common facet with three
@@ -231,9 +236,8 @@ namespace geolio
      * @param[in]     lf              Local facet index (0-3) of cell @p c.
      * @param[in]     new_c           Index of the pre-allocated cell used to store the newly created tetrahedron.
      * @param[in]     update_attributes If true, per-cell attributes are preserved on the modified cells.
-     * @return true if the swap is performed successfully; false if the target facet is on the border or the operation cannot be applied.
      */
-    bool tet_edge_swap_2_3(
+    void tet_edge_swap_2_3(
         GEO::Mesh& mesh,
         GEO::index_t c,
         GEO::index_t lf,

@@ -599,7 +599,49 @@ namespace geolio
             mesh.cells.set_vertex(c, lv, ev0);
     }
 
-    bool tet_edge_swap_2_3(
+    bool is_tet_edge_swap_2_3_valid(
+        const GEO::Mesh& mesh,
+        const GEO::index_t c,
+        const GEO::index_t lf
+        ) {
+        assert(c < mesh.cells.nb());
+        assert(mesh.cells.type(c) == GEO::MeshCellType::MESH_TET);
+        assert(lf < 4);
+
+        const GEO::index_t nc = mesh.cells.adjacent(c, lf);
+        if (nc == GEO::NO_CELL) // Cannot swap border facet
+            return false;
+
+        const GEO::index_t v = mesh.cells.vertex(c, lf);
+        const GEO::index_t v0 = mesh.cells.vertex(c, TET_LF_INCIDENT_LV[lf][0]);
+        const GEO::index_t v1 = mesh.cells.vertex(c, TET_LF_INCIDENT_LV[lf][1]);
+        const GEO::index_t v2 = mesh.cells.vertex(c, TET_LF_INCIDENT_LV[lf][2]);
+        const GEO::index_t nlf = mesh.cells.find_tet_facet(nc, v2, v1, v0);
+        const GEO::index_t nv = mesh.cells.vertex(nc, nlf);
+
+        /* Find all incident cells */
+        std::vector<std::pair<GEO::index_t, GEO::index_t>> v_c_and_lv;
+        get_vertex_incident_cells(mesh, c, lf, v_c_and_lv);
+        for (const auto& ac: v_c_and_lv | std::views::keys) {
+            for (GEO::index_t lv = 0; lv < 4; ++lv) {
+                if (mesh.cells.vertex(ac, lv) == nv)
+                    return false;
+            }
+        }
+
+        std::vector<std::pair<GEO::index_t, GEO::index_t>> nv_c_and_lv;
+        get_vertex_incident_cells(mesh, nc, nlf, nv_c_and_lv);
+        for (const auto& ac: nv_c_and_lv | std::views::keys) {
+            for (GEO::index_t lv = 0; lv < 4; ++lv) {
+                if (mesh.cells.vertex(ac, lv) == v)
+                    return false;
+            }
+        }
+
+        return true;
+    }
+
+    void tet_edge_swap_2_3(
         GEO::Mesh& mesh,
         const GEO::index_t c,
         const GEO::index_t lf,
@@ -609,20 +651,18 @@ namespace geolio
         assert(c < mesh.cells.nb());
         assert(mesh.cells.type(c) == GEO::MeshCellType::MESH_TET);
         assert(lf < 4);
+        assert(new_c < mesh.cells.nb());
 
         const GEO::index_t nc = mesh.cells.adjacent(c, lf);
-        if (nc == GEO::NO_CELL)
-            return false;
-
-        assert(new_c < mesh.cells.nb());
+        assert(nc != GEO::NO_CELL);
 
         const GEO::index_t v = mesh.cells.vertex(c, lf);
         const GEO::index_t lv0 = TET_LF_INCIDENT_LV[lf][0];
         const GEO::index_t lv1 = TET_LF_INCIDENT_LV[lf][1];
         const GEO::index_t lv2 = TET_LF_INCIDENT_LV[lf][2];
-        const GEO::index_t v0 = mesh.cells.vertex(c, 0);
-        const GEO::index_t v1 = mesh.cells.vertex(c, 1);
-        const GEO::index_t v2 = mesh.cells.vertex(c, 2);
+        const GEO::index_t v0 = mesh.cells.vertex(c, lv0);
+        const GEO::index_t v1 = mesh.cells.vertex(c, lv1);
+        const GEO::index_t v2 = mesh.cells.vertex(c, lv2);
         const GEO::index_t nc0 = mesh.cells.adjacent(c, lv0);
         const GEO::index_t nc1 = mesh.cells.adjacent(c, lv1);
         const GEO::index_t nc2 = mesh.cells.adjacent(c, lv2);
@@ -766,8 +806,6 @@ namespace geolio
             mesh.cell_facets.attributes().zero_item(mesh.cells.facet(nc, new_nlv0));
             mesh.cell_facets.attributes().zero_item(mesh.cells.facet(nc, new_nlv1));
         }
-
-        return true;
     }
 
     bool tet_edge_swap_3_2(

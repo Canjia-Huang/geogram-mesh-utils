@@ -702,6 +702,7 @@ namespace geolio::test
     protected:
         void perform_operation(const GEO::index_t c, const GEO::index_t le) override {
             LOG::TRACE("{}(c: {}, le: {})", __FUNCTION__, c, le);
+
             if (!is_tet_edge_collapse_valid(mesh, c, le))
                 return;
 
@@ -726,15 +727,19 @@ namespace geolio::test
     class TetEdgeSwap23Test : public TetOperationsTest {
     protected:
         void perform_operation(const GEO::index_t c, const GEO::index_t lf) override {
+            LOG::TRACE("{}(c: {}, lf: {})", __FUNCTION__, c, lf);
+
+            if (!is_tet_edge_swap_2_3_valid(mesh, c, lf))
+                return;
 
             const GEO::index_t new_c = mesh.cells.create_tets(1);
             tet_edge_swap_2_3(mesh, c, lf, new_c);
         }
     };
 
-    // TEST_F(TetEdgeSwap23Test, tet_edge_swap) {
-    //     for_each_c_lf();
-    // }
+    TEST_F(TetEdgeSwap23Test, tet_edge_swap) {
+        for_each_c_lf();
+    }
 
     class TetEdgeSwap23SimpleTest : public TetOperationsAttributeTest {};
 
