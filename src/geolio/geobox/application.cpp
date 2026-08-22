@@ -4,6 +4,8 @@
 //
 #include "application.h"
 #include <algorithm>
+#include <random>
+#include <vector>
 #include <geogram/basic/command_line.h>
 #include "geolio/common/log.h"
 #include "geolio/common/parse_filepath.h"
@@ -60,13 +62,42 @@ namespace geolio::geobox
         // during GL_initialize(). Reuse those texture IDs instead of creating a
         // second set of GL textures, so no extra GL state is touched at startup.
         my_colormaps_.clear();
-        my_colormaps_.reserve(colormaps_.size());
+        my_colormaps_.reserve(colormaps_.size() + 1);
         for (const auto& cm : colormaps_) {
             geolio::geobox::ColormapInfo info;
             info.texture = cm.texture;
             info.name = cm.name;
             my_colormaps_.push_back(info);
         }
+
+        // A colormap whose every texel is a random color; sampled with
+        // GL_NEAREST so the individual random pixels stay distinct instead of
+        // being blended into a gradient by linear filtering.
+        constexpr GLsizei kSize = 256;
+        std::vector<GLubyte> pixels(4 * kSize);
+        std::mt19937 rng(std::random_device{}());
+        std::uniform_int_distribution<int> dist(0, 255);
+        for (GLsizei i = 0; i < kSize; ++i) {
+            pixels[4 * i + 0] = static_cast<GLubyte>(dist(rng));
+            pixels[4 * i + 1] = static_cast<GLubyte>(dist(rng));
+            pixels[4 * i + 2] = static_cast<GLubyte>(dist(rng));
+            pixels[4 * i + 3] = 255;
+        }
+
+        geolio::geobox::ColormapInfo info;
+        info.name = "random";
+        glGenTextures(1, &info.texture);
+        glBindTexture(GL_TEXTURE_2D, info.texture);
+        glTexImage2D(
+            GL_TEXTURE_2D, 0, GL_RGBA, kSize, 1, 0,
+            GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        my_colormaps_.push_back(info);
     }
 
     void GeoBoxApplication::GL_initialize(
