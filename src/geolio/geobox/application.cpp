@@ -347,6 +347,27 @@ namespace geolio::geobox
         }
     }
 
+    void GeoBoxApplication::draw_about(
+        ) {
+        ImGui::Separator();
+        if(ImGui::BeginMenu(GEO::icon_UTF8("info") + " About...")) {
+            ImGui::Text("Geolio Visualization Tool");
+            ImGui::Text("\n");
+            ImGui::Separator();
+            ImGui::Text("This is a visualization tool based on the Geolio library (derived from the Geogram library).");
+            ImGui::Text("\n");
+            ImGui::Text("GEOLIO website: ");
+            ImGui::Text("https://github.com/Canjia-Huang/geolio");
+            ImGui::Text("\n");
+            ImGui::Text("GEOGRAM website (version: %s): ", GEO::Environment::instance()->get_value("version").c_str());
+            ImGui::Text("https://github.com/BrunoLevy/geogram");
+
+            ImGui::Text("\n");
+
+            ImGui::EndMenu();
+        }
+    }
+
     void GeoBoxApplication::camera_focus(
         const BaseObject& object
         ) {
