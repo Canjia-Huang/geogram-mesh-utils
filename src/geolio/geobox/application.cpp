@@ -2,11 +2,17 @@
 // Created by huangcanjia <huangcanjia0214@gmail.com> on 2026/8/18.
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
+// imoguizmo relies on the ImVec2 courtesy math operators, which geogram's
+// imgui only provides when this macro is set. It must be defined before
+// imgui.h is first included in this translation unit.
+#define IMGUI_DEFINE_MATH_OPERATORS
 #include "application.h"
 #include <algorithm>
 #include <random>
 #include <vector>
 #include <geogram/basic/command_line.h>
+#include <geogram_gfx/GLUP/GLUP.h>
+#include "imoguizmo.hpp"
 #include "geolio/common/log.h"
 #include "geolio/common/parse_filepath.h"
 #include "object/mesh_object.h"
@@ -53,6 +59,8 @@ namespace geolio::geobox
             );
             status_bar_->draw();
         }
+
+        draw_rotation_gizmo();
     }
 
     void GeoBoxApplication::init_colormaps(
@@ -113,6 +121,11 @@ namespace geolio::geobox
         ) {
         SimpleMeshApplication::ImGui_initialize();
         set_style("Light");
+
+        // Axis length relative to the gizmo size; with the projection
+        // normalized to m11 = 1 in draw_rotation_gizmo(), the axes extend
+        // exactly axisLengthScale * size from the center.
+        ImOGuizmo::config.axisLengthScale = 0.4f;
 
         // set_background_color(GEO::vec4f(0.08f, 0.12f, 0.22f, 1.0f)); // dark blue
     }
@@ -409,6 +422,73 @@ namespace geolio::geobox
                 if(needs_to_close)
                     ImGui::EndMenu();
             }
+        }
+    }
+
+    void GeoBoxApplication::draw_rotation_gizmo(
+        ) {
+        // There is nothing to rotate if no object is loaded.
+        if (objects_.empty())
+            return;
+
+        const float scale = ImGui::scaling();
+        const float size = 165.0f * scale;
+        const float margin = 16.0f * scale;
+
+        const ImVec2 viewport_size = ImGui::GetMainViewport()->Size;
+
+        // Keep the gizmo above the status bar when it is visible.
+        float bottom_margin = margin;
+        if (status_bar_->active()) {
+            float status_height = status_bar_->get_window_height();
+            if (status_height == 0.0f)
+                status_height = static_cast<float>(get_font_size());
+            bottom_margin += status_height * 1.5f;
+        }
+
+        ImOGuizmo::SetRect(
+            margin, viewport_size.y - size - bottom_margin, size);
+
+        // The current model rotation. GEO::mat4 stores the same row-major
+        // layout as GLUP, and imoguizmo expects its matrices transposed
+        // (standard column-major); a plain element copy does exactly that
+        // transpose, so the gizmo's axes match the model's orientation.
+        const double* rotation = object_rotation_.get_value().data();
+        float view[16];
+        for (GEO::index_t i = 0; i < 16; ++i)
+            view[i] = static_cast<float>(rotation[i]);
+
+        // GLUP projection matrix, still current from draw_graphics().
+        // imoguizmo sizes the axes directly from the projection's scale, but
+        // geogram's camera has a very narrow field of view (9 deg aperture),
+        // whose projection matrix has a large vertical scale (m11 ~ 2.5x
+        // aspect). Normalize the projection so the axes keep the library's
+        // intended on-screen length; the uniform scale only affects the
+        // length, not the axis directions.
+        double proj_d[16];
+        glupGetMatrixdv(GLUP_PROJECTION_MATRIX, proj_d);
+        const auto proj_scale = static_cast<float>(1.0 / proj_d[5]);
+        float proj[16];
+        for (GEO::index_t i = 0; i < 16; ++i)
+            proj[i] = static_cast<float>(proj_d[i]) * proj_scale;
+
+        ImOGuizmo::BeginFrame();
+        if (ImOGuizmo::DrawGizmo(view, proj, 1.0f)) {
+            GEO::mat4 new_rotation;
+            for (GEO::index_t i = 0; i < 16; ++i)
+                new_rotation.data()[i] = view[i];
+
+            // imoguizmo's lookAt() writes a translation into the last column;
+            // object_rotation_ holds a pure rotation, so drop it.
+            new_rotation.data()[3]  = 0.0f;
+            new_rotation.data()[7]  = 0.0f;
+            new_rotation.data()[11] = 0.0f;
+            new_rotation.data()[12] = 0.0f;
+            new_rotation.data()[13] = 0.0f;
+            new_rotation.data()[14] = 0.0f;
+            new_rotation.data()[15] = 1.0f;
+
+            object_rotation_.set_value(new_rotation);
         }
     }
 

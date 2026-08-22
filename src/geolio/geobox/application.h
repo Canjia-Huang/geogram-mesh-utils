@@ -47,6 +47,10 @@ namespace geolio::geobox
 
         void draw_windows_menu() override;
 
+        // Draws the model-rotation gizmo (imoguizmo) in the bottom-left
+        // corner of the viewport; dragging it updates object_rotation_.
+        void draw_rotation_gizmo();
+
         void camera_focus(const std::shared_ptr<BaseObject>& object_ptr = nullptr);
 
         bool load(const std::string& filepath) override;
