@@ -12,6 +12,8 @@
 #include <geolio/mesh/mesh_operations.h>
 #include <geolio/mesh/tet_operations.h>
 
+#include "geolio/common/log.h"
+
 namespace geolio::test
 {
     class SingleTetOperationsTest : public ::testing::Test {
@@ -699,6 +701,10 @@ namespace geolio::test
     class TetEdgeCollapseTest : public TetOperationsTest {
     protected:
         void perform_operation(const GEO::index_t c, const GEO::index_t le) override {
+            LOG::TRACE("{}(c: {}, le: {})", __FUNCTION__, c, le);
+            if (!is_tet_edge_collapse_valid(mesh, c, le))
+                return;
+
             GEO::index_t disuse_v;
             std::vector<GEO::index_t> disuse_cs;
             tet_edge_collapse(mesh, c, le, disuse_v, disuse_cs);
@@ -711,9 +717,13 @@ namespace geolio::test
         }
     };
 
-    // TEST_F(TetEdgeCollapseTest, tet_edge_collapse) {
-    //     for_each_c_le();
-    // }
+    TEST_F(TetEdgeCollapseTest, tet_edge_collapse) {
+        // for_each_c_le();
+
+        mesh.save("debug0.geogram");
+        perform_operation(0, 1);
+        mesh.save("debug1.geogram");
+    }
 
     /* ============================================================================================================= */
 

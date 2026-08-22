@@ -194,6 +194,11 @@ namespace geolio
         const std::vector<GEO::index_t>& new_cs,
         bool update_attributes = true);
 
+    bool is_tet_edge_collapse_valid(
+        const GEO::Mesh& mesh,
+        GEO::index_t c,
+        GEO::index_t le);
+
     /**
      * @brief Collapse a tetrahedral edge by moving one endpoint along the edge and updating the local cavity connectivity.
      * @details The edge is identified by local edge index @p _le in cell @p _c. The function

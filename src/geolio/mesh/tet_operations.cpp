@@ -9,6 +9,7 @@
 #include <utility>
 #include <vector>
 #include "mesh_operations.h"
+#include "geolio/common/array_hash.h"
 
 namespace geolio
 {
@@ -433,6 +434,78 @@ namespace geolio
                 mesh.cell_facets.attributes().zero_item(mesh.cells.facet(c, lv1));
             }
         }
+    }
+
+    bool is_tet_edge_collapse_valid(
+        const GEO::Mesh& mesh,
+        const GEO::index_t c,
+        const GEO::index_t le
+        ) {
+        assert(c < mesh.cells.nb());
+        assert(mesh.cells.type(c) == GEO::MeshCellType::MESH_TET);
+        assert(le < 6);
+
+        const auto& v0 = mesh.cells.edge_vertex(c, le, 0);
+        const auto& v1 = mesh.cells.edge_vertex(c, le, 1);
+
+        /* Find all incident cells */
+        std::vector<std::pair<GEO::index_t, GEO::index_t>> v0_c_and_lv;
+        const bool v0_on_boundary = get_vertex_incident_cells(mesh, c, TET_LE_INCIDENT_LV[le][0], v0_c_and_lv);
+
+        std::vector<std::pair<GEO::index_t, GEO::index_t>> v1_c_and_lv;
+        const bool v1_on_boundary = get_vertex_incident_cells(mesh, c, TET_LE_INCIDENT_LV[le][1], v1_c_and_lv);
+
+        std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>> ordered_c_le_lf;
+        const bool edge_on_boundary = get_edge_incident_cells(mesh, c, le, ordered_c_le_lf);
+
+        if (v0_on_boundary && v1_on_boundary && !edge_on_boundary) // will create a new non-manifold vertex
+            return false;
+
+        /* Build adjacent cells set */
+        std::unordered_set<GEO::index_t> adjacent_cells;
+        for (const auto& [c, _, __] : ordered_c_le_lf)
+            adjacent_cells.insert(c);
+
+        /* After collapse, no identical tetrahedra can exist */
+        std::unordered_set<std::array<GEO::index_t, 3>, Array3Hash<GEO::index_t>> other_vertices_array;
+        for (const auto& [nc, nlv] : v0_c_and_lv) {
+            const auto& nv1 = mesh.cells.vertex(nc, (nlv+1)%4);
+            const auto& nv2 = mesh.cells.vertex(nc, (nlv+2)%4);
+            const auto& nv3 = mesh.cells.vertex(nc, (nlv+3)%4);
+            assert(nv1 != v0);
+            assert(nv2 != v0);
+            assert(nv3 != v0);
+            if (nv1 == nv2 || nv2 == nv3 || nv3 == nv1) // Exist degenerate adjacent facet.
+                return false;
+            if (nv1 == v1 || nv2 == v1 || nv3 == v1) {
+                if (!adjacent_cells.contains(nc)) // Non-manifold edge.
+                    return false;
+            }
+            std::array<GEO::index_t, 3> cvs = {nv1, nv2, nv3};
+            std::ranges::sort(cvs);
+            if (!other_vertices_array.insert(cvs).second) // Identical triangles in an adjacent face group.
+                return false;
+        }
+        for (const auto& [nc, nlv] : v1_c_and_lv) {
+            const auto& nv1 = mesh.cells.vertex(nc, (nlv+1)%4);
+            const auto& nv2 = mesh.cells.vertex(nc, (nlv+2)%4);
+            const auto& nv3 = mesh.cells.vertex(nc, (nlv+3)%4);
+            assert(nv1 != v1);
+            assert(nv2 != v1);
+            assert(nv3 != v1);
+            if (nv1 == nv2 || nv2 == nv3 || nv3 == nv1) // Exist degenerate adjacent facet.
+                return false;
+            if (nv1 == v0 || nv2 == v0 || nv3 == v0) {
+                if (!adjacent_cells.contains(nc)) // Non-manifold edge.
+                    return false;
+            }
+            std::array<GEO::index_t, 3> cvs = {nv1, nv2, nv3};
+            std::ranges::sort(cvs);
+            if (!other_vertices_array.insert(cvs).second) // Identical triangles in an adjacent face group.
+                return false;
+        }
+
+        return true;
     }
 
     void tet_edge_collapse(

@@ -170,30 +170,30 @@ namespace geolio
             const auto& nv2 = mesh.facets.vertex(nf, (nlv+2)%3);
             assert(nv1 != v0);
             assert(nv2 != v0);
-            if (nv1 == nv2)
-                return false; // Exist degenerate adjacent facet.
+            if (nv1 == nv2) // Exist degenerate adjacent facet.
+                return false;
             if (nv1 == v1 || nv2 == v1) {
-                if (nf != f && nf != af)
-                    return false; // Non-manifold edge.
+                if (nf != f && nf != af) // Non-manifold edge.
+                    return false;
             }
             if (const std::pair<GEO::index_t, GEO::index_t> other_vertices = std::minmax(nv1, nv2);
-                !other_vertices_pair.insert(other_vertices).second)
-                return false; // Identical triangles in an adjacent face group.
+                !other_vertices_pair.insert(other_vertices).second) // Identical triangles in an adjacent face group.
+                return false;
         }
         for (const auto& [nf, nlv] : v1_ordered_f_and_lv) {
             const auto& nv1 = mesh.facets.vertex(nf, (nlv+1)%3);
             const auto& nv2 = mesh.facets.vertex(nf, (nlv+2)%3);
             assert(nv1 != v1);
             assert(nv2 != v1);
-            if (nv1 == nv2)
-                return false; // Exist degenerate adjacent facet.
+            if (nv1 == nv2) // Exist degenerate adjacent facet.
+                return false;
             if (nv1 == v0 || nv2 == v0) {
-                if (nf != f && nf != af)
-                    return false; // Non-manifold edge.
+                if (nf != f && nf != af) // Non-manifold edge.
+                    return false;
             }
             if (const std::pair<GEO::index_t, GEO::index_t> other_vertices = std::minmax(nv1, nv2);
-                !other_vertices_pair.insert(other_vertices).second)
-                return false; // Identical triangles in an adjacent face group or two adjacent face group.
+                !other_vertices_pair.insert(other_vertices).second) // Identical triangles in an adjacent face group or two adjacent face group.
+                return false;
         }
 
         return true;
