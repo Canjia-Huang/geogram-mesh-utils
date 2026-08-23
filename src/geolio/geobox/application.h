@@ -159,6 +159,8 @@ namespace geolio::geobox
          */
         void draw_scene() override;
 
+        void draw_menu_bar() override;
+
         /**
          * @brief Draws the about panel and application information.
          */
@@ -192,13 +194,6 @@ namespace geolio::geobox
 
         std::vector<geolio::geobox::ColormapInfo> my_colormaps_;
 
-        // Current size of the Object Properties window, tracked so its
-        // right edge can be kept flush against the viewport's right edge.
-        ImVec2 object_properties_size_{0.0f, 0.0f};
-
-        std::vector<std::shared_ptr<BaseObject>> objects_;
-        std::weak_ptr<BaseObject> selected_object_;
-
         /** True when the rendered scene (camera, mesh state, ...) changed and
          *  the 3D view must be re-rendered. Cleared after each full render. */
         bool scene_dirty_ = true;
@@ -219,6 +214,16 @@ namespace geolio::geobox
         /** Frames to draw after the most recent input event (replaces the
          *  base class's 100-frame redraw storm). */
         mutable GEO::index_t redraw_budget_ = 0;
+
+        bool controller_properties_visible_ = true;
+        bool arc_ball_visible_ = true;
+
+        std::vector<std::shared_ptr<BaseObject>> objects_;
+        std::weak_ptr<BaseObject> selected_object_;
+
+        // Current size of the Object Properties window, tracked so its
+        // right edge can be kept flush against the viewport's right edge.
+        ImVec2 object_properties_size_{0.0f, 0.0f};
     };
 }
 
