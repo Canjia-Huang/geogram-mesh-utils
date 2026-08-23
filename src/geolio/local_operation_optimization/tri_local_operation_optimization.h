@@ -140,6 +140,8 @@ namespace geolio
           */
         double compute_average_edge_length();
 
+        auto& manager() { return manager_; }
+
     protected:
         /**
          * @brief Labels all vertices that lie on a boundary edge.

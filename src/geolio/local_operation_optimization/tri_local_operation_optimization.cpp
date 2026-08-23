@@ -164,14 +164,18 @@ namespace geolio
         std::vector<GEO::index_t> non_manifold_vertices;
         const auto NON_MANIFOLD_VERTICES_NB = detect_non_manifold_vertices(mesh_, non_manifold_vertices);
 
+        bool detect_non_manifold_vertices = false;
         manager_.mesh_v_non_manifold.fill(false);
         for (const auto& v : non_manifold_vertices) {
             manager_.mesh_v_non_manifold[v] = true;
             fix_vertex(v); // fix it, prevent errors in collapse operations involving this vertex.
+
+            detect_non_manifold_vertices = true;
         }
 
-        LOG::WARN("Detected {} non-manifold vertices in the input mesh; "
-                  "they have been fixed to prevent unexpected errors.", NON_MANIFOLD_VERTICES_NB);
+        if (detect_non_manifold_vertices)
+            LOG::WARN("Detected {} non-manifold vertices in the input mesh; "
+                      "they have been fixed to prevent unexpected errors.", NON_MANIFOLD_VERTICES_NB);
     }
 
     template <GEO::index_t DIM>

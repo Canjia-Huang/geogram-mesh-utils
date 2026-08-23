@@ -5,6 +5,8 @@
 #include "local_operation_optimization_application.h"
 #include <algorithm>
 #include <utility>
+
+#include "geolio/common/log.h"
 #include "geolio/geobox/object/mesh_object.h"
 #include "geolio/local_operation_optimization/tri_local_operation_optimization.h"
 
@@ -32,9 +34,17 @@ namespace geolio::geobox
                 mesh_objects.push_back(mesh_object);
         }
 
+        // When only one triangular mesh object exists, select it
+        // automatically (and initialize the target edge length from it),
+        // unless a mesh is already selected.
+        if (mesh_objects.size() == 1 && selected_mesh_object_.expired()) {
+            selected_mesh_object_ = mesh_objects[0];
+            init_target_edge_length();
+        }
+
         // Selection combo box: pick one mesh object.
-        const bool has_mesh_object = !mesh_objects.empty();
-        if (!has_mesh_object)
+        if (const bool has_mesh_object = !mesh_objects.empty();
+            !has_mesh_object)
             ImGui::TextUnformatted("No triangular mesh object available.");
         else {
             // Index of the currently selected mesh object, -1 when none.
@@ -127,8 +137,8 @@ namespace geolio::geobox
         if (fix_sharp_elements_) {
             // Sharp angle in degrees, only relevant when sharp elements are
             // fixed; clamped to [0, 180].
-            double min_angle = 0.0;
-            double max_angle = 180.0;
+            constexpr double min_angle = 0.0;
+            constexpr double max_angle = 180.0;
             ImGui::SetNextItemWidth(slider_width);
             ImGui::SliderScalar(
                 "Sharp angle (deg)", ImGuiDataType_Double,
@@ -146,7 +156,6 @@ namespace geolio::geobox
 
         // Full-width button that triggers the optimization.
         ImGui::Separator();
-        ImGui::Checkbox("Animate", &animate_);
         if (ImGui::Button("Perform", ImVec2(-1.0f, 0.0f))) {
             // std::dynamic_pointer_cast needs a shared_ptr, so lock the
             // weak_ptr selection first.
