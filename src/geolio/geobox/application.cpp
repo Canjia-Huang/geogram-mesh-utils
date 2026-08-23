@@ -11,6 +11,7 @@
 #include <random>
 #include <vector>
 #include <geogram/basic/command_line.h>
+#include <geogram/mesh/mesh_io.h>
 #include <geogram_gfx/GLUP/GLUP.h>
 #include "imoguizmo.hpp"
 #include "geolio/common/log.h"

@@ -26,6 +26,7 @@ namespace geolio
         GEO::Mesh& mesh
         ) {
         const GEO::index_t new_v = mesh.vertices.create_vertices(CDT.nv());
+
         if (mesh.vertices.dimension() == 2) {
             for (GEO::index_t v = 0, v_end = CDT.nv(); v < v_end; ++v)
                 mesh.vertices.point<2>(new_v+v) = CDT.point(v);
