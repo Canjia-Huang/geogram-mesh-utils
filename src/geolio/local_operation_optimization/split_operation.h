@@ -137,7 +137,7 @@ namespace geolio
 
         std::priority_queue<EdgeToSplit> pq_;
 
-        std::unordered_set<std::pair<GEO::index_t, GEO::index_t>, PairHash> locked_edges_; // locked edge should not be split (only used when not allow to split fixed edges)
+        std::unordered_set<std::pair<GEO::index_t, GEO::index_t>, PairHash> locked_edges_; // temporary locked edge should not be split (only used when not allow to split fixed edges)
     };
 
     extern template class SplitOperation<2>;

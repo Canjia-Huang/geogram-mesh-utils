@@ -18,10 +18,6 @@ namespace geolio
             limit_edge_length_(limit_edge_length),
             ALLOW_SPLIT_FIXED_EDGES_(allow_split_fixed_edges)
     {
-        /* Bind attribute */
-        if (!ALLOW_SPLIT_FIXED_EDGES_)
-            locked_edges_ = this->manager_.fixed_edges_;
-
         /* Init timestamping */
         this->mesh_f_timestamping_.fill(0);
 
@@ -65,38 +61,24 @@ namespace geolio
                 this->mesh_.facets.vertex(edge.f, (edge.lv+1)%3));
 
             for (const auto llv : {(edge.lv+1)%3, (edge.lv+2)%3}) {
-                if (const std::pair<GEO::index_t, GEO::index_t> fc_edge = std::minmax(
-                        this->mesh_.facets.vertex(edge.f, llv),
-                        this->mesh_.facets.vertex(edge.f, (llv+1)%3));
-                    locked_edges_.contains(fc_edge) &&
-                    this->manager_.get_edge_length(edge.f, llv) > edge.length
-                    ) {
+                if (this->manager_.get_edge_length(edge.f, llv) > edge.length) {
                     locked_edges_.insert(cur_edge);
-                    break;
+                    return true;
                 }
             }
-            if (locked_edges_.contains(cur_edge))
-                return true;
 
             if (const auto& nf = this->mesh_.facets.adjacent(edge.f, edge.lv);
                 nf != GEO::NO_FACET) {
                 for (GEO::index_t llv = 0; llv < 3; ++llv) {
                     if (this->mesh_.facets.adjacent(nf, llv) == edge.f)
                         continue;
-                    if (const std::pair<GEO::index_t, GEO::index_t> fc_edge = std::minmax(
-                            this->mesh_.facets.vertex(nf, llv),
-                            this->mesh_.facets.vertex(nf, (llv+1)%3));
-                        locked_edges_.contains(fc_edge) &&
-                        this->manager_.get_edge_length(nf, llv) > edge.length
-                        ) {
+
+                    if (this->manager_.get_edge_length(nf, llv) > edge.length) {
                         locked_edges_.insert(cur_edge);
-                        break;
+                        return true;
                     }
                 }
             }
-
-            if (locked_edges_.contains(cur_edge))
-                return true;
         }
 
         /* Check validity */
@@ -171,10 +153,13 @@ namespace geolio
             return false;
 
         if (!ALLOW_SPLIT_FIXED_EDGES_) {
-            if (const std::pair<GEO::index_t, GEO::index_t> edge = std::minmax(
+            const std::pair<GEO::index_t, GEO::index_t> edge = std::minmax(
                 this->mesh_.facets.vertex(f, lv),
                 this->mesh_.facets.vertex(f, (lv+1)%3));
-                this->manager_.fixed_edges_.contains(edge)) // Splitting fixed edges is not allowed.
+
+            if (this->manager_.fixed_edges_.contains(edge)) // Splitting fixed edges is not allowed.
+                return false;
+            if (locked_edges_.contains(edge))
                 return false;
         }
 
@@ -224,13 +209,15 @@ namespace geolio
             this->manager_.mesh_v_boundary[new_v] = true;
 
         /* Update fixed edges */
-        if (const std::pair<GEO::index_t, GEO::index_t> edge = std::minmax(original_ev0, original_ev1);
-            this->manager_.fixed_edges_.erase(edge)
-            ) {
-            const std::pair<GEO::index_t, GEO::index_t> edge0 = std::minmax(original_ev0, new_v);
-            const std::pair<GEO::index_t, GEO::index_t> edge1 = std::minmax(original_ev1, new_v);
-            this->manager_.fixed_edges_.insert(edge0);
-            this->manager_.fixed_edges_.insert(edge1);
+        if (ALLOW_SPLIT_FIXED_EDGES_) {
+            if (const std::pair<GEO::index_t, GEO::index_t> edge = std::minmax(original_ev0, original_ev1);
+                this->manager_.fixed_edges_.erase(edge)
+                ) {
+                const std::pair<GEO::index_t, GEO::index_t> edge0 = std::minmax(original_ev0, new_v);
+                const std::pair<GEO::index_t, GEO::index_t> edge1 = std::minmax(original_ev1, new_v);
+                this->manager_.fixed_edges_.insert(edge0);
+                this->manager_.fixed_edges_.insert(edge1);
+            }
         }
     }
 

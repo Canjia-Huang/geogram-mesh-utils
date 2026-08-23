@@ -25,6 +25,21 @@ namespace geolio::test
         GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
     }
 
+    TEST(TriLocalOperationOptimizationTest, cdt_2d_not_allow_split_fix_edges) {
+        GEO::Mesh mesh(2);
+        generate_random_CDT2d_mesh(mesh, 20, 10);
+        GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
+
+        {
+            TriLocalOperationOptimization<2> TLOO(mesh);
+            TLOO.fix_boundary_elements();
+            TLOO.allow_split_fixed_edges = false;
+            TLOO.optimize(5, 1);
+        }
+
+        GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
+    }
+
     TEST(TriLocalOperationOptimizationTest, bunny) {
         GEO::Mesh mesh;
         GEO::mesh_load(std::string(TEST_DATA_PATH)+"bunny.obj", mesh);
