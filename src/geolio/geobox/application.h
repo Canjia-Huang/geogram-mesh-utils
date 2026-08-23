@@ -207,7 +207,7 @@ namespace geolio::geobox
          *  When false, the original event-driven scheme is used: every redraw
          *  re-renders the whole scene and every event triggers the base
          *  class's 100-frame redraw storm. Togglable from the Windows menu. */
-        bool redraw_on_demand_ = true;
+        bool redraw_on_demand_ = false;
 
         // Offscreen scene framebuffer (see create_scene_framebuffer()).
         GLuint scene_fbo_ = 0;
