@@ -230,6 +230,12 @@ namespace geolio
         }
     }
 
+    template <GEO::index_t DIM>
+    double TriLocalOperationOptimization<DIM>::compute_average_edge_length(
+        ) {
+        return manager_.compute_average_mesh_edge_length();
+    }
+
     template class TriLocalOperationOptimization<2>;
     template class TriLocalOperationOptimization<3>;
 }

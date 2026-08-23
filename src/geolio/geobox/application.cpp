@@ -129,7 +129,7 @@ namespace geolio::geobox
     }
 
     void GeoBoxApplication::blit_scene_framebuffer(
-        ) {
+        ) const {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, scene_fbo_);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glBlitFramebuffer(
@@ -427,11 +427,10 @@ namespace geolio::geobox
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, icon_button_padding);
 
         // Show / hide all objects.
-        const bool all_visible = std::all_of(
-            objects_.begin(), objects_.end(),
-            [](const std::shared_ptr<BaseObject>& object) {
-                return object->visible();
-            });
+        const bool all_visible = std::ranges::all_of(objects_,
+                                                     [](const std::shared_ptr<BaseObject>& object) {
+                                                         return object->visible();
+                                                     });
         if (ImGui::Button(
             GEO::icon_UTF8(all_visible ? "eye" : "eye-slash").c_str(),
             ImVec2(icon_button_size, icon_button_size)

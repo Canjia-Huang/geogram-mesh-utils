@@ -116,7 +116,7 @@ namespace geolio::geobox
          * @brief Copies the offscreen scene framebuffer into the default
          *        back buffer, overwriting the previous frame's UI.
          */
-        void blit_scene_framebuffer();
+        void blit_scene_framebuffer() const;
 
         /**
          * @brief Applies the UI style after ImGui has been initialized.

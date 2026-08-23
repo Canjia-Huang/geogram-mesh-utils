@@ -131,6 +131,15 @@ namespace geolio
          */
         void fix_sharp_elements(double sharp_angle = 0.75*M_PI);
 
+        /**
+          * @brief Computes the average edge length of the current mesh.
+          * @details Delegates to the internal MeshElementManager to accumulate edge lengths
+          *          across the mesh and divide by the number of edges, yielding a global scale
+          *          estimate used to initialize split/collapse targets in the optimization.
+          * @return Mean length of all mesh edges in the current topology.
+          */
+        double compute_average_edge_length();
+
     protected:
         /**
          * @brief Labels all vertices that lie on a boundary edge.
