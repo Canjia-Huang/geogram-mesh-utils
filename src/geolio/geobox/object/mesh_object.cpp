@@ -30,6 +30,8 @@ namespace geolio::geobox
 
         if (ImGui::Button("Reload", ImVec2(-1, 0)))
             reload();
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("%s", filepath_.c_str());
 
         ImGui::Separator();
         if (ImGui::CollapsingHeader("Info")) {

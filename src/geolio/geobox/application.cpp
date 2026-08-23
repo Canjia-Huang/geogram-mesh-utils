@@ -23,6 +23,194 @@ namespace geolio::geobox
         ) : SimpleMeshApplication("Geolio - GeoBox")
     {}
 
+    void GeoBoxApplication::update(
+        ) {
+        if (!redraw_on_demand_) {
+            // Original scheme: restore the base class behavior (a 100-frame
+            // redraw storm after every event).
+            Application::update();
+            return;
+        }
+        // The base class resets a 100-frame redraw counter on every event
+        // (NB_FRAMES_UPDATE_INIT in Application::update()), which re-renders
+        // the (possibly huge) scene up to 100 times per event. A couple of
+        // frames is enough for ImGui to process the event; everything else is
+        // driven by scene_dirty_ / ImGui capture below.
+        redraw_budget_ = 2;
+    }
+
+    bool GeoBoxApplication::needs_to_redraw(
+        ) const {
+        if (!redraw_on_demand_)
+            return Application::needs_to_redraw();
+
+        if (animate())
+            return true;
+
+        if (scene_dirty_)
+            return true;
+
+        // ImGui needs continuous frames to process hover, clicks, popups and
+        // slider drags, so keep rendering while it captures the mouse/keyboard.
+        if (ImGui::GetIO().WantCaptureMouse ||
+            ImGui::GetIO().WantCaptureKeyboard)
+            return true;
+
+        if (redraw_budget_ > 0) {
+            --redraw_budget_;
+            return true;
+        }
+
+        return false;
+    }
+
+    void GeoBoxApplication::create_scene_framebuffer(
+        GLsizei w, GLsizei h
+        ) {
+        delete_scene_framebuffer();
+        scene_fb_w_ = w;
+        scene_fb_h_ = h;
+
+        glGenFramebuffers(1, &scene_fbo_);
+        glBindFramebuffer(GL_FRAMEBUFFER, scene_fbo_);
+
+        glGenTextures(1, &scene_color_tex_);
+        glBindTexture(GL_TEXTURE_2D, scene_color_tex_);
+        glTexImage2D(
+            GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0,
+            GL_RGBA, GL_UNSIGNED_BYTE, nullptr
+        );
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glFramebufferTexture2D(
+            GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+            GL_TEXTURE_2D, scene_color_tex_, 0
+        );
+
+        glGenRenderbuffers(1, &scene_depth_rb_);
+        glBindRenderbuffer(GL_RENDERBUFFER, scene_depth_rb_);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, w, h);
+        glFramebufferRenderbuffer(
+            GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+            GL_RENDERBUFFER, scene_depth_rb_
+        );
+
+        const bool complete =
+            (glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+
+        // Restore default bindings.
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glBindRenderbuffer(GL_RENDERBUFFER, 0);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        if (!complete) {
+            // Fall back to direct rendering if offscreen rendering fails.
+            delete_scene_framebuffer();
+        }
+    }
+
+    void GeoBoxApplication::delete_scene_framebuffer(
+        ) {
+        if (scene_fbo_ != 0)
+            glDeleteFramebuffers(1, &scene_fbo_);
+        if (scene_color_tex_ != 0)
+            glDeleteTextures(1, &scene_color_tex_);
+        if (scene_depth_rb_ != 0)
+            glDeleteRenderbuffers(1, &scene_depth_rb_);
+        scene_fbo_ = 0;
+        scene_color_tex_ = 0;
+        scene_depth_rb_ = 0;
+        scene_fb_w_ = 0;
+        scene_fb_h_ = 0;
+    }
+
+    void GeoBoxApplication::blit_scene_framebuffer(
+        ) {
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, scene_fbo_);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glBlitFramebuffer(
+            0, 0, scene_fb_w_, scene_fb_h_,
+            0, 0, scene_fb_w_, scene_fb_h_,
+            GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT,
+            GL_NEAREST
+        );
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
+    void GeoBoxApplication::draw_graphics(
+        ) {
+        if (!redraw_on_demand_) {
+            // Original scheme: always render the full scene directly.
+            SimpleApplication::draw_graphics();
+            scene_dirty_ = false;
+            return;
+        }
+
+        const GLsizei fb_w = static_cast<GLsizei>(get_frame_buffer_width());
+        const GLsizei fb_h = static_cast<GLsizei>(get_frame_buffer_height());
+        if (scene_fbo_ == 0 || scene_fb_w_ != fb_w || scene_fb_h_ != fb_h)
+            create_scene_framebuffer(fb_w, fb_h);
+
+        if (scene_fbo_ == 0) {
+            // Offscreen rendering unavailable: fall back to rendering the
+            // scene directly into the back buffer on every frame.
+            SimpleApplication::draw_graphics();
+            scene_dirty_ = false;
+            return;
+        }
+
+        if (scene_dirty_ || animate()) {
+            // Render the 3D scene into the offscreen framebuffer.
+            glBindFramebuffer(GL_FRAMEBUFFER, scene_fbo_);
+            SimpleApplication::draw_graphics();
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            scene_dirty_ = false;
+        }
+        // Copy the scene image into the back buffer. The blit overwrites the
+        // whole buffer, wiping the previous frame's UI, so ImGui (drawn next
+        // by the base one_frame()) starts from a clean scene - no ghosting.
+        blit_scene_framebuffer();
+    }
+
+    void GeoBoxApplication::GL_terminate(
+        ) {
+        delete_scene_framebuffer();
+        SimpleMeshApplication::GL_terminate();
+    }
+
+    void GeoBoxApplication::cursor_pos_callback(
+        double x, double y, int source
+        ) {
+        SimpleApplication::cursor_pos_callback(x, y, source);
+        // Only viewport drags (rotate / translate / zoom) change the scene.
+        if (mouse_op_ != MOUSE_NOOP)
+            scene_dirty_ = true;
+    }
+
+    void GeoBoxApplication::scroll_callback(
+        double xoffset, double yoffset
+        ) {
+        SimpleApplication::scroll_callback(xoffset, yoffset);
+        scene_dirty_ = true;
+    }
+
+    void GeoBoxApplication::key_callback(
+        int key, int scancode, int action, int mods
+        ) {
+        SimpleApplication::key_callback(key, scancode, action, mods);
+        // Base class shortcuts (F-keys, ...) may toggle render state.
+        scene_dirty_ = true;
+    }
+
+    void GeoBoxApplication::resize(
+        GEO::index_t w, GEO::index_t h, GEO::index_t fb_w, GEO::index_t fb_h
+        ) {
+        SimpleApplication::resize(w, h, fb_w, fb_h);
+        // A resized framebuffer invalidates the retained back buffer content,
+        // so the next frame must be a full re-render.
+        scene_dirty_ = true;
+    }
+
     void GeoBoxApplication::draw_gui(
         ) {
         draw_menu_bar();
@@ -61,6 +249,17 @@ namespace geolio::geobox
         }
 
         draw_rotation_gizmo();
+
+        // Redraw-on-demand: any real widget interaction (click, slider drag,
+        // text edit) may have changed the render state, so schedule a full
+        // re-render for the next frame. Pure hover / mouse movement over the
+        // UI does not dirty the scene and only costs cheap UI-only frames.
+        if (ImGui::IsAnyItemActive() ||
+            (ImGui::GetIO().WantCaptureMouse &&
+             (ImGui::IsMouseClicked(ImGuiMouseButton_Left) ||
+              ImGui::IsMouseReleased(ImGuiMouseButton_Left)))) {
+            scene_dirty_ = true;
+        }
     }
 
     void GeoBoxApplication::init_colormaps(
@@ -423,6 +622,23 @@ namespace geolio::geobox
                     ImGui::EndMenu();
             }
         }
+        {
+            ImGui::Separator();
+            // Toggle between the redraw-on-demand scheme (default) and the
+            // original scheme where every redraw re-renders the whole scene.
+            if (ImGui::MenuItem(
+                GEO::icon_UTF8("sync-alt") + " On-demand redraw",
+                nullptr,
+                &redraw_on_demand_
+                )) {
+                // Force one full render right after switching, so the view
+                // does not stay stuck on a stale frame.
+                scene_dirty_ = true;
+            }
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip(
+                    "alleviate UI operation stutter during large-scale rendering.");
+        }
     }
 
     void GeoBoxApplication::draw_rotation_gizmo(
@@ -489,6 +705,7 @@ namespace geolio::geobox
             new_rotation.data()[15] = 1.0f;
 
             object_rotation_.set_value(new_rotation);
+            scene_dirty_ = true;
         }
     }
 
@@ -528,6 +745,8 @@ namespace geolio::geobox
                 xyzmin[0], xyzmin[1], xyzmin[2],
                 xyzmax[0], xyzmax[1], xyzmax[2]);
         }
+
+        scene_dirty_ = true;
     }
 
     bool GeoBoxApplication::load(
@@ -552,6 +771,8 @@ namespace geolio::geobox
         /* Focus */
         camera_focus(object_ptr);
         selected_object_ = object_ptr;
+
+        scene_dirty_ = true;
 
         return true;
     }
