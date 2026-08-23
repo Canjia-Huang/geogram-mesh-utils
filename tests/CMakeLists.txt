@@ -39,21 +39,31 @@ target_link_libraries(${CURRENT_LIB_NAME}
 add_compile_definitions(TEST_DATA_PATH="${CMAKE_CURRENT_SOURCE_DIR}/data/")
 
 if(WIN32)
-    # The test executable needs geolio.dll (and potentially geogram.dll) at runtime.
-    # Copy them alongside the test executable so Windows can find them.
+    # gtest_discover_tests() runs the test executable directly at build time to
+    # enumerate tests, without any PATH augmentation, so every DLL it needs at
+    # runtime must sit next to the executable (Windows searches the exe
+    # directory first).
     add_custom_command(TARGET ${CURRENT_LIB_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "$<TARGET_FILE:${PROJECT_NAME}>"
             "$<TARGET_FILE_DIR:${CURRENT_LIB_NAME}>"
         COMMENT "Copying geolio.dll to test directory"
     )
+    # geolio.dll (and thus the test executable) depends not only on geogram.dll
+    # but - through the geobox component - also on geogram_gfx.dll and its own
+    # runtime dependencies (e.g. glfw.dll). Copy the whole geogram DLL set
+    # instead of just geogram.dll.
     if(GEOGRAM_DLL)
-        add_custom_command(TARGET ${CURRENT_LIB_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "${GEOGRAM_DLL}"
-                "$<TARGET_FILE_DIR:${CURRENT_LIB_NAME}>"
-            COMMENT "Copying geogram.dll to test directory"
-        )
+        get_filename_component(GEOGRAM_DLL_DIR "${GEOGRAM_DLL}" DIRECTORY)
+        file(GLOB GEOGRAM_RUNTIME_DLLS "${GEOGRAM_DLL_DIR}/*.dll")
+        if(GEOGRAM_RUNTIME_DLLS)
+            add_custom_command(TARGET ${CURRENT_LIB_NAME} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    ${GEOGRAM_RUNTIME_DLLS}
+                    "$<TARGET_FILE_DIR:${CURRENT_LIB_NAME}>"
+                COMMENT "Copying geogram runtime DLLs to test directory"
+            )
+        endif()
     endif()
 endif()
 
