@@ -24,15 +24,24 @@ if(Geogram_FOUND)
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
     endif()
 
-    if(WIN32) # copy geogram's dlls to the execute file path
-        message(STATUS "Copying geogram's release dll -> ${CMAKE_BINARY_DIR}/bin")
-        file(GLOB GEOGRAM_RELEASE_DLL_FILES "${GEOGRAM_PATH}/build/Windows/bin/Release/*.dll")
-        file(COPY ${GEOGRAM_RELEASE_DLL_FILES} DESTINATION ${CMAKE_BINARY_DIR}/bin/Release)
-
-
-        message(STATUS "Copying geogram's debug dll -> ${CMAKE_BINARY_DIR}/bin")
-        file(GLOB GEOGRAM_DEBUG_DLL_FILES "${GEOGRAM_PATH}/build/Windows/bin/Debug/*.dll")
-        file(COPY ${GEOGRAM_DEBUG_DLL_FILES} DESTINATION ${CMAKE_BINARY_DIR}/bin/Debug)
+    if(WIN32) # copy geogram's runtime DLLs next to the executables (build/bin/<config>)
+        if(GEOGRAM_LIBRARY)
+            # Derive the geogram build directory (e.g. build/Windows) from the
+            # located import library instead of relying on GEOGRAM_PATH, which
+            # is not set by FindGeogram.cmake and made this copy a no-op.
+            get_filename_component(_GEOGRAM_LIB_DIR "${GEOGRAM_LIBRARY}" DIRECTORY)
+            get_filename_component(_GEOGRAM_LIB_PARENT "${_GEOGRAM_LIB_DIR}" DIRECTORY)
+            get_filename_component(GEOGRAM_BUILD_DIR "${_GEOGRAM_LIB_PARENT}" DIRECTORY)
+            # Copy the whole DLL set (geogram.dll, geogram_gfx.dll, glfw.dll,
+            # ...) for every configuration that exists in the geogram build.
+            foreach(cfg Release Debug RelWithDebInfo MinSizeRel)
+                file(GLOB _GEOGRAM_CFG_DLL_FILES "${GEOGRAM_BUILD_DIR}/bin/${cfg}/*.dll")
+                if(_GEOGRAM_CFG_DLL_FILES)
+                    message(STATUS "Copying geogram ${cfg} dlls -> ${CMAKE_BINARY_DIR}/bin/${cfg}")
+                    file(COPY ${_GEOGRAM_CFG_DLL_FILES} DESTINATION "${CMAKE_BINARY_DIR}/bin/${cfg}")
+                endif()
+            endforeach()
+        endif()
     endif()
 else()
     message(WARNING "Geogram not found!")

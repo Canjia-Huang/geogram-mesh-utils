@@ -3,12 +3,12 @@
 ![CI](https://github.com/Canjia-Huang/geolio/actions/workflows/build_and_test.yml/badge.svg)
 ![External Consumption](https://github.com/Canjia-Huang/geolio/actions/workflows/external_consumption.yml/badge.svg)
 
-**Geolio** is a lightweight C++ library designed for performing various processing tasks in computer graphics (mainly mesh processing).
+**Geolio** is a C++ library designed for performing various processing tasks in computer graphics (mainly mesh processing).
 
 ## Requirements / dependencies
 
 - [**Geogram**](https://github.com/BrunoLevy/geogram) — geometry library, required at configure time.
-- [**spdlog**](https://github.com/gabime/spdlog) and [**CLI11**](https://github.com/CLIUtils/CLI11) — bundled as git submodules; used as header-only include paths.
+- [**spdlog**](https://github.com/gabime/spdlog), [**CLI11**](https://github.com/CLIUtils/CLI11) and [**imoguizmo**](https://github.com/fknfilewalker/imoguizmo) — bundled as git submodules; used as header-only include paths. imoguizmo provides the ImGui/ImGuizmo integration used by the GeoBox application and relies on the imgui headers bundled with Geogram.
 
 > Geolio must be cloned with `--recurse-submodules`, and a project that consumes geolio as a submodule must run `git submodule update --init --recursive`, so that the nested submodules above are present.
 
@@ -58,7 +58,7 @@ git submodule add https://github.com/Canjia-Huang/geolio.git third_party/geolio
 git submodule update --init --recursive
 ```
 
-`--recursive` also pulls geolio's own nested submodules (spdlog, CLI11).
+`--recursive` also pulls geolio's own nested submodules (spdlog, CLI11, imoguizmo).
 
 ### 2. Link it from your `CMakeLists.txt`
 
