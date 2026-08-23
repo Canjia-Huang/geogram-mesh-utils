@@ -4,6 +4,8 @@
 //
 #include "local_operation_optimization_application.h"
 #include <utility>
+#include "geolio/geobox/object/mesh_object.h"
+#include "geolio/local_operation_optimization/tri_local_operation_optimization.h"
 
 namespace geolio::geobox
 {
@@ -18,6 +20,81 @@ namespace geolio::geobox
 
     void LocalOperationOptimizationApplication::draw_window_contents(
         ) {
+        // Collect the objects whose type is a mesh ("Mesh", see MeshObject).
+        std::vector<std::shared_ptr<MeshObject>> mesh_objects;
+        for (const auto& object : objects_) {
+            const auto mesh_object = std::dynamic_pointer_cast<MeshObject>(object);
+            if (mesh_object == nullptr)
+                continue;
+            if (const GEO::Mesh& mesh = mesh_object->mesh();
+                mesh.facets.nb() > 0 && mesh.facets.are_simplices())
+                mesh_objects.push_back(mesh_object);
+        }
 
+        // Selection combo box: pick one mesh object.
+        if (mesh_objects.empty()) {
+            ImGui::TextUnformatted("No triangular mesh object available.");
+        } else {
+            // Index of the currently selected mesh object, -1 when none.
+            int current_index = -1;
+            const auto selected = selected_mesh_object_.lock();
+            for (size_t i = 0; i < mesh_objects.size(); ++i) {
+                if (mesh_objects[i] == selected) {
+                    current_index = static_cast<int>(i);
+                    break;
+                }
+            }
+
+            const char* preview = current_index >= 0
+                ? mesh_objects[static_cast<size_t>(current_index)]->name().c_str()
+                : "Select a mesh object";
+            // "Mesh" text on the left, combo box to its right on the same
+            // line (the "##" label hides ImGui's built-in duplicate label).
+            // AlignTextToFramePadding() centers the text baseline against the
+            // combo box's frame padding, so both stay vertically centered.
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("Mesh");
+            ImGui::SameLine();
+            if (ImGui::BeginCombo("##mesh_object", preview)) {
+                for (size_t i = 0; i < mesh_objects.size(); ++i) {
+                    const bool is_selected = (current_index == static_cast<int>(i));
+                    if (ImGui::Selectable(mesh_objects[i]->name().c_str(), is_selected))
+                        selected_mesh_object_ = mesh_objects[i];
+                    if (is_selected)
+                        ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndCombo();
+            }
+        }
+
+        // Full-width button that triggers the optimization.
+        if (ImGui::Button("perform", ImVec2(-1.0f, 0.0f))) {
+            // std::dynamic_pointer_cast needs a shared_ptr, so lock the
+            // weak_ptr selection first.
+            const auto selected_object = selected_mesh_object_.lock();
+            const auto mesh_object = std::dynamic_pointer_cast<MeshObject>(selected_object);
+            assert(mesh_object != nullptr);
+
+            if (auto& mesh = mesh_object->mesh();
+                mesh.vertices.dimension() == 2)
+                perform<2>(mesh);
+            else
+                perform<3>(mesh);
+        }
     }
+
+    template <GEO::index_t DIM>
+    void LocalOperationOptimizationApplication::perform(
+        GEO::Mesh& mesh
+        ) {
+        assert(mesh.facets.nb() > 0);
+        assert(mesh.facets.are_simplices());
+
+        TriLocalOperationOptimization<DIM> TLOO(mesh);
+        TLOO.fix_boundary_elements();
+        TLOO.optimize(5, -1);
+    }
+
+    template void LocalOperationOptimizationApplication::perform<2>(GEO::Mesh& mesh);
+    template void LocalOperationOptimizationApplication::perform<3>(GEO::Mesh& mesh);
 }

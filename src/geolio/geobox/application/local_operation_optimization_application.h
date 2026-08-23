@@ -7,6 +7,7 @@
 
 #include "base_application.h"
 #include <geolio/geobox/object/base_object.h>
+#include <geogram/mesh/mesh.h>
 
 namespace geolio::geobox
 {
@@ -19,7 +20,13 @@ namespace geolio::geobox
     protected:
         void draw_window_contents() override;
 
+        template <GEO::index_t DIM>
+        static void perform(GEO::Mesh& mesh);
+
         const std::vector<std::shared_ptr<BaseObject>>& objects_;
+
+        /** The mesh object currently selected in the combo box. */
+        std::weak_ptr<BaseObject> selected_mesh_object_;
     };
 }
 
