@@ -7,6 +7,7 @@
 
 #include <geogram_gfx/gui/simple_mesh_application.h>
 #include "colormap.h"
+#include "application/base_application.h"
 #include "geolio/geobox/object/base_object.h"
 
 namespace geolio::geobox
@@ -171,6 +172,8 @@ namespace geolio::geobox
          */
         void draw_windows_menu() override;
 
+        void draw_application_menus() override;
+
         /**
          * @brief Draws the rotation gizmo in the viewport.
          * @details The gizmo is rendered in the lower-left corner and updates the current
@@ -224,6 +227,8 @@ namespace geolio::geobox
         // Current size of the Object Properties window, tracked so its
         // right edge can be kept flush against the viewport's right edge.
         ImVec2 object_properties_size_{0.0f, 0.0f};
+
+        std::vector<std::unique_ptr<BaseApplication>> applications_;
     };
 }
 

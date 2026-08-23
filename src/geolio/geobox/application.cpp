@@ -16,12 +16,16 @@
 #include "geolio/common/log.h"
 #include "geolio/common/parse_filepath.h"
 #include "object/mesh_object.h"
+#include <geolio/geobox/application/local_operation_optimization_application.h>
 
 namespace geolio::geobox
 {
     GeoBoxApplication::GeoBoxApplication(
         ) : SimpleMeshApplication("Geolio - GeoBox")
-    {}
+    {
+        /* Init application */
+        applications_.push_back(std::make_unique<LocalOperationOptimizationApplication>("Mesh optimization", objects_));
+    }
 
     void GeoBoxApplication::update(
         ) {
@@ -214,6 +218,11 @@ namespace geolio::geobox
     void GeoBoxApplication::draw_gui(
         ) {
         draw_menu_bar();
+        // Draw each sub-application's floating window (visibility is toggled
+        // from the corresponding menu entry in the menu bar).
+        for (const auto& app_ptr : applications_)
+            app_ptr->draw_window();
+
         draw_controller_properties_window();
         // draw_viewer_properties_window();
         draw_object_properties_window();
@@ -696,6 +705,18 @@ namespace geolio::geobox
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip(
                     "alleviate UI operation stutter during large-scale rendering.");
+        }
+    }
+
+    void GeoBoxApplication::draw_application_menus(
+        ) {
+        if (!applications_.empty()) {
+            if (ImGui::BeginMenu("Application")) {
+                for (const auto& app_ptr : applications_)
+                    app_ptr->draw_menu();
+
+                ImGui::EndMenu();
+            }
         }
     }
 

@@ -9,10 +9,9 @@ add_library(${CURRENT_LIB_ALIAS_NAME} ALIAS ${CURRENT_LIB_NAME})
 set_target_properties(${CURRENT_LIB_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 file(GLOB SOURCE_FILES
-        ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/object/*.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/object/*.cpp)
+        ${CMAKE_CURRENT_SOURCE_DIR}/object/*.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/application/*.cpp)
 target_sources(${CURRENT_LIB_NAME}
         PRIVATE
         ${SOURCE_FILES}
