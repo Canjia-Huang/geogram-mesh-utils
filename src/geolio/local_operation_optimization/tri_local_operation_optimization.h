@@ -26,19 +26,8 @@ namespace geolio
          *          index; the first element receives a special marker so it can be recovered
          *          after optimization.
          * @param[in] mesh The triangle mesh to optimize; only simplex facets are supported.
-         * @param[in] mesh_v_original_idx Optional per-vertex attribute that records each
-         *                                vertex's original index before optimization; newly
-         *                                created vertices are set to GEO::NO_INDEX. Pass
-         *                                nullptr to skip.
-         * @param[in] mesh_f_original_idx Optional per-facet attribute that records each facet's
-         *                                original index before optimization; newly created
-         *                                facets are set to GEO::NO_INDEX. Pass nullptr to skip.
          */
-        explicit TriLocalOperationOptimization(
-            GEO::Mesh& mesh,
-            GEO::Attribute<GEO::index_t>* mesh_v_original_idx = nullptr,
-            GEO::Attribute<GEO::index_t>* mesh_f_original_idx = nullptr);
-
+        explicit TriLocalOperationOptimization(GEO::Mesh& mesh);
 
         /**
          * @brief Runs the local optimization pipeline.
@@ -172,9 +161,6 @@ namespace geolio
 
         GEO::Mesh& mesh_;
         MeshElementManager<DIM> manager_;
-
-        GEO::Attribute<GEO::index_t>* mesh_v_original_idx_ = nullptr;
-        GEO::Attribute<GEO::index_t>* mesh_f_original_idx_ = nullptr;
     };
 
     extern template class TriLocalOperationOptimization<2>;
