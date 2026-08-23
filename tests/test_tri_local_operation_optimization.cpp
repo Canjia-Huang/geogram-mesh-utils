@@ -25,6 +25,21 @@ namespace geolio::test
         GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
     }
 
+    TEST(TriLocalOperationOptimizationTest, cdt_2d_not_allow_split_fix_edges) {
+        GEO::Mesh mesh(2);
+        generate_random_CDT2d_mesh(mesh, 20, 10);
+        GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
+
+        {
+            TriLocalOperationOptimization<2> TLOO(mesh);
+            TLOO.fix_boundary_elements();
+            TLOO.allow_split_fixed_edges = false;
+            TLOO.optimize(5, 1);
+        }
+
+        GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
+    }
+
     TEST(TriLocalOperationOptimizationTest, bunny) {
         GEO::Mesh mesh;
         GEO::mesh_load(std::string(TEST_DATA_PATH)+"bunny.obj", mesh);
@@ -61,23 +76,6 @@ namespace geolio::test
             TriLocalOperationOptimization<3> TLOO(mesh);
             TLOO.fix_boundary_elements();
             TLOO.optimize(5, 0.01);
-        }
-
-        GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
-    }
-
-    TEST(TriLocalOperationOptimizationTest, fandisk_preserve_original_idx) {
-        GEO::Mesh mesh;
-        GEO::mesh_load(std::string(TEST_DATA_PATH)+"fandisk.obj", mesh);
-
-        GEO::Attribute<GEO::index_t> mesh_v_original_idx(mesh.vertices.attributes(), "original_idx");
-        GEO::Attribute<GEO::index_t> mesh_f_original_idx(mesh.facets.attributes(), "original_idx");
-
-        {
-            TriLocalOperationOptimization<3> TLOO(mesh, &mesh_v_original_idx, &mesh_f_original_idx);
-            TLOO.fix_sharp_elements();
-            GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
-            TLOO.optimize();
         }
 
         GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");

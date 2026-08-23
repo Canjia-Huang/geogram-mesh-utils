@@ -53,6 +53,8 @@ namespace geolio::geobox
          */
         void get_bbox(double* xyzmin, double* xyzmax) const override;
 
+        auto& mesh() { return mesh_; }
+
     protected:
         /**
          * @brief Draws the mesh vertices.

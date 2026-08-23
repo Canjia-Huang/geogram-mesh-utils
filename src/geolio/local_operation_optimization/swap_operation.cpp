@@ -113,8 +113,10 @@ namespace geolio
             return false;
 
         /* Forbid swapping fixed edge. */
-        if (const auto& fc = this->mesh_.facets.corner(f, lv);
-            this->manager_.mesh_fc_fixed[fc])
+        if (const std::pair<GEO::index_t, GEO::index_t> edge = std::minmax(
+                this->mesh_.facets.vertex(f, lv),
+                this->mesh_.facets.vertex(f, (lv+1)%3));
+            this->manager_.fixed_edges_.contains(edge))
             return false;
 
         /* Forbid swapping boundary edge. */

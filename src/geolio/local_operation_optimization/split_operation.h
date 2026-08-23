@@ -117,16 +117,19 @@ namespace geolio
 
         /**
          * @brief Applies post-split bookkeeping to the manager's element attributes.
-         * @details If the split edge lies on the boundary, marks the newly created vertex as a
-         *          boundary vertex so the boundary attribute is inherited by the new vertex.
+         * @details Marks a boundary-split vertex as a boundary vertex, and when the original
+         *          edge was tracked as fixed in the manager it is replaced by two fixed edges
+         *          incident to the newly created vertex so the same fixed-edge constraints remain
+         *          valid after the split.
          * @param[in] f Index of the facet that contained the split edge.
          * @param[in] lv Local vertex index that identified the split edge.
          * @param[in] new_v Index of the newly created vertex.
-         * @param[in] new_f0 Index of the first newly created facet.
-         * @param[in] new_f1 Index of the second newly created facet, or GEO::NO_FACET.
+         * @param[in] original_ev0 First endpoint of the original split edge.
+         * @param[in] original_ev1 Second endpoint of the original split edge.
          */
         void post_process(GEO::index_t f, GEO::index_t lv,
-                          GEO::index_t new_v, GEO::index_t new_f0, GEO::index_t new_f1) const;
+                          GEO::index_t new_v,
+                          GEO::index_t original_ev0, GEO::index_t original_ev1);
 
         const double limit_edge_length_;
 
@@ -134,7 +137,7 @@ namespace geolio
 
         std::priority_queue<EdgeToSplit> pq_;
 
-        GEO::Attribute<bool> mesh_fc_locked_; // locked edge should not be split (only used when not allow to split fixed edges)
+        std::unordered_set<std::pair<GEO::index_t, GEO::index_t>, PairHash> locked_edges_; // temporary locked edge should not be split (only used when not allow to split fixed edges)
     };
 
     extern template class SplitOperation<2>;

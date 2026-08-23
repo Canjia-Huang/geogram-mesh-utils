@@ -26,19 +26,8 @@ namespace geolio
          *          index; the first element receives a special marker so it can be recovered
          *          after optimization.
          * @param[in] mesh The triangle mesh to optimize; only simplex facets are supported.
-         * @param[in] mesh_v_original_idx Optional per-vertex attribute that records each
-         *                                vertex's original index before optimization; newly
-         *                                created vertices are set to GEO::NO_INDEX. Pass
-         *                                nullptr to skip.
-         * @param[in] mesh_f_original_idx Optional per-facet attribute that records each facet's
-         *                                original index before optimization; newly created
-         *                                facets are set to GEO::NO_INDEX. Pass nullptr to skip.
          */
-        explicit TriLocalOperationOptimization(
-            GEO::Mesh& mesh,
-            GEO::Attribute<GEO::index_t>* mesh_v_original_idx = nullptr,
-            GEO::Attribute<GEO::index_t>* mesh_f_original_idx = nullptr);
-
+        explicit TriLocalOperationOptimization(GEO::Mesh& mesh);
 
         /**
          * @brief Runs the local optimization pipeline.
@@ -117,14 +106,10 @@ namespace geolio
             ) {
             assert(f < mesh_.facets.nb());
             assert(lv < 3);
-            manager_.mesh_fc_fixed[mesh_.facets.corner(f, lv)] = true;
-            if (const auto nf = mesh_.facets.adjacent(f, lv);
-                nf != GEO::NO_FACET) {
-                const auto v = mesh_.facets.vertex(f, lv);
-                const auto nlv = mesh_.facets.find_vertex(nf, v);
-                assert(nlv != GEO::NO_INDEX);
-                manager_.mesh_fc_fixed[mesh_.facets.corner(nf, (nlv+2)%3)] = true;
-            }
+            const std::pair<GEO::index_t, GEO::index_t> edge = std::minmax(
+                mesh_.facets.vertex(f, lv),
+                mesh_.facets.vertex(f, (lv+1)%3));
+            manager_.fixed_edges_.insert(edge);
         }
 
         /**
@@ -145,6 +130,17 @@ namespace geolio
          *                        value are fixed. Defaults to 0.75*M_PI (135 degrees).
          */
         void fix_sharp_elements(double sharp_angle = 0.75*M_PI);
+
+        /**
+          * @brief Computes the average edge length of the current mesh.
+          * @details Delegates to the internal MeshElementManager to accumulate edge lengths
+          *          across the mesh and divide by the number of edges, yielding a global scale
+          *          estimate used to initialize split/collapse targets in the optimization.
+          * @return Mean length of all mesh edges in the current topology.
+          */
+        double compute_average_edge_length();
+
+        auto& manager() { return manager_; }
 
     protected:
         /**
@@ -176,9 +172,6 @@ namespace geolio
 
         GEO::Mesh& mesh_;
         MeshElementManager<DIM> manager_;
-
-        GEO::Attribute<GEO::index_t>* mesh_v_original_idx_ = nullptr;
-        GEO::Attribute<GEO::index_t>* mesh_f_original_idx_ = nullptr;
     };
 
     extern template class TriLocalOperationOptimization<2>;

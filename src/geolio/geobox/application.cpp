@@ -11,17 +11,22 @@
 #include <random>
 #include <vector>
 #include <geogram/basic/command_line.h>
+#include <geogram/mesh/mesh_io.h>
 #include <geogram_gfx/GLUP/GLUP.h>
 #include "imoguizmo.hpp"
 #include "geolio/common/log.h"
 #include "geolio/common/parse_filepath.h"
 #include "object/mesh_object.h"
+#include <geolio/geobox/application/local_operation_optimization_application.h>
 
 namespace geolio::geobox
 {
     GeoBoxApplication::GeoBoxApplication(
         ) : SimpleMeshApplication("Geolio - GeoBox")
-    {}
+    {
+        /* Init application */
+        applications_.push_back(std::make_unique<LocalOperationOptimizationApplication>("Mesh optimization", objects_));
+    }
 
     void GeoBoxApplication::update(
         ) {
@@ -125,7 +130,7 @@ namespace geolio::geobox
     }
 
     void GeoBoxApplication::blit_scene_framebuffer(
-        ) {
+        ) const {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, scene_fbo_);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glBlitFramebuffer(
@@ -179,7 +184,7 @@ namespace geolio::geobox
     }
 
     void GeoBoxApplication::cursor_pos_callback(
-        double x, double y, int source
+        const double x, const double y, const int source
         ) {
         SimpleApplication::cursor_pos_callback(x, y, source);
         // Only viewport drags (rotate / translate / zoom) change the scene.
@@ -188,14 +193,14 @@ namespace geolio::geobox
     }
 
     void GeoBoxApplication::scroll_callback(
-        double xoffset, double yoffset
+        const double xoffset, const double yoffset
         ) {
         SimpleApplication::scroll_callback(xoffset, yoffset);
         scene_dirty_ = true;
     }
 
     void GeoBoxApplication::key_callback(
-        int key, int scancode, int action, int mods
+        const int key, const int scancode, const int action, const int mods
         ) {
         SimpleApplication::key_callback(key, scancode, action, mods);
         // Base class shortcuts (F-keys, ...) may toggle render state.
@@ -203,7 +208,7 @@ namespace geolio::geobox
     }
 
     void GeoBoxApplication::resize(
-        GEO::index_t w, GEO::index_t h, GEO::index_t fb_w, GEO::index_t fb_h
+        const GEO::index_t w, const GEO::index_t h, const GEO::index_t fb_w, const GEO::index_t fb_h
         ) {
         SimpleApplication::resize(w, h, fb_w, fb_h);
         // A resized framebuffer invalidates the retained back buffer content,
@@ -214,6 +219,11 @@ namespace geolio::geobox
     void GeoBoxApplication::draw_gui(
         ) {
         draw_menu_bar();
+        // Draw each sub-application's floating window (visibility is toggled
+        // from the corresponding menu entry in the menu bar).
+        for (const auto& app_ptr : applications_)
+            app_ptr->draw_window();
+
         draw_controller_properties_window();
         // draw_viewer_properties_window();
         draw_object_properties_window();
@@ -331,6 +341,9 @@ namespace geolio::geobox
 
     void GeoBoxApplication::draw_controller_properties_window(
         ) {
+        if (!controller_properties_visible_)
+            return;
+
         const ImVec2 viewport_size = ImGui::GetMainViewport()->Size;
         ImGui::SetNextWindowPos(
             ImVec2(0.0f, ImGui::GetFrameHeight()), ImGuiCond_FirstUseEver
@@ -415,11 +428,10 @@ namespace geolio::geobox
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, icon_button_padding);
 
         // Show / hide all objects.
-        const bool all_visible = std::all_of(
-            objects_.begin(), objects_.end(),
-            [](const std::shared_ptr<BaseObject>& object) {
-                return object->visible();
-            });
+        const bool all_visible = std::ranges::all_of(objects_,
+                                                     [](const std::shared_ptr<BaseObject>& object) {
+                                                         return object->visible();
+                                                     });
         if (ImGui::Button(
             GEO::icon_UTF8(all_visible ? "eye" : "eye-slash").c_str(),
             ImVec2(icon_button_size, icon_button_size)
@@ -518,6 +530,8 @@ namespace geolio::geobox
 
     void GeoBoxApplication::draw_object_properties_window(
         ) {
+        if (!object_properties_visible_)
+            return;
         if (selected_object_.expired())
             return;
 
@@ -568,6 +582,44 @@ namespace geolio::geobox
         }
     }
 
+    void GeoBoxApplication::draw_menu_bar(
+        ) {
+        if (!menubar_visible_)
+            return;
+
+        if (ImGui::BeginMainMenuBar()) {
+            if (ImGui::BeginMenu("File")) { // =========================================================================
+                if (!supported_read_file_extensions().empty())
+                    draw_load_menu();
+
+                if (!current_file_.empty()) {
+                    if (ImGui::MenuItem(GEO::icon_UTF8("save") + " Save")) {
+                        if (save(current_file_))
+                            LOG::INFO("Saved {}", current_file_);
+                        else
+                            LOG::ERROR("Could not save {}", current_file_);
+                    }
+                }
+                if (!supported_write_file_extensions().empty())
+                    draw_save_menu();
+
+                draw_fileops_menu();
+
+                draw_about();
+
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("Windows")) {
+                draw_windows_menu();
+                ImGui::EndMenu();
+            }
+            draw_application_menus();
+
+            ImGui::EndMainMenuBar();
+        }
+    }
+
     void GeoBoxApplication::draw_about(
         ) {
         ImGui::Separator();
@@ -589,6 +641,21 @@ namespace geolio::geobox
 
     void GeoBoxApplication::draw_windows_menu(
         ) {
+        ImGui::MenuItem(
+            GEO::icon_UTF8("eye") + " Controller properties",
+            0,
+            &controller_properties_visible_
+        );
+        ImGui::MenuItem(
+            GEO::icon_UTF8("edit") + " Object properties",
+            0,
+            &object_properties_visible_
+        );
+        ImGui::MenuItem(
+            GEO::icon_UTF8("group-arrows-rotate") + " Arc ball",
+            0,
+            &arc_ball_visible_
+        );
         {
             bool needs_to_close = false;
             needs_to_close = ImGui::BeginMenu(GEO::icon_UTF8("font") + " Font size");
@@ -641,8 +708,23 @@ namespace geolio::geobox
         }
     }
 
+    void GeoBoxApplication::draw_application_menus(
+        ) {
+        if (!applications_.empty()) {
+            if (ImGui::BeginMenu("Application")) {
+                for (const auto& app_ptr : applications_)
+                    app_ptr->draw_menu();
+
+                ImGui::EndMenu();
+            }
+        }
+    }
+
     void GeoBoxApplication::draw_rotation_gizmo(
         ) {
+        if (!arc_ball_visible_)
+            return;
+
         // There is nothing to rotate if no object is loaded.
         if (objects_.empty())
             return;

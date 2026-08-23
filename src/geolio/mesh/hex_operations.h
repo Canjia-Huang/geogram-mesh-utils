@@ -16,21 +16,21 @@ namespace geolio
      * @details Linearly scans the 8 vertices of cell @p c and returns the first local slot
      *          whose global vertex matches @p v; returns GEO::NO_INDEX if the vertex is not
      *          present.
-     * @param[in] M  The hexahedral mesh to query
+     * @param[in] mesh  The hexahedral mesh to query
      * @param[in] c  Index of the hexahedral cell to search
      * @param[in] v  Global vertex index to locate in cell @p c
      * @return Local vertex index (0-7) in @p c if found; otherwise GEO::NO_INDEX
      */
     inline GEO::index_t find_hex_vertex(
-        const GEO::Mesh& M,
+        const GEO::Mesh& mesh,
         const GEO::index_t c,
         const GEO::index_t v
         ) {
-        assert(c < M.cells.nb());
-        assert(M.cells.type(c) == GEO::MeshCellType::MESH_HEX);
+        assert(c < mesh.cells.nb());
+        assert(mesh.cells.type(c) == GEO::MeshCellType::MESH_HEX);
 
         for (GEO::index_t lv = 0; lv < 8; ++lv) {
-            if (M.cells.vertex(c, lv) == v)
+            if (mesh.cells.vertex(c, lv) == v)
                 return lv;
         }
         return GEO::NO_INDEX;
@@ -76,25 +76,25 @@ namespace geolio
      *          it scans the cell vertices for @p v0, checks each of its adjacent local vertices
      *          for @p v1, and delegates to find_hex_edge_from_local_vertices(). Edge direction is
      *          ignored.
-     * @param[in] M    The hexahedral mesh to query
+     * @param[in] mesh    The hexahedral mesh to query
      * @param[in] c    Index of the hexahedral cell to search
      * @param[in] v0  Global vertex index of one endpoint
      * @param[in] v1  Global vertex index of the other endpoint
      * @return Local edge index (0-11) in @p c if found; otherwise GEO::NO_INDEX
      */
     inline GEO::index_t find_hex_edge(
-        const GEO::Mesh& M,
+        const GEO::Mesh& mesh,
         const GEO::index_t c,
         const GEO::index_t v0,
         const GEO::index_t v1
         ) {
-        assert(c < M.cells.nb());
-        assert(M.cells.type(c) == GEO::MeshCellType::MESH_HEX);
+        assert(c < mesh.cells.nb());
+        assert(mesh.cells.type(c) == GEO::MeshCellType::MESH_HEX);
 
         for (GEO::index_t lv = 0; lv < 8; ++lv) {
-            if (M.cells.vertex(c, lv) == v0) {
+            if (mesh.cells.vertex(c, lv) == v0) {
                 for (const auto& adj_lv : HEX_LV_ADJACENT_LV[lv]) {
-                    if (M.cells.vertex(c, adj_lv) == v1)
+                    if (mesh.cells.vertex(c, adj_lv) == v1)
                         return find_hex_edge_from_local_vertices(lv, adj_lv);
                 }
                 break;
@@ -182,7 +182,7 @@ namespace geolio
      *          vertex to its local slot in cell @p c via find_hex_vertex() and then delegates to
      *          find_hex_facet_from_local_vertices(). If any vertex is absent from @p c, it returns
      *          GEO::NO_INDEX.
-     * @param[in] M   The hexahedral mesh to query
+     * @param[in] mesh   The hexahedral mesh to query
      * @param[in] c   Index of the hexahedral cell to search
      * @param[in] v0  Global vertex index on the target facet
      * @param[in] v1  Global vertex index on the target facet
@@ -190,21 +190,21 @@ namespace geolio
      * @return Local facet index (0-5) in @p c if found; otherwise GEO::NO_INDEX
      */
     inline GEO::index_t find_hex_facet(
-        const GEO::Mesh& M,
+        const GEO::Mesh& mesh,
         const GEO::index_t c,
         const GEO::index_t v0,
         const GEO::index_t v1,
         const GEO::index_t v2
         ) {
-        assert(c < M.cells.nb());
-        assert(M.cells.type(c) == GEO::MeshCellType::MESH_HEX);
-        assert(v0 < M.vertices.nb());
-        assert(v1 < M.vertices.nb());
-        assert(v2 < M.vertices.nb());
+        assert(c < mesh.cells.nb());
+        assert(mesh.cells.type(c) == GEO::MeshCellType::MESH_HEX);
+        assert(v0 < mesh.vertices.nb());
+        assert(v1 < mesh.vertices.nb());
+        assert(v2 < mesh.vertices.nb());
 
-        const auto lv0 = find_hex_vertex(M, c, v0);
-        const auto lv1 = find_hex_vertex(M, c, v1);
-        const auto lv2 = find_hex_vertex(M, c, v2);
+        const auto lv0 = find_hex_vertex(mesh, c, v0);
+        const auto lv1 = find_hex_vertex(mesh, c, v1);
+        const auto lv2 = find_hex_vertex(mesh, c, v2);
         if (lv0 == GEO::NO_INDEX || lv1 == GEO::NO_INDEX || lv2 == GEO::NO_INDEX)
             return GEO::NO_INDEX;
         return find_hex_facet_from_local_vertices(lv0, lv1, lv2);

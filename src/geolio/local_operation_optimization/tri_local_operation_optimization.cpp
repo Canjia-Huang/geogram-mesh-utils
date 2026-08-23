@@ -26,35 +26,15 @@ namespace geolio
 {
     template <GEO::index_t DIM>
     TriLocalOperationOptimization<DIM>::TriLocalOperationOptimization(
-        GEO::Mesh& mesh,
-        GEO::Attribute<GEO::index_t>* mesh_v_original_idx,
-        GEO::Attribute<GEO::index_t>* mesh_f_original_idx
+        GEO::Mesh& mesh
         ) : mesh_(mesh),
-            manager_(mesh),
-            mesh_v_original_idx_(mesh_v_original_idx),
-            mesh_f_original_idx_(mesh_f_original_idx)
+            manager_(mesh)
     {
         assert(mesh_.vertices.nb() > 0);
         assert(mesh_.facets.nb() > 0);
 
         label_boundary_vertices();
         label_non_manifold_vertices();
-
-        /* Init original idx attributes */
-        if (mesh_v_original_idx_ != nullptr) {
-            assert(mesh_v_original_idx_->is_bound());
-            assert(mesh_v_original_idx_->size() == mesh_.vertices.nb());
-            for (const auto& v : mesh_.vertices)
-                (*mesh_v_original_idx_)[v] = v;
-            (*mesh_v_original_idx_)[0] = FIRST_ELEMENT_IDX;
-        }
-        if (mesh_f_original_idx_ != nullptr) {
-            assert(mesh_f_original_idx_->is_bound());
-            assert(mesh_f_original_idx_->size() == mesh_.facets.nb());
-            for (const auto& f : mesh_.facets)
-                (*mesh_f_original_idx_)[f] = f;
-            (*mesh_f_original_idx_)[0] = FIRST_ELEMENT_IDX;
-        }
     }
 
     template <GEO::index_t DIM>
@@ -102,26 +82,6 @@ namespace geolio
         /* Make output mesh valid */
         manager_.clean_unused_elements(true);
         LOG::DEBUG("result mesh #V: {}, #F: {}", mesh_.vertices.nb(), mesh_.facets.nb());
-
-        /* Refactor original idx (if exist) */
-        if (mesh_v_original_idx_ != nullptr) {
-            for (const auto& v : mesh_.vertices) {
-                if (auto& idx = (*mesh_v_original_idx_)[v];
-                    idx == 0) // default, newly vertices
-                    idx = GEO::NO_INDEX;
-                else if (idx == FIRST_ELEMENT_IDX) // the idx of the first vertex of the original mesh
-                    idx = 0;
-            }
-        }
-        if (mesh_f_original_idx_ != nullptr) {
-            for (const auto& f : mesh_.facets) {
-                if (auto& idx = (*mesh_f_original_idx_)[f];
-                    idx == 0) // default, newly vertices
-                    idx = GEO::NO_INDEX;
-                else if (idx == FIRST_ELEMENT_IDX) // the idx of the first vertex of the original mesh
-                    idx = 0;
-            }
-        }
     }
 
     template <GEO::index_t DIM>
@@ -132,7 +92,10 @@ namespace geolio
         /* Fix edges */
         for (const auto& f : mesh_.facets) {
             for (GEO::index_t lv = 0; lv < 3; ++lv) {
-                if (manager_.mesh_fc_fixed[mesh_.facets.corner(f, lv)])
+                if (const std::pair<GEO::index_t, GEO::index_t> edge = std::minmax(
+                        mesh_.facets.vertex(f, lv),
+                        mesh_.facets.vertex(f, (lv+1)%3));
+                    manager_.fixed_edges_.contains(edge))
                     continue;
 
                 if (mesh_.facets.adjacent(f, lv) == GEO::NO_FACET)
@@ -161,7 +124,10 @@ namespace geolio
         /* Fix edges */
         for (const auto& f : mesh_.facets) {
             for (GEO::index_t lv = 0; lv < 3; ++lv) {
-                if (manager_.mesh_fc_fixed[mesh_.facets.corner(f, lv)])
+                if (const std::pair<GEO::index_t, GEO::index_t> edge = std::minmax(
+                        mesh_.facets.vertex(f, lv),
+                        mesh_.facets.vertex(f, (lv+1)%3));
+                    manager_.fixed_edges_.contains(edge))
                     continue;
 
                 if (const auto& nf = mesh_.facets.adjacent(f, lv);
@@ -198,14 +164,18 @@ namespace geolio
         std::vector<GEO::index_t> non_manifold_vertices;
         const auto NON_MANIFOLD_VERTICES_NB = detect_non_manifold_vertices(mesh_, non_manifold_vertices);
 
+        bool detect_non_manifold_vertices = false;
         manager_.mesh_v_non_manifold.fill(false);
         for (const auto& v : non_manifold_vertices) {
             manager_.mesh_v_non_manifold[v] = true;
             fix_vertex(v); // fix it, prevent errors in collapse operations involving this vertex.
+
+            detect_non_manifold_vertices = true;
         }
 
-        LOG::WARN("Detected {} non-manifold vertices in the input mesh; "
-                  "they have been fixed to prevent unexpected errors.", NON_MANIFOLD_VERTICES_NB);
+        if (detect_non_manifold_vertices)
+            LOG::WARN("Detected {} non-manifold vertices in the input mesh; "
+                      "they have been fixed to prevent unexpected errors.", NON_MANIFOLD_VERTICES_NB);
     }
 
     template <GEO::index_t DIM>
@@ -217,10 +187,11 @@ namespace geolio
 
         for (const auto& f : mesh_.facets) {
             for (GEO::index_t lv = 0; lv < 3; ++lv) {
-                if (manager_.mesh_fc_fixed[mesh_.facets.corner(f, lv)]) {
-                    const auto& ev0 = mesh_.facets.vertex(f, lv);
-                    const auto& ev1 = mesh_.facets.vertex(f, (lv+1)%3);
+                const auto& ev0 = mesh_.facets.vertex(f, lv);
+                const auto& ev1 = mesh_.facets.vertex(f, (lv+1)%3);
 
+                if (const std::pair<GEO::index_t, GEO::index_t> edge = std::minmax(ev0, ev1);
+                    manager_.fixed_edges_.contains(edge)) {
                     if (auto& [adj_v0, adj_v1] = mesh_v_adjacent_v[ev0];
                         adj_v0 == GEO::NO_VERTEX)
                         adj_v0 = ev1;
@@ -261,6 +232,12 @@ namespace geolio
                 }
             }
         }
+    }
+
+    template <GEO::index_t DIM>
+    double TriLocalOperationOptimization<DIM>::compute_average_edge_length(
+        ) {
+        return manager_.compute_average_mesh_edge_length();
     }
 
     template class TriLocalOperationOptimization<2>;

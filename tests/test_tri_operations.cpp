@@ -11,7 +11,7 @@
 #include <gtest/gtest.h>
 #include "utils.h"
 #include <geolio/mesh/tri_operations.h>
-#include <geolio//common/log.h>
+#include <geolio/common/log.h>
 
 namespace geolio::test
 {
@@ -74,6 +74,61 @@ namespace geolio::test
         GEO::Mesh original_mesh;
     };
 
+    class TriOperationsSimpleTest : public ::testing::Test {
+    protected:
+        void SetUp() override {
+            mesh_f_idx.bind(mesh.facets.attributes(), "idx");
+            mesh_fc_idx.bind(mesh.facet_corners.attributes(), "idx");
+        }
+
+        void create_mesh(
+            const std::vector<GEO::vec3>& vertices,
+            const std::vector<GEO::index_t>& facets
+            ) {
+            mesh.vertices.create_vertices(vertices.size());
+            for (const auto& v : mesh.vertices)
+                mesh.vertices.point(v) = vertices[v];
+
+            mesh.facets.create_triangles(facets.size()/3);
+            for (const auto& f : mesh.facets) {
+                for (GEO::index_t lv = 0; lv < 3; ++lv)
+                    mesh.facets.set_vertex(f, lv, facets[3*f+lv]);
+            }
+            mesh.facets.connect();
+
+            create_attributes();
+        }
+
+        void random_attributes(
+            const GEO::index_t f
+            ) {
+            mesh_f_idx[f] = GEO::Numeric::random_int32();
+            for (GEO::index_t i = 0; i < 3; ++i)
+                mesh_fc_idx[mesh.facets.corner(f, i)] = GEO::Numeric::random_int32();
+        }
+
+        GEO::Mesh mesh;
+        GEO::Attribute<GEO::index_t> mesh_f_idx;
+        GEO::Attribute<GEO::index_t> mesh_fc_idx;
+        GEO::vector<GEO::index_t> mesh_f_original_idx;
+        GEO::vector<GEO::index_t> mesh_fc_original_idx;
+
+        const GEO::index_t DEFAULT_IDX = 0;
+
+    private:
+        void create_attributes(
+            ) {
+            auto& mesh_f_idx_vector = mesh_f_idx.get_vector();
+            std::iota(mesh_f_idx_vector.begin(), mesh_f_idx_vector.end(), 1);
+
+            auto& mesh_fc_idx_vector = mesh_fc_idx.get_vector();
+            std::iota(mesh_fc_idx_vector.begin(), mesh_fc_idx_vector.end(), 1);
+
+            mesh_f_original_idx = mesh_f_idx.get_vector();
+            mesh_fc_original_idx = mesh_fc_idx.get_vector();
+        }
+    };
+
     /* ============================================================================================================= */
 
     class TriEdgeSplitTest : public TriOperationsTest {
@@ -93,7 +148,7 @@ namespace geolio::test
                 new_f0 = mesh.facets.create_triangles(2);
                 new_f1 = new_f0+1;
             }
-            tri_edge_split<3>(mesh, f, lv, new_v, new_f0, new_f1, GEO::Numeric::random_float32());
+            tri_edge_split<3>(mesh, f, lv, new_v, new_f0, new_f1);
         }
     };
 
@@ -101,67 +156,76 @@ namespace geolio::test
         for_each_f_lv();
     }
 
-    TEST_F(TriEdgeSplitTest, manage_attributes) {
-        mesh.clear();
+    class TriEdgeSplitSimpleTest : public TriOperationsSimpleTest {};
 
-        GEO::Attribute<GEO::index_t> mesh_f_idx(mesh.facets.attributes(), "idx");
-        GEO::Attribute<GEO::index_t> mesh_fc_idx(mesh.facet_corners.attributes(), "idx");
-
-        const std::array<GEO::vec3, 8> vertices = {
+    TEST_F(TriEdgeSplitSimpleTest, manage_attributes) {
+        const std::vector<GEO::vec3> vertices = {
             GEO::vec3(0, 2, 0), GEO::vec3(1, 2, 0), GEO::vec3(2, 2, 0),
             GEO::vec3(0, 1, 0), GEO::vec3(2, 1, 0),
             GEO::vec3(0, 0, 0), GEO::vec3(1, 0, 0), GEO::vec3(2, 0, 0),
         };
-        const std::array<GEO::index_t, 3*6> facets = {
+        const std::vector<GEO::index_t> facets = {
             0, 3, 1,
             1, 4, 2, 1, 3, 6, 1, 6, 4,
             3, 5, 6, 4, 6, 7
         };
-        mesh.vertices.create_vertices(vertices.size());
-        for (const auto& v : mesh.vertices)
-            mesh.vertices.point(v) = vertices[v];
-        mesh.facets.create_triangles(facets.size()/3);
-        for (const auto& f : mesh.facets) {
-            mesh_f_idx[f] = f;
-            for (GEO::index_t lv = 0; lv < 3; ++lv) {
-                mesh.facets.set_vertex(f, lv, facets[3*f+lv]);
-
-                const auto fc = mesh.facets.corner(f, lv);
-                mesh_fc_idx[fc] = fc;
-            }
-        }
-        mesh.facets.connect();
+        create_mesh(vertices, facets);
         GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
+
+        constexpr GEO::index_t f0 = 3;
+        constexpr GEO::index_t lv0 = 0;
+        const auto fv0 = mesh.facets.vertex(f0, 0);
+        const auto fv1 = mesh.facets.vertex(f0, 1);
+        const auto fv2 = mesh.facets.vertex(f0, 2);
+        const auto f1 = mesh.facets.adjacent(f0, lv0);
+        const auto nfv0 = mesh.facets.vertex(f1, 0);
+        const auto nfv1 = mesh.facets.vertex(f1, 1);
+        const auto nfv2 = mesh.facets.vertex(f1, 2);
 
         /* Split */
         const GEO::index_t new_v = mesh.vertices.create_vertices(1);
         const GEO::index_t new_f0 = mesh.facets.create_triangles(2);
         const GEO::index_t new_f1 = new_f0+1;
-        tri_edge_split<3>(mesh, 3, 0, new_v, new_f0, new_f1, 0.4);
-        EXPECT_EQ(mesh_f_idx[3], 3);
-        EXPECT_EQ(mesh_f_idx[2], 2);
-        EXPECT_EQ(mesh_f_idx[new_f0], 3);
-        EXPECT_EQ(mesh_f_idx[new_f1], 2);
-        {
-            constexpr GEO::index_t f = 3;
-            EXPECT_EQ(mesh_fc_idx[3*f+0], 3*f);
-            EXPECT_EQ(mesh_fc_idx[3*f+1], 0);
-            EXPECT_EQ(mesh_fc_idx[3*f+2], 3*f+2);
-            EXPECT_EQ(mesh_fc_idx[3*new_f0+0], 3*f);
-            EXPECT_EQ(mesh_fc_idx[3*new_f0+1], 3*f+1);
-            EXPECT_EQ(mesh_fc_idx[3*new_f0+2], 0);
-        }
-        {
-            constexpr GEO::index_t f = 2;
-            EXPECT_EQ(mesh_fc_idx[3*f+0], 3*f);
-            EXPECT_EQ(mesh_fc_idx[3*f+1], 0);
-            EXPECT_EQ(mesh_fc_idx[3*f+2], 3*f+2);
-            EXPECT_EQ(mesh_fc_idx[3*new_f1+0], 0);
-            EXPECT_EQ(mesh_fc_idx[3*new_f1+1], 3*f+1);
-            EXPECT_EQ(mesh_fc_idx[3*new_f1+2], 3*f+2);
-        }
-
+        random_attributes(new_f0);
+        random_attributes(new_f1);
+        tri_edge_split<3>(mesh, f0, lv0, new_v, new_f0, new_f1);
         GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
+
+        /* Check */
+        {
+            EXPECT_EQ(mesh_f_idx[f0],  mesh_f_original_idx[f0]);
+            EXPECT_EQ(mesh_f_idx[new_f0],   mesh_f_original_idx[f0]);
+            EXPECT_EQ(mesh_f_idx[f1], mesh_f_original_idx[f1]);
+            EXPECT_EQ(mesh_f_idx[new_f1],   mesh_f_original_idx[f1]);
+        }
+        {
+            for (const auto& f : {f0, new_f0}) {
+                for (GEO::index_t lv = 0; lv < 3; ++lv) {
+                    if (const auto& v = mesh.facets.vertex(f, lv);
+                        v == fv0)
+                        EXPECT_EQ(mesh_fc_idx[mesh.facets.corner(f, lv)], mesh_fc_original_idx[mesh.facets.corner(f0, 0)]);
+                    else if (v == fv1)
+                        EXPECT_EQ(mesh_fc_idx[mesh.facets.corner(f, lv)], mesh_fc_original_idx[mesh.facets.corner(f0, 1)]);
+                    else if (v == fv2)
+                        EXPECT_EQ(mesh_fc_idx[mesh.facets.corner(f, lv)], mesh_fc_original_idx[mesh.facets.corner(f0, 2)]);
+                    else
+                        EXPECT_EQ(mesh_fc_idx[mesh.facets.corner(f, lv)], DEFAULT_IDX);
+                }
+            }
+            for (const auto& f : {f1, new_f1}) {
+                for (GEO::index_t lv = 0; lv < 3; ++lv) {
+                    if (const auto& v = mesh.facets.vertex(f, lv);
+                        v == nfv0)
+                        EXPECT_EQ(mesh_fc_idx[mesh.facets.corner(f, lv)], mesh_fc_original_idx[mesh.facets.corner(f1, 0)]);
+                    else if (v == nfv1)
+                        EXPECT_EQ(mesh_fc_idx[mesh.facets.corner(f, lv)], mesh_fc_original_idx[mesh.facets.corner(f1, 1)]);
+                    else if (v == nfv2)
+                        EXPECT_EQ(mesh_fc_idx[mesh.facets.corner(f, lv)], mesh_fc_original_idx[mesh.facets.corner(f1, 2)]);
+                    else
+                        EXPECT_EQ(mesh_fc_idx[mesh.facets.corner(f, lv)], DEFAULT_IDX);
+                }
+            }
+        }
     }
 
     /* ============================================================================================================= */
@@ -172,15 +236,13 @@ namespace geolio::test
             const GEO::index_t f,
             const GEO::index_t lv
             ) override {
-            const double r = GEO::Numeric::random_float32();
-
             if (!is_tri_edge_collapse_valid(mesh, f, lv))
                 return;
 
             const bool EDGE_ON_BORDER = original_mesh.facets.adjacent(f, lv) == GEO::NO_FACET;
 
             GEO::index_t disuse_v, disuse_f0, disuse_f1;
-            tri_edge_collapse<3>(mesh, f, lv, disuse_v, disuse_f0, disuse_f1, r);
+            tri_edge_collapse<3>(mesh, f, lv, disuse_v, disuse_f0, disuse_f1);
 
             /* Clean disuse vertices and facets */
             GEO::vector<GEO::index_t> facets_to_delete(mesh.facets.nb(), 0);
@@ -364,56 +426,6 @@ namespace geolio::test
         for_each_f_lv();
     }
 
-    TEST_F(TriEdgeSwapTest, manage_attributes) {
-        mesh.clear();
-
-        GEO::Attribute<GEO::index_t> mesh_f_idx(mesh.facets.attributes(), "idx");
-        GEO::Attribute<GEO::index_t> mesh_fc_idx(mesh.facet_corners.attributes(), "idx");
-
-        const std::array<GEO::vec3, 8> vertices = {
-            GEO::vec3(0, 2, 0), GEO::vec3(1, 2, 0), GEO::vec3(2, 2, 0),
-            GEO::vec3(0, 1, 0), GEO::vec3(2, 1, 0),
-            GEO::vec3(0, 0, 0), GEO::vec3(1, 0, 0), GEO::vec3(2, 0, 0),
-        };
-        const std::array<GEO::index_t, 3*6> facets = {
-            0, 3, 1,
-            1, 4, 2, 1, 3, 6, 1, 6, 4,
-            3, 5, 6, 4, 6, 7
-        };
-        mesh.vertices.create_vertices(vertices.size());
-        for (const auto& v : mesh.vertices)
-            mesh.vertices.point(v) = vertices[v];
-        mesh.facets.create_triangles(facets.size()/3);
-        for (const auto& f : mesh.facets) {
-            mesh_f_idx[f] = f;
-            for (GEO::index_t lv = 0; lv < 3; ++lv) {
-                mesh.facets.set_vertex(f, lv, facets[3*f+lv]);
-
-                const auto fc = mesh.facets.corner(f, lv);
-                mesh_fc_idx[fc] = fc;
-            }
-        }
-        mesh.facets.connect();
-        GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
-
-        /* Split */
-        tri_edge_swap(mesh, 3, 0);
-        EXPECT_EQ(mesh_f_idx[3], 0);
-        EXPECT_EQ(mesh_f_idx[2], 0);
-        {
-            constexpr GEO::index_t f0 = 3;
-            constexpr GEO::index_t f1 = 2;
-            EXPECT_EQ(mesh_fc_idx[3*f0+0], 3*f1+0);
-            EXPECT_EQ(mesh_fc_idx[3*f0+1], 0);
-            EXPECT_EQ(mesh_fc_idx[3*f0+2], 3*f0+2);
-            EXPECT_EQ(mesh_fc_idx[3*f1+0], 0);
-            EXPECT_EQ(mesh_fc_idx[3*f1+1], 3*f1+1);
-            EXPECT_EQ(mesh_fc_idx[3*f1+2], 3*f0+1);
-        }
-
-        GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
-    }
-
     TEST_F(TriEdgeSwapTest, degenerate_2d) {
         const std::array<GEO::vec2, 7> vertices = {
             GEO::vec2(0, 0), GEO::vec2(1, 0), GEO::vec2(2, 0),
@@ -447,5 +459,53 @@ namespace geolio::test
         check_connections();
 
         GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
+    }
+
+    class TriEdgeSwapSimpleTest : public TriOperationsSimpleTest {};
+
+    TEST_F(TriEdgeSwapSimpleTest, manage_attributes) {
+        const std::vector<GEO::vec3> vertices = {
+            GEO::vec3(0, 2, 0), GEO::vec3(1, 2, 0), GEO::vec3(2, 2, 0),
+            GEO::vec3(0, 1, 0), GEO::vec3(2, 1, 0),
+            GEO::vec3(0, 0, 0), GEO::vec3(1, 0, 0), GEO::vec3(2, 0, 0),
+        };
+        const std::vector<GEO::index_t> facets = {
+            0, 3, 1,
+            1, 4, 2, 1, 3, 6, 1, 6, 4,
+            3, 5, 6, 4, 6, 7
+        };
+        create_mesh(vertices, facets);
+        GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
+
+        const GEO::index_t f0 = 3;
+        const GEO::index_t lv0 = 0;
+        const auto fv0 = mesh.facets.vertex(f0, lv0);
+        const auto fv = mesh.facets.vertex(f0, (lv0+2)%3);
+        const auto f1 = mesh.facets.adjacent(f0, lv0);
+        const auto nlv = (mesh.facets.find_vertex(f1, fv0)+1)%3;
+        const auto nfv = mesh.facets.vertex(f1, nlv);
+
+        /* Swap */
+        tri_edge_swap(mesh, f0, lv0);
+        GEO::mesh_save(mesh, get_current_test_name()+"_1.geogram");
+
+        /* Check */
+        {
+            EXPECT_EQ(mesh_f_idx[f0], DEFAULT_IDX);
+            EXPECT_EQ(mesh_f_idx[f1], DEFAULT_IDX);
+        }
+        {
+            for (const auto& f : {f0, f1}) {
+                for (GEO::index_t lv = 0; lv < 3; ++lv) {
+                    if (const auto& v = mesh.facets.vertex(f, lv);
+                        v == fv)
+                        EXPECT_EQ(mesh_fc_idx[mesh.facets.corner(f, lv)], mesh_fc_original_idx[mesh.facets.corner(f0, (lv0+2)%3)]);
+                    else if (v == nfv)
+                        EXPECT_EQ(mesh_fc_idx[mesh.facets.corner(f, lv)], mesh_fc_original_idx[mesh.facets.corner(f1, nlv)]);
+                    else
+                        EXPECT_EQ(mesh_fc_idx[mesh.facets.corner(f, lv)], DEFAULT_IDX);
+                }
+            }
+        }
     }
 }

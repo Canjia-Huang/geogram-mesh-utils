@@ -18,16 +18,6 @@ namespace geolio
             limit_edge_length_(limit_edge_length),
             ALLOW_SPLIT_FIXED_EDGES_(allow_split_fixed_edges)
     {
-        /* Bind attribute */
-        if (!ALLOW_SPLIT_FIXED_EDGES_) {
-            mesh_fc_locked_.bind(this->mesh_.facet_corners.attributes(), this->attribute_name_+"locked");
-            mesh_fc_locked_.fill(false);
-            for (const auto& fc : this->mesh_.facet_corners) {
-                if (this->manager_.mesh_fc_fixed[fc])
-                    mesh_fc_locked_[fc] = true;
-            }
-        }
-
         /* Init timestamping */
         this->mesh_f_timestamping_.fill(0);
 
@@ -41,11 +31,7 @@ namespace geolio
 
     template <GEO::index_t DIM>
     SplitOperation<DIM>::~SplitOperation(
-        ) {
-        /* Destroy attributes */
-        if (mesh_fc_locked_.is_bound())
-            mesh_fc_locked_.destroy();
-    }
+        ) = default;
 
     template <GEO::index_t DIM>
     bool SplitOperation<DIM>::do_once(
@@ -70,37 +56,29 @@ namespace geolio
         /* In the current triangle, if there exist a longer edge that cannot be split; splitting is prohibited,
              * otherwise it will cause an infinite loop. */
         if (!ALLOW_SPLIT_FIXED_EDGES_) {
-            assert(mesh_fc_locked_.is_bound());
+            const std::pair<GEO::index_t, GEO::index_t> cur_edge = std::minmax(
+                this->mesh_.facets.vertex(edge.f, edge.lv),
+                this->mesh_.facets.vertex(edge.f, (edge.lv+1)%3));
 
-            const auto& cur_fc = this->mesh_.facets.corner(edge.f, edge.lv);
             for (const auto llv : {(edge.lv+1)%3, (edge.lv+2)%3}) {
-                if (const auto& fc = this->mesh_.facets.corner(edge.f, llv);
-                    mesh_fc_locked_[fc] &&
-                    this->manager_.get_edge_length(edge.f, llv) > edge.length
-                    ) {
-                    mesh_fc_locked_[cur_fc] = true;
-                    break;
+                if (this->manager_.get_edge_length(edge.f, llv) > edge.length) {
+                    locked_edges_.insert(cur_edge);
+                    return true;
                 }
             }
-            if (mesh_fc_locked_[cur_fc])
-                return true;
 
             if (const auto& nf = this->mesh_.facets.adjacent(edge.f, edge.lv);
                 nf != GEO::NO_FACET) {
                 for (GEO::index_t llv = 0; llv < 3; ++llv) {
                     if (this->mesh_.facets.adjacent(nf, llv) == edge.f)
                         continue;
-                    if (const auto& fc = this->mesh_.facets.corner(nf, llv);
-                        mesh_fc_locked_[fc] &&
-                        this->manager_.get_edge_length(nf, llv) > edge.length
-                        ) {
-                        mesh_fc_locked_[cur_fc] = true;
-                        break;
+
+                    if (this->manager_.get_edge_length(nf, llv) > edge.length) {
+                        locked_edges_.insert(cur_edge);
+                        return true;
                     }
                 }
             }
-            if (mesh_fc_locked_[cur_fc])
-                return true;
         }
 
         /* Check validity */
@@ -108,10 +86,12 @@ namespace geolio
             return true;
 
         /* Split */
+        const GEO::index_t original_ev0 = this->mesh_.facets.vertex(edge.f, edge.lv);
+        const GEO::index_t original_ev1 = this->mesh_.facets.vertex(edge.f, (edge.lv+1)%3);
         GEO::index_t new_v, new_f0, new_f1;
         perform(edge.f, edge.lv, new_v, new_f0, new_f1);
 
-        post_process(edge.f, edge.lv, new_v, new_f0, new_f1);
+        post_process(edge.f, edge.lv, new_v, original_ev0, original_ev1);
 
         assert(this->post_check());
 
@@ -173,8 +153,13 @@ namespace geolio
             return false;
 
         if (!ALLOW_SPLIT_FIXED_EDGES_) {
-            if (const auto& fc = this->mesh_.facets.corner(f, lv);
-                this->manager_.mesh_fc_fixed[fc]) // Splitting fixed edges is not allowed.
+            const std::pair<GEO::index_t, GEO::index_t> edge = std::minmax(
+                this->mesh_.facets.vertex(f, lv),
+                this->mesh_.facets.vertex(f, (lv+1)%3));
+
+            if (this->manager_.fixed_edges_.contains(edge)) // Splitting fixed edges is not allowed.
+                return false;
+            if (locked_edges_.contains(edge))
                 return false;
         }
 
@@ -210,19 +195,30 @@ namespace geolio
         const GEO::index_t f,
         const GEO::index_t lv,
         const GEO::index_t new_v,
-        const GEO::index_t new_f0,
-        const GEO::index_t new_f1
-        ) const {
+        const GEO::index_t original_ev0,
+        const GEO::index_t original_ev1
+        ) {
         assert(f < this->mesh_.facets.nb());
         assert(lv < 3);
         assert(new_v < this->mesh_.vertices.nb());
-        assert(new_f0 < this->mesh_.facets.nb());
 
         const auto nf = this->mesh_.facets.adjacent(f, lv);
         const bool EDGE_ON_BOUNDARY = (nf == GEO::NO_FACET);
 
         if (EDGE_ON_BOUNDARY) // Split edge inherits boundary attribute.
             this->manager_.mesh_v_boundary[new_v] = true;
+
+        /* Update fixed edges */
+        if (ALLOW_SPLIT_FIXED_EDGES_) {
+            if (const std::pair<GEO::index_t, GEO::index_t> edge = std::minmax(original_ev0, original_ev1);
+                this->manager_.fixed_edges_.erase(edge)
+                ) {
+                const std::pair<GEO::index_t, GEO::index_t> edge0 = std::minmax(original_ev0, new_v);
+                const std::pair<GEO::index_t, GEO::index_t> edge1 = std::minmax(original_ev1, new_v);
+                this->manager_.fixed_edges_.insert(edge0);
+                this->manager_.fixed_edges_.insert(edge1);
+            }
+        }
     }
 
     template class SplitOperation<2>;

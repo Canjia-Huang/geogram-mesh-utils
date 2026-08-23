@@ -7,8 +7,6 @@
 
 #include <geolio/common/utils.h>
 #include <geolio/common/parse_filepath.h>
-#include <geogram_gfx/imgui_ext/imgui_ext.h>
-#include <geogram_gfx/third_party/imgui/imgui.h>
 
 namespace geolio::geobox
 {

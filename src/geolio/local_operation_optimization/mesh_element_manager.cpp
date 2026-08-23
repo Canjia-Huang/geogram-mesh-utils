@@ -27,8 +27,6 @@ namespace geolio
         mesh_v_used.fill(true);
         mesh_f_used.bind(mesh.facets.attributes(), attribute_name_+":used");
         mesh_f_used.fill(true);
-        mesh_fc_fixed.bind(mesh.facet_corners.attributes(), attribute_name_+":fixed");
-        mesh_fc_fixed.fill(false);
     }
 
     template <GEO::index_t DIM>
@@ -45,8 +43,6 @@ namespace geolio
             mesh_v_used.destroy();
         if (mesh_f_used.is_bound())
             mesh_f_used.destroy();
-        if (mesh_fc_fixed.is_bound())
-            mesh_fc_fixed.destroy();
     }
 
     template <GEO::index_t DIM>
