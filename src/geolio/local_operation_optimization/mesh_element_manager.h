@@ -9,7 +9,9 @@
 #include <geolio/common/utils.h>
 #include <cassert>
 #include <string>
+#include <unordered_set>
 #include <vector>
+#include "geolio/common/pair_hash.h"
 
 namespace geolio
 {
@@ -148,7 +150,7 @@ namespace geolio
         GEO::Attribute<bool> mesh_v_non_manifold; // v -> non manifold
         GEO::Attribute<bool> mesh_v_used; // v -> used
         GEO::Attribute<bool> mesh_f_used; // f -> used
-        GEO::Attribute<bool> mesh_fc_fixed; // fc (edge) -> fixed
+        std::unordered_set<std::pair<GEO::index_t, GEO::index_t>, PairHash> fixed_edges_;
 
     private:
         /**

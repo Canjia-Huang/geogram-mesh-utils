@@ -117,14 +117,10 @@ namespace geolio
             ) {
             assert(f < mesh_.facets.nb());
             assert(lv < 3);
-            manager_.mesh_fc_fixed[mesh_.facets.corner(f, lv)] = true;
-            if (const auto nf = mesh_.facets.adjacent(f, lv);
-                nf != GEO::NO_FACET) {
-                const auto v = mesh_.facets.vertex(f, lv);
-                const auto nlv = mesh_.facets.find_vertex(nf, v);
-                assert(nlv != GEO::NO_INDEX);
-                manager_.mesh_fc_fixed[mesh_.facets.corner(nf, (nlv+2)%3)] = true;
-            }
+            const std::pair<GEO::index_t, GEO::index_t> edge = std::minmax(
+                mesh_.facets.vertex(f, lv),
+                mesh_.facets.vertex(f, (lv+1)%3));
+            manager_.fixed_edges_.insert(edge);
         }
 
         /**

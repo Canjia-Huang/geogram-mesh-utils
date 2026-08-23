@@ -44,11 +44,11 @@ namespace geolio
 
             for (const auto& f : this->mesh_.facets) {
                 for (GEO::index_t lv = 0; lv < 3; ++lv) {
-                    if (const auto& fc = this->mesh_.facets.corner(f, lv);
-                        this->manager_.mesh_fc_fixed[fc]
+                    const auto& ev0 = this->mesh_.facets.vertex(f, lv);
+                    const auto& ev1 = this->mesh_.facets.vertex(f, (lv+1)%3);
+                    if (const std::pair<GEO::index_t, GEO::index_t> edge = std::minmax(ev0, ev1);
+                        this->manager_.fixed_edges_.contains(edge)
                         ) {
-                        const auto& ev0 = this->mesh_.facets.vertex(f, lv);
-                        const auto& ev1 = this->mesh_.facets.vertex(f, (lv+1)%3);
                         {
                             if (auto& [adj_v0, adj_v1] = mesh_fixed_edge_v_adjacent_v[ev0];
                                 adj_v0 == GEO::NO_VERTEX)
@@ -81,11 +81,11 @@ namespace geolio
             mesh_v_on_fixed_edges_.assign(this->mesh_.vertices.nb(), false);
             for (const auto& f : this->mesh_.facets) {
                 for (GEO::index_t lv = 0; lv < 3; ++lv) {
-                    if (const auto& fc = this->mesh_.facets.corner(f, lv);
-                        this->manager_.mesh_fc_fixed[fc]
+                    const auto& ev0 = this->mesh_.facets.vertex(f, lv);
+                    const auto& ev1 = this->mesh_.facets.vertex(f, (lv+1)%3);
+                    if (const std::pair<GEO::index_t, GEO::index_t> edge = std::minmax(ev0, ev1);
+                        this->manager_.fixed_edges_.contains(edge)
                         ) {
-                        const auto& ev0 = this->mesh_.facets.vertex(f, lv);
-                        const auto& ev1 = this->mesh_.facets.vertex(f, (lv+1)%3);
                         mesh_v_on_fixed_edges_[ev0] = true;
                         mesh_v_on_fixed_edges_[ev1] = true;
                     }
