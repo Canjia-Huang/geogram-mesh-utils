@@ -818,6 +818,7 @@ namespace geolio::geobox
             set_region_of_interest(
                 xyzmin[0], xyzmin[1], xyzmin[2],
                 xyzmax[0], xyzmax[1], xyzmax[2]);
+            LOG::DEBUG("focus: {}, {}, {}, {}, {}, {}", xyzmin[0], xyzmin[1], xyzmin[2], xyzmax[0], xyzmax[1], xyzmax[2]);
         }
         else {
             double xyzmin[3];
@@ -826,6 +827,7 @@ namespace geolio::geobox
             set_region_of_interest(
                 xyzmin[0], xyzmin[1], xyzmin[2],
                 xyzmax[0], xyzmax[1], xyzmax[2]);
+            LOG::DEBUG("focus: {}, {}, {}, {}, {}, {}", xyzmin[0], xyzmin[1], xyzmin[2], xyzmax[0], xyzmax[1], xyzmax[2]);
         }
 
         scene_dirty_ = true;
