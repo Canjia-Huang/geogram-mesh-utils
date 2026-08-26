@@ -38,13 +38,13 @@ namespace geolio
                     const std::string drawing_name = in.field(1);
 
                     GEO::index_t nodes_nb = 0, elements_nb = 0;
+                    std::vector<double> vertices; // x, y, z
                     std::vector<GEO::index_t> triangles; // 3*cells_nb
                     std::vector<GEO::index_t> tetrahedra; // 4*cells_nb
                     while (!in.eof()) {
                         in.get_line();
 
-                        if (in.current_line()[0] == '$') {
-                            LOG::DEBUG("1, {}", in.current_line());
+                        if (in.current_line()[0] == '$') { // end
                             in.get_fields();
                             if (in.nb_fields() != 2)
                                 throw std::runtime_error("Line "+std::to_string(in.line_number())+" :Expect `$end drawing_name`!");
@@ -67,38 +67,66 @@ namespace geolio
                             GEO::index_t pos = 2;
                             for (GEO::index_t i = 0; i < elements_nb; ++i) {
                                 pos += 4;
-                                if (const GEO::index_t nb = in.field_as_uint(pos++);
-                                    nb == 6
-                                ) { // 2-order triangle
+
+                                const GEO::index_t nb = in.field_as_uint(pos++);
+                                if (nb == 6) { // 2-order triangle
                                     /* Convert to linear triangle */
-                                    triangles.push_back(in.field_as_uint(pos));
-                                    triangles.push_back(in.field_as_uint(pos+2));
-                                    triangles.push_back(in.field_as_uint(pos+5));
-                                    pos += 6;
+                                    triangles.push_back(in.field_as_uint(pos)-1);
+                                    triangles.push_back(in.field_as_uint(pos+2)-1);
+                                    triangles.push_back(in.field_as_uint(pos+5)-1);
                                 }
                                 else if (nb == 10) { // 2-order tetrahedron
                                     /* Convert to linear tetrahedron */
-                                    tetrahedra.push_back(in.field_as_uint(pos));
-                                    tetrahedra.push_back(in.field_as_uint(pos+2));
-                                    tetrahedra.push_back(in.field_as_uint(pos+5));
-                                    tetrahedra.push_back(in.field_as_uint(pos+9));
-                                    pos += 10;
+                                    tetrahedra.push_back(in.field_as_uint(pos)-1);
+                                    tetrahedra.push_back(in.field_as_uint(pos+2)-1);
+                                    tetrahedra.push_back(in.field_as_uint(pos+5)-1);
+                                    tetrahedra.push_back(in.field_as_uint(pos+9)-1);
                                 }
                                 else
                                     throw std::runtime_error("Line "+std::to_string(in.line_number())+" :Unknown element type!");
-                            }
 
-                            LOG::DEBUG("load {}, {} cells", triangles.size()/3, tetrahedra.size()/4);
+                                pos += nb;
+                            }
                         }
                         else if (kw == "Nodes") {
                             in.get_fields(",");
 
-                            M.vertices.create_vertices(nodes_nb);
-                            for (GEO::index_t v = 0; v < nodes_nb; ++v) {
-                                M.vertices.point(v).x = in.field_as_double(3*v);
-                                M.vertices.point(v).y = in.field_as_double(3*v+1);
-                                M.vertices.point(v).z = in.field_as_double(3*v+2);
-                            }
+                            vertices.reserve(in.nb_fields());
+                            for (GEO::index_t i = 0, i_end = in.nb_fields(); i < i_end; ++i)
+                                vertices.push_back(in.field_as_double(i));
+
+                            if (vertices.size() != 3*nodes_nb)
+                                throw std::runtime_error("Line "+std::to_string(in.line_number())+" Error nodes nb!");
+                        }
+                    }
+
+                    /* Build mesh elements */
+                    const GEO::index_t new_v = M.vertices.nb();
+                    if (!vertices.empty()) {
+                        const GEO::index_t vertices_nb = vertices.size()/3;
+                        M.vertices.create_vertices(vertices_nb);
+                        for (GEO::index_t v = 0; v < vertices_nb; ++v) {
+                            M.vertices.point(new_v+v).x = vertices[3*v];
+                            M.vertices.point(new_v+v).y = vertices[3*v+1];
+                            M.vertices.point(new_v+v).z = vertices[3*v+2];
+                        }
+                    }
+                    if (!triangles.empty()) {
+                        const GEO::index_t triangles_nb = triangles.size()/3;
+                        GEO::index_t new_f = M.facets.create_triangles(triangles_nb);
+                        for (GEO::index_t f = 0; f < triangles_nb; ++f) {
+                            for (GEO::index_t lv = 0; lv < 3; ++lv)
+                                M.facets.set_vertex(new_f, lv, new_v+triangles[3*f+lv]);
+                            ++new_f;
+                        }
+                    }
+                    if (!tetrahedra.empty()) {
+                        const GEO::index_t tetrahedra_nb = tetrahedra.size()/4;
+                        GEO::index_t new_c = M.cells.create_tets(tetrahedra_nb);
+                        for (GEO::index_t c = 0; c < tetrahedra_nb; ++c) {
+                            for (GEO::index_t lv = 0; lv < 4; ++lv)
+                                M.cells.set_vertex(new_c, lv, new_v+tetrahedra[4*c+lv]);
+                            ++new_c;
                         }
                     }
                 }
