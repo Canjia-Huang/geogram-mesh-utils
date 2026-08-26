@@ -126,24 +126,63 @@ namespace geolio
 
 #endif
 
-    std::string LineInput::consume_until(const std::string& token) {
+    namespace {
+        // Returns the closing delimiter matching the given opening
+        // delimiter token, or '\0' if the token has no bracket pair.
+        char closing_delimiter(const std::string& token) {
+            if(token == "(") {
+                return ')';
+            }
+            if(token == "[") {
+                return ']';
+            }
+            if(token == "{") {
+                return '}';
+            }
+            return '\0';
+        }
+
+        // Removes leading and trailing whitespace.
+        void trim(std::string& s) {
+            constexpr const char* whitespace = " \t\r\n\f\v";
+            const size_t first = s.find_first_not_of(whitespace);
+            if(first == std::string::npos) {
+                s.clear();
+                return;
+            }
+            const size_t last = s.find_last_not_of(whitespace);
+            s = s.substr(first, last - first + 1);
+        }
+    }
+
+    std::string LineInput::get_bracket_keyword(const std::string& token) {
         if(token.empty()) {
             std::ostringstream out;
             out << "Line " << line_num_
-                << ": consume_until() called with an empty token";
+                << ": get_bracket_keyword() called with an empty token";
             throw std::logic_error(out.str());
         }
         const size_t pos = line_.find(token);
-        if(pos == std::string::npos) {
-            std::ostringstream out;
-            out << "Line " << line_num_
-                << ": token \"" << token
-                << "\" not found in current line";
-            throw std::logic_error(out.str());
+        if(pos == std::string::npos)
+            return "";
+
+        // Keyword: the (trimmed) part before the opening delimiter.
+        std::string keyword = line_.substr(0, pos);
+        trim(keyword);
+        // New line: the content between the token and its matching
+        // closing delimiter, or the rest of the line if the closing
+        // delimiter is missing.
+        const size_t begin = pos + token.size();
+        size_t end = line_.size();
+        const char closing = closing_delimiter(token);
+        if(closing != '\0') {
+            const size_t close_pos = line_.find(closing, begin);
+            if(close_pos != std::string::npos) {
+                end = close_pos;
+            }
         }
-        std::string result = line_.substr(0, pos);
-        line_.erase(0, pos + token.size());
-        return result;
+        line_ = line_.substr(begin, end - begin);
+        return keyword;
     }
 
     void LineInput::conversion_error(const GEO::index_t index, const char* type) const {

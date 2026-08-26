@@ -20,11 +20,13 @@
  *   bogus extra line by the following get_line() call. In this version
  *   the line buffer is a dynamically growing std::string (see read_line()),
  *   so lines of arbitrary length are read completely.
- * - consume_until() was added: it extracts and removes from the current
- *   line everything before a given token (included), returning the
- *   extracted part, e.g. consume_until("(") on "Elements(223852, ..."
- *   returns "Elements" and leaves "223852, ...". It throws
- *   std::logic_error when the token is empty or not found in the line.
+ * - get_bracket_keyword() was added: it consumes a keyword(...)
+ *   construct at the start of the current line, e.g.
+ *   get_bracket_keyword("(") on "Elements(223852, ...)" returns the
+ *   whitespace-trimmed keyword "Elements" and keeps the content inside
+ *   the parentheses ("223852, ...") as the new line. It throws
+ *   std::logic_error when the token is empty, and returns an empty
+ *   string when the token is not found in the line.
  */
 namespace geolio
 {
@@ -224,24 +226,28 @@ namespace geolio
     void get_fields(const char* separators = " \t\r\n");
 
     /**
-     * \brief Consumes the current line up to a given token.
-     * \details Extracts and removes from the current line everything
-     * before the first occurrence of \p token, including \p token
-     * itself, and returns the extracted part.
-     * \param[in] token the delimiter string to stop before
-     * \return the part of the line that was before \p token
-     * \exception std::logic_error if \p token is empty or if it is
-     * not present in the current line
+     * \brief Gets the keyword of a keyword(...) construct at the start
+     * of the current line.
+     * \details Extracts the keyword before the first occurrence of
+     * \p token (typically '('), removes it from the current line
+     * together with the token, and keeps the content between the token
+     * and its matching closing delimiter (typically ')') as the new
+     * current line. The returned keyword is trimmed of leading and
+     * trailing whitespace.
+     * \param[in] token the opening delimiter, e.g. "("
+     * \return the trimmed keyword that was before \p token, or an empty
+     * string if \p token is not present in the current line
+     * \exception std::logic_error if \p token is empty
      * \note This function modifies the current line, so any field
      * pointer previously returned by field() is invalidated. It is
      * meant to be used on the raw line, before calling get_fields().
      * \code
      * // line_ == "Elements(223852, 110460, 4, 3)"
-     * std::string kw = in.consume_until("(");
-     * // kw == "Elements" and line_ == "223852, 110460, 4, 3)"
+     * std::string kw = in.get_bracket_keyword("(");
+     * // kw == "Elements" and line_ == "223852, 110460, 4, 3"
      * \endcode
      */
-    [[nodiscard]] std::string consume_until(const std::string& token);
+    [[nodiscard]] std::string get_bracket_keyword(const std::string& token);
 
     /**
      * \brief Gets the current line.
