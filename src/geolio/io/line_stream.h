@@ -14,12 +14,17 @@
  * This file is based on <geogram/basic/line_stream.h>
  *
  * \note Modification vs. the original geogram implementation:
- * the original class stored the current line in a fixed size buffer
- * (char line_[MAX_LINE_LEN], 65535 bytes), so lines longer than that
- * were truncated and the leftover part of the line was returned as a
- * bogus extra line by the following get_line() call. In this version
- * the line buffer is a dynamically growing std::string (see read_line()),
- * so lines of arbitrary length are read completely.
+ * - The original class stored the current line in a fixed size buffer
+ *   (char line_[MAX_LINE_LEN], 65535 bytes), so lines longer than that
+ *   were truncated and the leftover part of the line was returned as a
+ *   bogus extra line by the following get_line() call. In this version
+ *   the line buffer is a dynamically growing std::string (see read_line()),
+ *   so lines of arbitrary length are read completely.
+ * - consume_until() was added: it extracts and removes from the current
+ *   line everything before a given token (included), returning the
+ *   extracted part, e.g. consume_until("(") on "Elements(223852, ..."
+ *   returns "Elements" and leaves "223852, ...". It throws
+ *   std::logic_error when the token is empty or not found in the line.
  */
 namespace geolio
 {
@@ -217,6 +222,26 @@ namespace geolio
      * \see field()
      */
     void get_fields(const char* separators = " \t\r\n");
+
+    /**
+     * \brief Consumes the current line up to a given token.
+     * \details Extracts and removes from the current line everything
+     * before the first occurrence of \p token, including \p token
+     * itself, and returns the extracted part.
+     * \param[in] token the delimiter string to stop before
+     * \return the part of the line that was before \p token
+     * \exception std::logic_error if \p token is empty or if it is
+     * not present in the current line
+     * \note This function modifies the current line, so any field
+     * pointer previously returned by field() is invalidated. It is
+     * meant to be used on the raw line, before calling get_fields().
+     * \code
+     * // line_ == "Elements(223852, 110460, 4, 3)"
+     * std::string kw = in.consume_until("(");
+     * // kw == "Elements" and line_ == "223852, 110460, 4, 3)"
+     * \endcode
+     */
+    [[nodiscard]] std::string consume_until(const std::string& token);
 
     /**
      * \brief Gets the current line.

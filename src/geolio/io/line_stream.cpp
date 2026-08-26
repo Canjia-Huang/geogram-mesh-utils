@@ -126,6 +126,26 @@ namespace geolio
 
 #endif
 
+    std::string LineInput::consume_until(const std::string& token) {
+        if(token.empty()) {
+            std::ostringstream out;
+            out << "Line " << line_num_
+                << ": consume_until() called with an empty token";
+            throw std::logic_error(out.str());
+        }
+        const size_t pos = line_.find(token);
+        if(pos == std::string::npos) {
+            std::ostringstream out;
+            out << "Line " << line_num_
+                << ": token \"" << token
+                << "\" not found in current line";
+            throw std::logic_error(out.str());
+        }
+        std::string result = line_.substr(0, pos);
+        line_.erase(0, pos + token.size());
+        return result;
+    }
+
     void LineInput::conversion_error(const GEO::index_t index, const char* type) const {
         std::ostringstream out;
         out << "Line " << line_num_
