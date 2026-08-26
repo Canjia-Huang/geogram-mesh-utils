@@ -36,7 +36,6 @@ namespace geolio
                     if (in.nb_fields() != 2)
                         throw("Line "+std::to_string(in.line_number())+" :Expect drawing name!");
                     const std::string drawing_name = in.field(1);
-                    LOG::INFO("{}", drawing_name);
 
                     /* IsUniformMesh */
                     in.get_line();
@@ -56,10 +55,13 @@ namespace geolio
                     /* End */
                     in.get_line();
                     in.get_fields();
-                    if (in.nb_fields() != 2 ||
-                        in.field(0) != "$end" ||
-                        in.field(1) != drawing_name)
+                    if (in.nb_fields() != 2)
                         throw("Line "+std::to_string(in.line_number())+" :Expect `$end drawing_name`!");
+                    if (const std::string kw = in.field(0);
+                        kw != "$end")
+                        throw("Line "+std::to_string(in.line_number())+" :Expect `$end`!");
+                    if (in.field(1) != drawing_name)
+                        throw("Line "+std::to_string(in.line_number())+" The names of begin and end are different!!");
                 }
             }
         }

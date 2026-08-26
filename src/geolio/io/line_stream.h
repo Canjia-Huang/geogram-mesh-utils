@@ -6,11 +6,20 @@
 #define GEOLIO_LINE_STREAM_H
 
 #include <string>
+#include <vector>
 #include <geogram/basic/numeric.h>
 #include <geogram/basic/string.h>
 
 /**
  * This file is based on <geogram/basic/line_stream.h>
+ *
+ * \note Modification vs. the original geogram implementation:
+ * the original class stored the current line in a fixed size buffer
+ * (char line_[MAX_LINE_LEN], 65535 bytes), so lines longer than that
+ * were truncated and the leftover part of the line was returned as a
+ * bogus extra line by the following get_line() call. In this version
+ * the line buffer is a dynamically growing std::string (see read_line()),
+ * so lines of arbitrary length are read completely.
  */
 namespace geolio
 {
@@ -217,10 +226,22 @@ namespace geolio
      *  the current line
      */
     [[nodiscard]] const char* current_line() const {
-        return line_;
+        return line_.c_str();
     }
 
     private:
+    /**
+     * \brief Reads a full line of arbitrary length from the input file.
+     * \details Reads characters until the end of the line or the end of the
+     * file, growing \p out as needed, so lines longer than any fixed buffer
+     * are read completely.
+     * \param[out] out the string receiving the line
+     * \retval true if a line could be read
+     * \retval false if the end of the file was reached without reading
+     * any character
+     */
+    bool read_line(std::string& out);
+
     /**
      * \brief Throws a conversion error.
      * \details This function is called by field_as_int() and
@@ -233,15 +254,10 @@ namespace geolio
         GEO::index_t index, const char* type
     ) const GEO_NORETURN ;
 
-    /**
-     * \brief Defines the maximum size of a line
-     */
-    static constexpr GEO::index_t MAX_LINE_LEN = 65535;
-
     FILE* F_;
     std::string file_name_;
     size_t line_num_;
-    char line_[MAX_LINE_LEN]{};
+    std::string line_;
     std::vector<char*> field_;
     bool ok_;
     };

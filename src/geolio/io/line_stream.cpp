@@ -10,6 +10,11 @@
 #include "line_stream.h"
 #include <geogram/basic/logger.h>
 
+#include <cctype>
+#include <cstdio>
+#include <cstring>
+#include <sstream>
+
 namespace geolio
 {
     LineInput::LineInput(const std::string& filename) :
@@ -18,7 +23,6 @@ namespace geolio
     {
         F_ = fopen(filename.c_str(), "r");
         ok_ = (F_ != nullptr);
-        line_[0] = '\0';
     }
 
     LineInput::~LineInput() {
@@ -28,42 +32,67 @@ namespace geolio
         }
     }
 
+    bool LineInput::read_line(std::string& out) {
+        out.clear();
+        // Reads the line in chunks, so that lines of arbitrary length
+        // are read completely (a fixed size buffer would truncate them).
+        char buf[4096];
+        while(fgets(buf, sizeof(buf), F_) != nullptr) {
+            out += buf;
+            if(!out.empty() && out.back() == '\n') {
+                return true;
+            }
+            if(feof(F_)) {
+                return true;
+            }
+        }
+        return !out.empty();
+    }
+
     bool LineInput::get_line() {
         if(F_ == nullptr) {
             return false;
         }
-        line_[0] = '\0';
+        line_.clear();
         // Skip the empty lines
-        while(!isprint(line_[0]) && line_[0] != '\t') {
-            ++line_num_;
-            if(fgets(line_, MAX_LINE_LEN, F_) == nullptr) {
+        while(true) {
+            if(!read_line(line_)) {
                 return false;
+            }
+            ++line_num_;
+            const unsigned char first =
+                static_cast<unsigned char>(line_[0]);
+            if(isprint(first) || first == '\t') {
+                break;
             }
         }
         // If the line ends with a backslash, append
         // the next line to the current line.
         bool check_multiline = true;
-        GEO::Numeric::int64 total_length = MAX_LINE_LEN;
-        char* ptr = line_;
         while(check_multiline) {
-            size_t L = strlen(ptr);
-            total_length -= static_cast<GEO::Numeric::int64>(L);
-            ptr = ptr + L - 2;
-            if(*ptr == '\\' && total_length > 0) {
-                *ptr = ' ';
-                ptr++;
-                if(fgets(ptr, int(total_length), F_) == nullptr) {
+            const bool ends_with_eol =
+                !line_.empty() &&
+                (line_.back() == '\n' || line_.back() == '\r');
+            size_t last = line_.size();
+            while(last > 0 &&
+                  (line_[last - 1] == '\n' || line_[last - 1] == '\r')) {
+                --last;
+            }
+            if(ends_with_eol && last > 0 && line_[last - 1] == '\\') {
+                // Replace the backslash with a space and drop the
+                // end-of-line sequence, then read the next line and
+                // append it to the current line.
+                line_[last - 1] = ' ';
+                line_.erase(last);
+                std::string continuation;
+                if(!read_line(continuation)) {
                     return false;
                 }
                 ++line_num_;
+                line_ += continuation;
             } else {
                 check_multiline = false;
             }
-        }
-        if(total_length < 0) {
-            GEO::Logger::err("LineInput")
-                << "MultiLine longer than "
-                << MAX_LINE_LEN << " bytes" << std::endl;
         }
         return true;
     }
@@ -78,7 +107,7 @@ namespace geolio
     void LineInput::get_fields(const char* separators) {
         field_.resize(0);
         char* context = nullptr;
-        char* tok = safe_strtok(line_, separators, &context);
+        char* tok = safe_strtok(line_.data(), separators, &context);
         while(tok != nullptr) {
             field_.push_back(tok);
             tok = safe_strtok(nullptr, separators, &context);
@@ -88,7 +117,7 @@ namespace geolio
 #else
     void LineInput::get_fields(const char* separators) {
         field_.resize(0);
-        char* tok = strtok(line_, separators);
+        char* tok = strtok(line_.data(), separators);
         while(tok != nullptr) {
             field_.push_back(tok);
             tok = strtok(nullptr, separators);
