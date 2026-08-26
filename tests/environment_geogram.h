@@ -9,6 +9,7 @@
 #include <geogram/basic/common.h>
 #include <geogram/basic/attributes.h>
 #include <gtest/gtest.h>
+#include <geolio/io/io.h>
 
 class GeogramTestEnvironment final : public testing::Environment {
 public:
@@ -16,6 +17,8 @@ public:
         GEO::initialize(GEO::GEOGRAM_INSTALL_ALL);
         GEO::CmdLine::import_arg_group("standard");
         GEO::CmdLine::import_arg_group("algo");
+
+        geolio::register_additional_MeshIOHandlers();
     }
 };
 
