@@ -44,33 +44,46 @@ namespace geolio::geobox
                 ImGui::TableSetupColumn("Count");
                 ImGui::TableHeadersRow();
 
+                // Clicking a count copies its value to the clipboard.
+                const auto count_cell = [](const char* element, const GEO::index_t count) {
+                    const std::string text =
+                        std::to_string(static_cast<unsigned int>(count));
+                    // The element name disambiguates the ImGui ID in case two
+                    // counts happen to be equal.
+                    const std::string label = text + "##" + element;
+                    if (ImGui::Selectable(label.c_str(), false))
+                        ImGui::SetClipboardText(text.c_str());
+                    // if (ImGui::IsItemHovered())
+                    //     ImGui::SetTooltip("Click to copy");
+                };
+
                 if (mesh_.vertices.nb() > 0) {
                     ImGui::TableNextRow();
                     ImGui::TableSetColumnIndex(0);
                     ImGui::Text("vertices");
                     ImGui::TableSetColumnIndex(1);
-                    ImGui::Text("%u", static_cast<unsigned int>(mesh_.vertices.nb()));
+                    count_cell("vertices", mesh_.vertices.nb());
                 }
                 if (mesh_.edges.nb() > 0) {
                     ImGui::TableNextRow();
                     ImGui::TableSetColumnIndex(0);
                     ImGui::Text("edges");
                     ImGui::TableSetColumnIndex(1);
-                    ImGui::Text("%u", static_cast<unsigned int>(mesh_.edges.nb()));
+                    count_cell("edges", mesh_.edges.nb());
                 }
                 if (mesh_.facets.nb() > 0) {
                     ImGui::TableNextRow();
                     ImGui::TableSetColumnIndex(0);
                     ImGui::Text("facets");
                     ImGui::TableSetColumnIndex(1);
-                    ImGui::Text("%u", static_cast<unsigned int>(mesh_.facets.nb()));
+                    count_cell("facets", mesh_.facets.nb());
                 }
                 if (mesh_.cells.nb() > 0) {
                     ImGui::TableNextRow();
                     ImGui::TableSetColumnIndex(0);
                     ImGui::Text("cells");
                     ImGui::TableSetColumnIndex(1);
-                    ImGui::Text("%u", static_cast<unsigned int>(mesh_.cells.nb()));
+                    count_cell("cells", mesh_.cells.nb());
                 }
 
                 ImGui::EndTable();
