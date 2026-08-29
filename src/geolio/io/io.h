@@ -1,0 +1,20 @@
+//
+// Created by huangcanjia <huangcanjia0214@gmail.com> on 2026/8/26.
+// Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
+//
+#ifndef GEOLIO_IO_H
+#define GEOLIO_IO_H
+#include <geogram/mesh/mesh_io.h>
+#include "aedtplt_io.h"
+#include "hexex_io.h"
+
+namespace geolio
+{
+    inline void register_additional_MeshIOHandlers(
+        ) {
+        geo_register_MeshIOHandler_creator(AEDTPLT_IOHandler, "aedtplt");
+        geo_register_MeshIOHandler_creator(HEXEX_IOHandler, "hexex");
+    }
+}
+
+#endif //GEOLIO_IO_H

@@ -18,6 +18,8 @@ target_include_directories(${CURRENT_LIB_NAME}
 # Add subdirectory (component library)
 add_subdirectory(common)
 add_subdirectory(geobox)
+#add_subdirectory(geogram_plus)
+add_subdirectory(io)
 add_subdirectory(local_operation_optimization)
 add_subdirectory(mesh)
 
@@ -25,6 +27,7 @@ target_link_libraries(${CURRENT_LIB_NAME}
         PUBLIC
         Geogram::geogram
         ${PROJECT_NAME}::geobox
+        ${PROJECT_NAME}::io
         ${PROJECT_NAME}::local_operation_optimization
         ${PROJECT_NAME}::mesh
         ${PROJECT_NAME}::third_party
