@@ -132,13 +132,13 @@ namespace geolio
                 }
             }
         }
-        catch(const std::string& what) {
+        catch (const std::string& what) {
             LOG::ERROR("{}", what);
             return false;
-        } catch(const std::exception& ex) {
+        } catch (const std::exception& ex) {
             LOG::ERROR("{}", ex.what());
             return false;
-        } catch(...) {
+        } catch (...) {
             LOG::ERROR("Caught exception!");
             return false;
         }
