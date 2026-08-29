@@ -32,7 +32,7 @@ namespace geolio
         }
     }
 
-    bool LineInput::read_line(std::string& out) {
+    bool LineInput::read_line(std::string& out) const {
         out.clear();
         // Reads the line in chunks, so that lines of arbitrary length
         // are read completely (a fixed size buffer would truncate them).

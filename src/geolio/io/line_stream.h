@@ -5,6 +5,9 @@
 #ifndef GEOLIO_LINE_STREAM_H
 #define GEOLIO_LINE_STREAM_H
 
+#include <cerrno>
+#include <cstdlib>
+#include <cstring>
 #include <string>
 #include <vector>
 #include <geogram/basic/numeric.h>
@@ -27,6 +30,10 @@
  *   the parentheses ("223852, ...") as the new line. It throws
  *   std::logic_error when the token is empty, and returns an empty
  *   string when the token is not found in the line.
+ * - field_as_appro_double() was added: it converts a field written as a
+ *   rational number "p/q" with arbitrarily large integers (as produced
+ *   by Ansys AEDT files) into an approximate double, e.g.
+ *   "-9910370759100826714601236637/3271414488397938850655109120".
  */
 namespace geolio
 {
@@ -200,6 +207,57 @@ namespace geolio
     }
 
     /**
+     * \brief Gets a line field as an approximate double.
+     * \details The function returns the field at index \p i converted to
+     * a double. Function get_fields() must be called once after
+     * get_line() before calling this function, otherwise the result is
+     * undefined.
+     * \details A field written as a rational number "p/q" with
+     * arbitrarily large integers (e.g. "-9910370759100826714601236637/
+     * 3271414488397938850655109120", as produced by Ansys AEDT files)
+     * is converted to an approximate double. Fields that do not contain
+     * a '/' are converted exactly like field_as_double().
+     * \param[in] i the index of the field
+     * \return the floating point value of the field at index \p i
+     * \exception std::logic_error if the field cannot be converted to a
+     * floating point value
+     */
+    [[nodiscard]] double field_as_appro_double(GEO::index_t i) const {
+        const char* s = field(i);
+        const char* slash = strchr(s, '/');
+        if(slash == nullptr) {
+            double result = 0;
+            if(!GEO::String::from_string(s, result))
+                conversion_error(i, "floating point");
+            return result;
+        }
+        // Skips spaces, tabs and end-of-line characters.
+        const auto skip_ws = [](const char* p) {
+            while(*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') {
+                ++p;
+            }
+            return p;
+        };
+        // Numerator: parse up to the '/', tolerating surrounding whitespace.
+        errno = 0;
+        char* end_num = nullptr;
+        const long double num = strtold(s, &end_num);
+        if(end_num == s || skip_ws(end_num) != slash || errno == ERANGE) {
+            conversion_error(i, "floating point");
+        }
+        // Denominator: must be a non-empty, non-zero, fully consumed number.
+        const char* den_start = skip_ws(slash + 1);
+        errno = 0;
+        char* end_den = nullptr;
+        const long double den = strtold(den_start, &end_den);
+        if(end_den == den_start || *skip_ws(end_den) != '\0' ||
+           den == 0.0L || errno == ERANGE) {
+            conversion_error(i, "floating point");
+        }
+        return static_cast<double>(num / den);
+    }
+
+    /**
      * \brief Compares a field with a string.
      * \details The function compares the field at index \p i with string
      * \p s and returns \c true if they are equal. Function get_fields()
@@ -271,7 +329,7 @@ namespace geolio
      * \retval false if the end of the file was reached without reading
      * any character
      */
-    bool read_line(std::string& out);
+    bool read_line(std::string& out) const;
 
     /**
      * \brief Throws a conversion error.

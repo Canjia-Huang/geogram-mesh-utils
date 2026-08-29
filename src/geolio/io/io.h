@@ -6,12 +6,14 @@
 #define GEOLIO_IO_H
 #include <geogram/mesh/mesh_io.h>
 #include "aedtplt_io.h"
+#include "hexex_io.h"
 
 namespace geolio
 {
     inline void register_additional_MeshIOHandlers(
         ) {
         geo_register_MeshIOHandler_creator(AEDTPLT_IOHandler, "aedtplt");
+        geo_register_MeshIOHandler_creator(HEXEX_IOHandler, "hexex");
     }
 }
 
