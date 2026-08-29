@@ -17,15 +17,24 @@
 #include "geolio/common/log.h"
 #include "geolio/common/parse_filepath.h"
 #include "object/mesh_object.h"
-#include <geolio/geobox/application/local_operation_optimization_application.h>
+#include <geolio/geobox/application/register_applications.h>
 
 namespace geolio::geobox
 {
     GeoBoxApplication::GeoBoxApplication(
         ) : SimpleMeshApplication("Geolio - GeoBox")
     {
-        /* Init application */
-        applications_.push_back(std::make_unique<LocalOperationOptimizationApplication>("Mesh optimization", objects_));
+        /* Register and instantiate every sub-application: instead of
+         * hardcoding each concrete application here, the registry is
+         * populated by register_additional_Applications() (see
+         * application/applications.h, mirroring how additional MeshIO
+         * handlers are registered in geolio/io/io.h), and each registered
+         * creator is invoked with this application's objects container. */
+        register_additional_Applications();
+        for (const auto& entry : BaseApplicationRegistry::instance().entries()) {
+            if (auto app = entry.creator(entry.display_name, objects_))
+                applications_.push_back(std::move(app));
+        }
     }
 
     void GeoBoxApplication::update(
