@@ -10,7 +10,7 @@
 namespace geolio
 {
     /**
-     * IO for ".aedtplt" files exported by Ansys HFSS through the plot mesh.
+     * I/O for ".aedtplt" files exported by Ansys HFSS through the plot mesh.
      */
     class AEDTPLT_IOHandler : public GEO::MeshIOHandler {
     public:

@@ -9,6 +9,9 @@
 
 namespace geolio
 {
+    /**
+     * I/O for ".hexex" files exported by the hexahedral mesh integer grid mapping method.
+     */
     class HEXEX_IOHandler : public GEO::MeshIOHandler {
     public:
         bool load(
