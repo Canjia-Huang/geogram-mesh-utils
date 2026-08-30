@@ -22,6 +22,7 @@ add_subdirectory(geobox)
 add_subdirectory(io)
 add_subdirectory(local_operation_optimization)
 add_subdirectory(mesh)
+add_subdirectory(offset_RVD)
 
 target_link_libraries(${CURRENT_LIB_NAME}
         PUBLIC
@@ -30,6 +31,7 @@ target_link_libraries(${CURRENT_LIB_NAME}
         ${PROJECT_NAME}::io
         ${PROJECT_NAME}::local_operation_optimization
         ${PROJECT_NAME}::mesh
+        ${PROJECT_NAME}::offset_RVD
         ${PROJECT_NAME}::third_party
 )
 

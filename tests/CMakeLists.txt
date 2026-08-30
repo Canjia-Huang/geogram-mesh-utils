@@ -36,7 +36,8 @@ target_link_libraries(${CURRENT_LIB_NAME}
         GTest::gtest_main
 )
 
-add_compile_definitions(TEST_DATA_PATH="${CMAKE_CURRENT_SOURCE_DIR}/data/")
+target_compile_definitions(${CURRENT_LIB_NAME} PRIVATE
+        TEST_DATA_PATH="${CMAKE_CURRENT_SOURCE_DIR}/data/")
 
 if(WIN32)
     # gtest_discover_tests() runs the test executable directly at build time to
