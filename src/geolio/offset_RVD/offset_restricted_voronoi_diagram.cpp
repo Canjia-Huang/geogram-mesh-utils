@@ -9,8 +9,8 @@
 namespace geolio
 {
     OffsetRestrictedVoronoiDiagram::OffsetRestrictedVoronoiDiagram(
-        const GEO::Mesh& mesh
-        ) : mesh_(mesh)
+        const std::shared_ptr<DistanceField>& distance_field
+        ) : distance_field_(distance_field)
     {}
 
     void OffsetRestrictedVoronoiDiagram::set_sites(

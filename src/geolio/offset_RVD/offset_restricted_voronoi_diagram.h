@@ -5,19 +5,21 @@
 #ifndef GEOLIO_OFFSET_RESTRICTED_VORONOI_DIAGRAM_H
 #define GEOLIO_OFFSET_RESTRICTED_VORONOI_DIAGRAM_H
 #include <geogram/mesh/mesh.h>
+#include "distance_field.h"
 
 namespace geolio
 {
     class OffsetRestrictedVoronoiDiagram {
     public:
-        explicit OffsetRestrictedVoronoiDiagram(const GEO::Mesh& mesh);
+        explicit OffsetRestrictedVoronoiDiagram(const std::shared_ptr<DistanceField>& distance_field);
 
         void set_sites(const double* sites, GEO::index_t sites_nb);
 
         void compute(double d);
 
     private:
-        const GEO::Mesh& mesh_;
+        const std::shared_ptr<DistanceField> distance_field_ = nullptr;
+
         const double* sites_ = nullptr;
         GEO::index_t sites_nb_ = GEO::NO_INDEX;
     };

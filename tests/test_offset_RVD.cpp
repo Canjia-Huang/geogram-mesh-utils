@@ -4,6 +4,7 @@
 //
 #include <geolio/offset_RVD/offset_restricted_voronoi_diagram.h>
 #include <gtest/gtest.h>
+#include <geolio/offset_RVD/mesh_distance_field.h>
 
 namespace geolio::test
 {
@@ -25,8 +26,10 @@ namespace geolio::test
             }
         }
 
-        OffsetRestrictedVoronoiDiagram RVD(mesh);
-        // RVD.set_sites(sites.data(), sites.size()/3);
+        const auto distance_field = std::make_shared<MeshDistanceField>(mesh);
+
+        OffsetRestrictedVoronoiDiagram RVD(distance_field);
+        RVD.set_sites(sites.data(), sites.size()/3);
         RVD.compute(d);
     }
 }
