@@ -1,6 +1,9 @@
 geolio_begin_file()
 
-if(NOT TARGET Geogram::geogram)
+if (NOT TARGET CGAL::CGAL)
+    include(CGAL)
+endif()
+if (NOT TARGET Geogram::geogram)
     include(Geogram)
 endif()
 
