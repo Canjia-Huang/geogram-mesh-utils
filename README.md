@@ -7,32 +7,13 @@
 
 ## Requirements / dependencies
 
-- [**Geogram**](https://github.com/BrunoLevy/geogram) — geometry library, required at configure time.
+- [**Geogram**](https://github.com/BrunoLevy/geogram) — geometry library, required at configure time (set `GEOGRAM_DIR=/path/to/geogram`).
+- [**Eigen3**](https://eigen.tuxfamily.org) — header-only linear algebra library, required at configure time via `find_package(Eigen3)`.
 - [**spdlog**](https://github.com/gabime/spdlog), [**CLI11**](https://github.com/CLIUtils/CLI11) and [**imoguizmo**](https://github.com/fknfilewalker/imoguizmo) — bundled as git submodules; used as header-only include paths. imoguizmo provides the ImGui/ImGuizmo integration used by the GeoBox application and relies on the imgui headers bundled with Geogram.
 
 > Geolio must be cloned with `--recurse-submodules`, and a project that consumes geolio as a submodule must run `git submodule update --init --recursive`, so that the nested submodules above are present.
 
 ## Building the library
-
-### 1. Build Geogram
-
-Geogram is not vendored. Build it first as a dynamic, Release library by following the official guides:
-
-- [Compiling on Linux](https://github.com/BrunoLevy/geogram/wiki/compiling_Linux)
-- [Compiling on macOS](https://github.com/BrunoLevy/geogram/wiki/compiling_MacOS)
-- [Compiling on Windows](https://github.com/BrunoLevy/geogram/wiki/compiling_Windows)
-
-Then make it discoverable through `GEOGRAM_DIR` (or `GEOGRAM_INSTALL_PREFIX`). `GEOGRAM_DIR` can be set either as an environment variable or as a CMake option at configure time (which defaults to the environment variable):
-
-```bash
-# as an environment variable
-export GEOGRAM_DIR=/path/to/geogram
-
-# or as a CMake option
-cmake -B build -DGEOGRAM_DIR=/path/to/geogram
-```
-
-### 2. Configure and build Geolio
 
 ```bash
 git clone --recurse-submodules https://github.com/Canjia-Huang/geolio.git
@@ -85,13 +66,15 @@ When consumed as a submodule (`CMAKE_PROJECT_NAME != PROJECT_NAME`), geolio auto
 
 The output directories above put the built `Geolio.dll` next to your executable (in `build/bin/<config>` on Windows), so it is resolved at runtime without extra setup. Without them, on Windows the DLL lands in geolio's nested build subdirectory and must be added to `PATH`; Linux/macOS resolve the shared library automatically through RPATH.
 
-### 3. Make Geogram visible
+### 3. Make Geogram and Eigen3 visible
 
-The submodule build finds Geogram through the same mechanism as the standalone build. Set `GEOGRAM_DIR` (environment variable or `-DGEOGRAM_DIR=...`):
+The submodule build finds Geogram and Eigen3 through the same mechanisms as the standalone build. Set `GEOGRAM_DIR` (environment variable or `-DGEOGRAM_DIR=...`), and make sure Eigen3 is installed (see [Requirements](#requirements--dependencies)) if it is not already available:
 
 ```bash
 cmake -B build -DCMAKE_BUILD_TYPE=Release -DGEOGRAM_DIR=/path/to/geogram
 ```
+
+If the parent project already provides an `Eigen3::Eigen` target (e.g. through its own `find_package(Eigen3)`), geolio detects it and skips its own lookup.
 
 ## License
 

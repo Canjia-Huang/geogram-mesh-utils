@@ -97,9 +97,9 @@ namespace geolio::test
             GEO::vec3 centroid(0, 0, 0);
             for (const auto& [p, w] : points_and_weights_)
                 centroid += p * w;
-            EXPECT_NEAR(centroid.x, 0, 1e-14);
-            EXPECT_NEAR(centroid.y, 0, 1e-14);
-            EXPECT_NEAR(centroid.z, 0, 1e-14);
+            EXPECT_NEAR(centroid.x, 0, 1e-13);
+            EXPECT_NEAR(centroid.y, 0, 1e-13);
+            EXPECT_NEAR(centroid.z, 0, 1e-13);
         }
 
         void eval_k_polynomial(

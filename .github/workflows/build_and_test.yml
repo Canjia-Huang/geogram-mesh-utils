@@ -80,7 +80,10 @@ jobs:
           $eigenVersion = "3.4.0"
           Invoke-WebRequest -Uri "https://gitlab.com/libeigen/eigen/-/archive/$eigenVersion/eigen-$eigenVersion.tar.gz" -OutFile "eigen.tar.gz"
           tar -xzf "eigen.tar.gz"
-          echo "Eigen3_DIR=$(Get-Location)/eigen-$eigenVersion/cmake" >> $env:GITHUB_ENV
+          # The release archive only ships Eigen3Config.cmake.in; running Eigen's own
+          # CMake configure generates the real Eigen3Config.cmake into the build tree.
+          cmake -S "eigen-$eigenVersion" -B "eigen-build"
+          echo "Eigen3_DIR=$(Get-Location)/eigen-build" >> $env:GITHUB_ENV
 
       - name: Install Dependency Eigen3 (macOS)
         if: runner.os == 'macOS'
