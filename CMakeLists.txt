@@ -18,6 +18,13 @@ else()
     option(BUILD_TESTS "Build tests" OFF)
 endif()
 
+# Use the header-only LBFGS-Lite optimizer (https://github.com/ZJU-FAST-Lab/LBFGS-Lite)
+# instead of / in addition to the bundled backends. When ON, LBFGS-Lite is downloaded
+# at configure time via CMake FetchContent, its include directory is exposed through
+# geolio::third_party, and the GEOLIO_ENABLE_LBFGS_LITE macro is defined for code
+# that consumes it.
+option(GEOLIO_ENABLE_LBFGS_LITE "Build with the LBFGS-Lite header-only L-BFGS optimizer" ON)
+
 # Location of the Geogram source tree. Defaults to the GEOGRAM_DIR environment
 # variable; overridable at configure time with -DGEOGRAM_DIR=...
 set(GEOGRAM_DIR "$ENV{GEOGRAM_DIR}" CACHE PATH "Path to the Geogram source directory (defaults to the GEOGRAM_DIR environment variable)")

@@ -4,6 +4,7 @@
 //
 #include <gtest/gtest.h>
 #include <geolio/common/lbfgs_optimizer_geogram.h>
+#include <geolio/common/lbfgs_optimizer_lbfgs_lite.h>
 
 namespace
 {
@@ -28,7 +29,8 @@ namespace
 
 namespace geolio::test
 {
-    class RosenbrockOptimizerGeogram : public LbfgsOptimizerGeogram {
+    template<typename optimizer>
+    class RosenbrockOptimizer : public optimizer {
     protected:
         void funcgrad(const unsigned int n, const double *x, double& f, double* g) override {
             f = RosenbrockFunction::func(n, x);
@@ -36,16 +38,35 @@ namespace geolio::test
         }
     };
 
+    template class RosenbrockOptimizer<LbfgsOptimizerGeogram>;
+
     TEST(LbfgsOptimizerGeogramTest, RosenbrockFunction) {
         constexpr GEO::index_t n = 2;
         std::vector<double> x{-1.0, 2.0};
         const std::vector<double> x_gt{1.0, 1.0};
 
-        RosenbrockOptimizerGeogram opt;
+        RosenbrockOptimizer<LbfgsOptimizerGeogram> opt;
         const double f = opt.optimize(n, x.data());
 
         for (GEO::index_t i = 0; i < n; ++i)
             EXPECT_NEAR(x[i], x_gt[i], 1e-12);
         EXPECT_NEAR(f, 0.0, 1e-12);
     }
+
+#ifdef GEOLIO_ENABLE_LBFGS_LITE
+    template class RosenbrockOptimizer<LbfgsOptimizerLBFGSLite>;
+
+    TEST(RosenbrockOptimizerLBFGSLite, RosenbrockFunction) {
+        constexpr GEO::index_t n = 2;
+        std::vector<double> x{-1.0, 2.0};
+        const std::vector<double> x_gt{1.0, 1.0};
+
+        RosenbrockOptimizer<LbfgsOptimizerLBFGSLite> opt;
+        const double f = opt.optimize(n, x.data());
+
+        for (GEO::index_t i = 0; i < n; ++i)
+            EXPECT_NEAR(x[i], x_gt[i], 1e-12);
+        EXPECT_NEAR(f, 0.0, 1e-12);
+    }
+#endif
 }

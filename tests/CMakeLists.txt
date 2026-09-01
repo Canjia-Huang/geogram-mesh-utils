@@ -35,7 +35,6 @@ set_target_properties(${CURRENT_LIB_NAME} PROPERTIES
 
 target_link_libraries(${CURRENT_LIB_NAME}
         ${PROJECT_NAME}::geolio
-        ${PROJECT_NAME}::third_party
         GTest::gtest_main
 )
 
