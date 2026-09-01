@@ -65,6 +65,29 @@ jobs:
           cd build/Darwin-clang-dynamic-Release
           make -j
 
+      # == Install Dependency Eigen3 ==================================================================================
+
+      - name: Install Dependency Eigen3 (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libeigen3-dev
+
+      - name: Install Dependency Eigen3 (Windows)
+        shell: pwsh
+        if: runner.os == 'Windows'
+        run: |
+          $eigenVersion = "3.4.0"
+          Invoke-WebRequest -Uri "https://gitlab.com/libeigen/eigen/-/archive/$eigenVersion/eigen-$eigenVersion.tar.gz" -OutFile "eigen.tar.gz"
+          tar -xzf "eigen.tar.gz"
+          echo "Eigen3_DIR=$(Get-Location)/eigen-$eigenVersion/cmake" >> $env:GITHUB_ENV
+
+      - name: Install Dependency Eigen3 (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install eigen
+          echo "Eigen3_DIR=$(brew --prefix eigen)/share/eigen3/cmake" >> $GITHUB_ENV
+
       # == Configure and make =========================================================================================
 
       - name: Configure CMake
