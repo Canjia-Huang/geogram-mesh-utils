@@ -1,4 +1,6 @@
-geolio_begin_file()
+if(COMMAND geolio_begin_file)
+    geolio_begin_file()
+endif()
 
 find_package(Geogram REQUIRED)
 
@@ -47,4 +49,6 @@ else()
     message(WARNING "Geogram not found!")
 endif()
 
-geolio_end_file()
+if(COMMAND geolio_end_file)
+    geolio_end_file()
+endif()

@@ -1,4 +1,6 @@
-geolio_begin_file()
+if(COMMAND geolio_begin_file)
+    geolio_begin_file()
+endif()
 set(CURRENT_LIB_NAME ${PROJECT_NAME})
 set(CURRENT_LIB_ALIAS_NAME ${PROJECT_NAME}::geolio)
 
@@ -25,7 +27,6 @@ add_subdirectory(mesh)
 
 target_link_libraries(${CURRENT_LIB_NAME}
         PUBLIC
-        Geogram::geogram
         ${PROJECT_NAME}::geobox
         ${PROJECT_NAME}::io
         ${PROJECT_NAME}::local_operation_optimization
@@ -33,4 +34,6 @@ target_link_libraries(${CURRENT_LIB_NAME}
         ${PROJECT_NAME}::third_party
 )
 
-geolio_end_file()
+if(COMMAND geolio_end_file)
+    geolio_end_file()
+endif()

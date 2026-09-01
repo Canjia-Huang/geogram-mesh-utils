@@ -1,6 +1,10 @@
-geolio_begin_file()
+if(COMMAND geolio_begin_file)
+    geolio_begin_file()
+endif()
 set(CURRENT_LIB_NAME ${PROJECT_NAME}_third_party)
 set(CURRENT_LIB_ALIAS_NAME ${PROJECT_NAME}::third_party)
+
+include(Dependencies)
 
 add_library(${CURRENT_LIB_NAME} INTERFACE)
 add_library(${CURRENT_LIB_ALIAS_NAME} ALIAS ${CURRENT_LIB_NAME})
@@ -14,5 +18,12 @@ target_include_directories(${CURRENT_LIB_NAME} INTERFACE
         "${CMAKE_CURRENT_SOURCE_DIR}/spdlog/include"
         "${GEOGRAM_INCLUDE_DIR}/geogram_gfx/third_party/imgui"
 )
+target_link_libraries(${CURRENT_LIB_NAME} INTERFACE
+        Geogram::geogram
+        Geogram::geogram_gfx
+        Eigen3::Eigen
+)
 
-geolio_end_file()
+if(COMMAND geolio_end_file)
+    geolio_end_file()
+endif()

@@ -14,7 +14,7 @@
 #include <geolio/mesh/mesh_operations.h>
 #include <geolio/mesh/tet_descriptor.h>
 #include <gtest/gtest.h>
-#include "utils.h"
+#include "../utils.h"
 
 namespace geolio::test
 {

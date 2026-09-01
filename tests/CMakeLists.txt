@@ -1,4 +1,6 @@
-geolio_begin_file()
+if(COMMAND geolio_begin_file)
+    geolio_begin_file()
+endif()
 set(CURRENT_LIB_NAME ${PROJECT_NAME}_tests)
 
 ########################################################################################################################
@@ -17,9 +19,11 @@ FetchContent_MakeAvailable(googletest)
 # Build tests
 ########################################################################################################################
 file(GLOB SOURCE_FILES
-        ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
+        ${CMAKE_CURRENT_SOURCE_DIR}/common/*.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/local_operation_optimization/*.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/mesh/*.cpp
+)
 
 add_executable(${CURRENT_LIB_NAME}
         ${SOURCE_FILES})
@@ -32,7 +36,6 @@ set_target_properties(${CURRENT_LIB_NAME} PROPERTIES
 target_link_libraries(${CURRENT_LIB_NAME}
         ${PROJECT_NAME}::geolio
         ${PROJECT_NAME}::third_party
-        Geogram::geogram
         GTest::gtest_main
 )
 
@@ -70,4 +73,6 @@ endif()
 include(GoogleTest)
 gtest_discover_tests(${CURRENT_LIB_NAME})
 
-geolio_end_file()
+if(COMMAND geolio_end_file)
+    geolio_end_file()
+endif()

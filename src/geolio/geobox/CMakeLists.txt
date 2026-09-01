@@ -1,4 +1,6 @@
-geolio_begin_file()
+if(COMMAND geolio_begin_file)
+    geolio_begin_file()
+endif()
 set(CURRENT_LIB_NAME ${PROJECT_NAME}_geobox)
 set(CURRENT_LIB_ALIAS_NAME ${PROJECT_NAME}::geobox)
 
@@ -24,9 +26,9 @@ target_include_directories(${CURRENT_LIB_NAME}
 
 target_link_libraries(${CURRENT_LIB_NAME}
         PUBLIC
-        Geogram::geogram
-        Geogram::geogram_gfx
         ${PROJECT_NAME}::third_party
 )
 
-geolio_end_file()
+if(COMMAND geolio_end_file)
+    geolio_end_file()
+endif()

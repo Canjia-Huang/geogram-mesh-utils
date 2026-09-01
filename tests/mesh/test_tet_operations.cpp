@@ -8,7 +8,7 @@
 #include <unordered_set>
 #include <vector>
 #include <geogram/mesh/mesh_io.h>
-#include "utils.h"
+#include "../utils.h"
 #include <geolio/mesh/mesh_operations.h>
 #include <geolio/mesh/tet_operations.h>
 

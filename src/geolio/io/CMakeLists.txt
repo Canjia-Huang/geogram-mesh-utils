@@ -1,4 +1,6 @@
-geolio_begin_file()
+if(COMMAND geolio_begin_file)
+    geolio_begin_file()
+endif()
 set(CURRENT_LIB_NAME ${PROJECT_NAME}_io)
 set(CURRENT_LIB_ALIAS_NAME ${PROJECT_NAME}::io)
 
@@ -23,8 +25,9 @@ target_include_directories(${CURRENT_LIB_NAME}
 
 target_link_libraries(${CURRENT_LIB_NAME}
         PUBLIC
-        Geogram::geogram
         ${PROJECT_NAME}::third_party
 )
 
-geolio_end_file()
+if(COMMAND geolio_end_file)
+    geolio_end_file()
+endif()

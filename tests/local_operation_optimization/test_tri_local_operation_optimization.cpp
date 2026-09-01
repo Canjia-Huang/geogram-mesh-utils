@@ -6,7 +6,7 @@
 #include <geogram/mesh/mesh_io.h>
 #include <gtest/gtest.h>
 #include <geolio/local_operation_optimization/tri_local_operation_optimization.h>
-#include "utils.h"
+#include "../utils.h"
 #include "geogram/delaunay/CDT_2d.h"
 
 namespace geolio::test

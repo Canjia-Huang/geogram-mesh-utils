@@ -9,7 +9,7 @@
 #include <vector>
 #include <geogram/mesh/mesh_io.h>
 #include <gtest/gtest.h>
-#include "utils.h"
+#include "../utils.h"
 #include <geolio/mesh/tri_operations.h>
 #include <geolio/common/log.h>
 
