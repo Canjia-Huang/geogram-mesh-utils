@@ -2,9 +2,11 @@
 // Created by huangcanjia <huangcanjia0214@gmail.com> on 2026/8/30.
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
+#include <geogram/mesh/mesh_io.h>
 #include <geolio/offset_RVD/offset_restricted_voronoi_diagram.h>
 #include <gtest/gtest.h>
 #include <geolio/offset_RVD/mesh_distance_field.h>
+#include <geolio/offset_RVD/exact_voronoi_diagram.h>
 
 namespace geolio::test
 {
@@ -13,7 +15,7 @@ namespace geolio::test
         EXPECT_TRUE(mesh.load(std::string(TEST_DATA_PATH) + "fandisk.obj"));
 
         std::vector<double> sites;
-        constexpr double d = 1;
+        constexpr double d = 0;
         {
             sites.reserve(3*mesh.facets.nb());
             for (const auto& f : mesh.facets) {
@@ -28,8 +30,19 @@ namespace geolio::test
 
         const auto distance_field = std::make_shared<MeshDistanceField>(mesh);
 
-        OffsetRestrictedVoronoiDiagram RVD(distance_field);
-        RVD.set_sites(sites.data(), sites.size()/3);
-        RVD.compute(d);
+        // OffsetRestrictedVoronoiDiagram RVD(distance_field);
+        // RVD.set_sites(sites.data(), sites.size()/3);
+        // RVD.compute(d);
+
+        ExactVoronoiDiagram EVD;
+        EVD.create_voronoi_cells(
+            sites.data(), sites.size()/3,
+            -1, 5, 11, 19, -3, 1);
+
+        {
+            GEO::Mesh mesh;
+            EVD.append_to_mesh(mesh);
+            mesh.save("debug.geogram");
+        }
     }
 }

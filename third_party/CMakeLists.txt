@@ -15,4 +15,9 @@ target_include_directories(${CURRENT_LIB_NAME} INTERFACE
         "${GEOGRAM_INCLUDE_DIR}/geogram_gfx/third_party/imgui"
 )
 
+target_link_libraries(${CURRENT_LIB_NAME} INTERFACE
+        Geogram::geogram
+        CGAL::CGAL
+)
+
 geolio_end_file()

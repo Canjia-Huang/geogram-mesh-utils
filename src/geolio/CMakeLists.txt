@@ -26,7 +26,6 @@ add_subdirectory(offset_RVD)
 
 target_link_libraries(${CURRENT_LIB_NAME}
         PUBLIC
-        Geogram::geogram
         ${PROJECT_NAME}::geobox
         ${PROJECT_NAME}::io
         ${PROJECT_NAME}::local_operation_optimization

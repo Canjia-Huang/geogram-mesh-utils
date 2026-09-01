@@ -13,7 +13,7 @@ namespace geolio
 
         virtual ~DistanceField() = default;
 
-        virtual double query(double x, double y, double z) const = 0;
+        [[nodiscard]] virtual double query(double x, double y, double z) const = 0;
     };
 }
 
