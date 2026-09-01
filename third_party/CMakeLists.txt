@@ -4,6 +4,13 @@ endif()
 set(CURRENT_LIB_NAME ${PROJECT_NAME}_third_party)
 set(CURRENT_LIB_ALIAS_NAME ${PROJECT_NAME}::third_party)
 
+# Resolve dependencies (Geogram, Eigen) before any target_include_directories
+# below that expands ${GEOGRAM_INCLUDE_DIR}. find_path() only sets that cache
+# variable during this include, so on a fresh configure the imgui include path
+# (${GEOGRAM_INCLUDE_DIR}/geogram_gfx/third_party/imgui) would otherwise be
+# recorded with an empty prefix and 'imgui.h' would not be found.
+include(Dependencies)
+
 add_library(${CURRENT_LIB_NAME} INTERFACE)
 add_library(${CURRENT_LIB_ALIAS_NAME} ALIAS ${CURRENT_LIB_NAME})
 
@@ -11,11 +18,22 @@ add_library(${CURRENT_LIB_ALIAS_NAME} ALIAS ${CURRENT_LIB_NAME})
 # Downloaded at configure time via FetchContent when GEOLIO_ENABLE_LBFGS_LITE is ON.
 if(GEOLIO_ENABLE_LBFGS_LITE)
     include(LBFGS-Lite)
-    # SYSTEM: treat LBFGS-Lite as a third-party include dir (suppresses warnings
-    # from its headers). lbfgs.hpp is header-only but uses Eigen, which is already
-    # exposed to this target below.
+    # LBFGS-Lite ships a single header named lbfgs.hpp, which is generic enough to
+    # collide with headers from other dependencies. Stage it in the build tree under
+    # the unique name lbfgs_lite.hpp, so consumers include <lbfgs_lite.hpp> and never
+    # depend on FetchContent's internal directory naming (lbfgs_lite-src).
+    set(LBFGS_LITE_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/lbfgs_lite/include")
+    file(MAKE_DIRECTORY "${LBFGS_LITE_INCLUDE_DIR}")
+    file(COPY_FILE
+            "${lbfgs_lite_SOURCE_DIR}/include/lbfgs.hpp"
+            "${LBFGS_LITE_INCLUDE_DIR}/lbfgs_lite.hpp"
+            ONLY_IF_DIFFERENT
+    )
+    # SYSTEM: treat the staged header as a third-party include dir (suppresses warnings
+    # from it). lbfgs.hpp is header-only but uses Eigen, which is already exposed to
+    # this target below.
     target_include_directories(${CURRENT_LIB_NAME} SYSTEM INTERFACE
-            "${lbfgs_lite_SOURCE_DIR}/../"
+            "${LBFGS_LITE_INCLUDE_DIR}"
     )
 
     # Feature macro: defined when the LBFGS-Lite optimizer is enabled (see the
@@ -38,7 +56,6 @@ target_include_directories(${CURRENT_LIB_NAME} INTERFACE
         "${GEOGRAM_INCLUDE_DIR}/geogram_gfx/third_party/imgui"
 )
 
-include(Dependencies)
 target_link_libraries(${CURRENT_LIB_NAME} INTERFACE
         Geogram::geogram
         Geogram::geogram_gfx

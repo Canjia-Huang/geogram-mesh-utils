@@ -10,6 +10,7 @@
 - [**Geogram**](https://github.com/BrunoLevy/geogram) — geometry library, required at configure time (set `GEOGRAM_DIR=/path/to/geogram`).
 - [**Eigen3**](https://eigen.tuxfamily.org) — header-only linear algebra library, required at configure time via `find_package(Eigen3)`.
 - [**spdlog**](https://github.com/gabime/spdlog), [**CLI11**](https://github.com/CLIUtils/CLI11) and [**imoguizmo**](https://github.com/fknfilewalker/imoguizmo) — bundled as git submodules; used as header-only include paths. imoguizmo provides the ImGui/ImGuizmo integration used by the GeoBox application and relies on the imgui headers bundled with Geogram.
+- [**LBFGS-Lite**](https://github.com/ZJU-FAST-Lab/LBFGS-Lite) — header-only L-BFGS unconstrained optimizer (optional, enabled by default). It is **not** vendored: when `GEOLIO_ENABLE_LBFGS_LITE=ON` it is downloaded automatically at configure time via CMake FetchContent (pinned to tag `v2.3`).
 
 > Geolio must be cloned with `--recurse-submodules`, and a project that consumes geolio as a submodule must run `git submodule update --init --recursive`, so that the nested submodules above are present.
 
@@ -24,9 +25,14 @@ cmake --build build --config Release --parallel
 
 CMake options:
 
-| Option       | Default | Description                          |
-|--------------|---------|--------------------------------------|
-| `BUILD_TESTS`| `ON`    | Build the test suite (gtest).        |
+| Option                     | Default | Description                                                                  |
+|----------------------------|---------|------------------------------------------------------------------------------|
+| `BUILD_TESTS`              | `ON`    | Build the test suite (gtest).                                                |
+| `GEOLIO_ENABLE_LBFGS_LITE` | `ON`    | Enable the LBFGS-Lite header-only optimizer; downloaded via FetchContent at configure time (requires network access to GitHub). |
+
+```bash
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DGEOLIO_ENABLE_LBFGS_LITE=OFF
+```
 
 ## Using Geolio as a git submodule
 
@@ -62,7 +68,7 @@ add_executable(my_app main.cpp)
 target_link_libraries(my_app PRIVATE Geolio::geolio)
 ```
 
-When consumed as a submodule (`CMAKE_PROJECT_NAME != PROJECT_NAME`), geolio automatically disables `BUILD_TESTS`.
+CMake options are inherited from the parent project, so the optional LBFGS-Lite dependency is controlled by setting `GEOLIO_ENABLE_LBFGS_LITE` **before** `add_subdirectory`.
 
 The output directories above put the built `Geolio.dll` next to your executable (in `build/bin/<config>` on Windows), so it is resolved at runtime without extra setup. Without them, on Windows the DLL lands in geolio's nested build subdirectory and must be added to `PATH`; Linux/macOS resolve the shared library automatically through RPATH.
 

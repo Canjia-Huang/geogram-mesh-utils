@@ -7,7 +7,7 @@
 #include "lbfgs_optimizer_lbfgs_lite.h"
 #include <iomanip>
 #include <iostream>
-#include <lbfgs_lite-src/include/lbfgs.hpp>
+#include <lbfgs_lite.hpp>
 
 namespace geolio
 {
