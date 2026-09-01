@@ -53,7 +53,9 @@ jobs:
           .\configure.bat
           $geogramRoot = Get-Location
           echo "GEOGRAM_DIR=$geogramRoot" >> $env:GITHUB_ENV
-          cmake --build build/Windows --config Release --parallel (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
+          # Build the configuration matching the matrix build type (Release or
+          # Debug); the Build/Test steps below link the corresponding geogram lib.
+          cmake --build build/Windows --config ${{ matrix.build_type }} --parallel (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
 
       - name: Install Dependency Geogram (macOS)
         if: runner.os == 'macOS'

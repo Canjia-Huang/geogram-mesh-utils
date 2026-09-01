@@ -40,6 +40,31 @@ set (GEOGRAM_SEARCH_PATHS_SYSTEM
         "/usr/lib/${CMAKE_LIBRARY_ARCHITECTURE}"
 )
 
+# Geogram library search suffixes. The macOS/Linux builds produced by geogram's
+# ./configure.sh are always Release, so those paths are used regardless of the
+# top-level build type (unchanged). On Windows geogram is a multi-config Visual
+# Studio build under build/Windows, so the library directory depends on the
+# configuration that was actually built: prefer the one matching the top-level
+# build type (the CI passes CMAKE_BUILD_TYPE at configure time) and fall back to
+# the other one if only it is present.
+set (GEOGRAM_LIBRARY_PATH_SUFFIXES
+        build/Darwin-clang-dynamic-Release/lib
+        build/Linux64-gcc-dynamic-Release/lib
+)
+if(WIN32)
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        list(APPEND GEOGRAM_LIBRARY_PATH_SUFFIXES
+                build/Windows/lib/Debug
+                build/Windows/lib/Release
+        )
+    else()
+        list(APPEND GEOGRAM_LIBRARY_PATH_SUFFIXES
+                build/Windows/lib/Release
+                build/Windows/lib/Debug
+        )
+    endif()
+endif()
+
 find_path (GEOGRAM_INCLUDE_DIR
         geogram/basic/common.h
         PATHS ${GEOGRAM_SEARCH_PATHS}
@@ -50,20 +75,14 @@ message(STATUS "GEOGRAM_INCLUDE_DIR: ${GEOGRAM_INCLUDE_DIR}")
 find_library (GEOGRAM_LIBRARY
         NAMES geogram
         PATHS ${GEOGRAM_SEARCH_PATHS}
-        PATH_SUFFIXES
-        build/Darwin-clang-dynamic-Release/lib
-        build/Windows/lib/Release
-        build/Linux64-gcc-dynamic-Release/lib
+        PATH_SUFFIXES ${GEOGRAM_LIBRARY_PATH_SUFFIXES}
 )
 message(STATUS "GEOGRAM_LIBRARY: ${GEOGRAM_LIBRARY}")
 
 find_library (GEOGRAM_GFX_LIBRARY
         NAMES geogram_gfx
         PATHS ${GEOGRAM_SEARCH_PATHS}
-        PATH_SUFFIXES
-        build/Darwin-clang-dynamic-Release/lib
-        build/Windows/lib/Release
-        build/Linux64-gcc-dynamic-Release/lib
+        PATH_SUFFIXES ${GEOGRAM_LIBRARY_PATH_SUFFIXES}
 )
 message(STATUS "GEOGRAM_GFX_LIBRARY: ${GEOGRAM_GFX_LIBRARY}")
 
@@ -73,10 +92,7 @@ message(STATUS "GEOGRAM_GFX_LIBRARY: ${GEOGRAM_GFX_LIBRARY}")
 find_library (GEOGRAM_GLFW3_LIBRARY
         NAMES glfw3 glfw geogram_glfw3 glfw3dll glfwdll
         PATHS ${GEOGRAM_SEARCH_PATHS} ${GEOGRAM_SEARCH_PATHS_SYSTEM}
-        PATH_SUFFIXES
-        build/Darwin-clang-dynamic-Release/lib
-        build/Windows/lib/Release
-        build/Linux64-gcc-dynamic-Release/lib
+        PATH_SUFFIXES ${GEOGRAM_LIBRARY_PATH_SUFFIXES}
 )
 message(STATUS "GEOGRAM_GLFW3_LIBRARY: ${GEOGRAM_GLFW3_LIBRARY}")
 

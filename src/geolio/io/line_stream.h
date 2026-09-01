@@ -12,6 +12,7 @@
 #include <vector>
 #include <geogram/basic/numeric.h>
 #include <geogram/basic/string.h>
+#include <cassert>
 
 /**
  * This file is based on <geogram/basic/line_stream.h>
@@ -132,7 +133,7 @@ namespace geolio
      * \return the modifiable pointer to field string at index \p i
      */
     [[nodiscard]] char* field(const GEO::index_t i) {
-        geo_assert(i < nb_fields());
+        assert(i < nb_fields());
         return field_[i];
     }
 
@@ -145,7 +146,7 @@ namespace geolio
      * \return the const pointer to field string at index \p i
      */
     [[nodiscard]] const char* field(const GEO::index_t i) const {
-        geo_assert(i < nb_fields());
+        assert(i < nb_fields());
         return field_[i];
     }
 
