@@ -27,6 +27,7 @@ add_subdirectory(mesh)
 
 target_link_libraries(${CURRENT_LIB_NAME}
         PUBLIC
+        ${PROJECT_NAME}::common
         ${PROJECT_NAME}::geobox
         ${PROJECT_NAME}::io
         ${PROJECT_NAME}::local_operation_optimization
