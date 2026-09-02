@@ -21,7 +21,7 @@ namespace geolio
         assert(mesh.cells.nb() > 0);
         assert(std::all_of(
             mesh.cells.cell_type_ptr(0),
-            mesh.cells.cell_type_ptr(0)+mesh.cells.nb(),
+            mesh.cells.cell_type_ptr(mesh.cells.nb()),
             [&](const auto cell_type) { return cell_type == GEO::MESH_HEX; })); // check all-hex mesh
 
         HexControlGrid::initialize_nodes_arrangement();
