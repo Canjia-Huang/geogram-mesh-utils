@@ -34,6 +34,12 @@ namespace geolio
             LAGRANGE
         };
 
+        /**
+         * @brief Get the basis-function family used by this control grid.
+         * @return Current basis-function type.
+         */
+        [[nodiscard]] const auto& basis_function_type() const { return basis_function_type_; }
+
         enum class NodesType {
             EQUALLY_SPACED_NODES,
             CHEBYSHEV_GAUSS,
