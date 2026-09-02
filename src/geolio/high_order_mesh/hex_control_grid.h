@@ -4,13 +4,18 @@
 //
 #ifndef GEOLIO_HEX_CONTROL_GRID_H
 #define GEOLIO_HEX_CONTROL_GRID_H
-#include "control_grid.h"
+#include "volume_control_grid.h"
 #include <Eigen/Dense>
 
 namespace geolio
 {
     class HexControlGrid : public VolumeControlGrid {
     public:
+        /**
+         * @brief Construct a hexahedral high-order control grid.
+         * @param[in] mesh Input hexahedral mesh used as the reference topology/geometry.
+         * @param[in] order Polynomial order of the tensor-product hexahedral mapping.
+         */
         HexControlGrid(const GEO::Mesh& mesh, GEO::index_t order);
 
         /**
@@ -103,8 +108,14 @@ namespace geolio
             Eigen::MatrixXd& Bg) const;
 
     protected:
+        /**
+         * @brief Initialize local indexing/layout rules for hexahedral control nodes.
+         */
         void initialize_nodes_arrangement() override;
 
+        /**
+         * @brief Build global control-node coordinates and cell-to-control-node connectivity.
+         */
         void initialize_control_nodes() override;
     };
 }
