@@ -186,11 +186,13 @@ namespace geolio
         // LOG::DEBUG("found {} facets and {} edges in the hex mesh", hex_facets_nb, hex_edges_control_points.size());
 
         /* == Create grid elements ================================================================================= */
-        control_nodes_nb_ = mesh_.vertices.nb() + // vertices
+        control_nodes_.vertices.clear();
+        control_nodes_.vertices.create_vertices(
+                            mesh_.vertices.nb() + // vertices
                             hex_edges_control_points.size() * INTERNAL_CONTROL_POINTS_NB_PER_EDGE + // edges
                             hex_facets_nb * INTERNAL_CONTROL_POINTS_NB_PER_FACET + // facets
-                            mesh_.cells.nb() * INTERNAL_CONTROL_POINTS_NB_PER_CELL; // cells
-        control_nodes_.assign(CONTROL_NODES_DIM_*control_nodes_nb_, 0.0);
+                            mesh_.cells.nb() * INTERNAL_CONTROL_POINTS_NB_PER_CELL // cells
+                            );
         GEO::index_t new_v = 0;
 
         /* == For vertices == */
@@ -333,7 +335,7 @@ namespace geolio
             }
         }
 
-        assert(new_v == control_nodes_.size());
+        assert(new_v == control_nodes_nb());
 
         /* == Create regular index ================================================================================= */
         element_control_nodes_.assign(CONTROL_POINTS_NB_PER_CELL * mesh_.cells.nb(), GEO::NO_VERTEX);

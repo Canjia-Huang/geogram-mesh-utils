@@ -26,40 +26,28 @@ namespace geolio
 
         void set_nodes_type(NodesType nodes_type);
 
-        // [[nodiscard]] const auto& control_nodes() const { return control_nodes_; }
-
-        [[nodiscard]] const auto& control_nodes_nb() const { return control_nodes_nb_; }
+        [[nodiscard]] const auto& control_nodes_nb() const { return control_nodes_.vertices.nb(); }
 
         auto& control_node(const GEO::index_t v) {
-            assert(v < control_nodes_nb_);
-            return GEO::Memory::pointer_as_reference<GEO::vec3>(&control_nodes_[CONTROL_NODES_DIM_*v]);
+            assert(v < control_nodes_nb());
+            return control_nodes_.vertices.point(v);
         }
 
         [[nodiscard]] const auto& control_node(const GEO::index_t v) const {
-            assert(v < control_nodes_nb_);
-            return GEO::Memory::pointer_as_reference<GEO::vec3>(&control_nodes_[CONTROL_NODES_DIM_*v]);
+            assert(v < control_nodes_nb());
+            return control_nodes_.vertices.point(v);
         }
 
         auto control_nodes() {
-            return GEO::transform_range_ref(
-                GEO::index_range(0, control_nodes_nb_),
-                [this](GEO::index_t v)->const GEO::vec3& {
-                    return GEO::Memory::pointer_as_reference<GEO::vec3>(&control_nodes_[CONTROL_NODES_DIM_*v]);
-                }
-            );
+            return control_nodes_.vertices.points();
         }
 
         [[nodiscard]] auto control_nodes() const {
-            return GEO::transform_range_ref(
-                GEO::index_range(0, control_nodes_nb_),
-                [this](GEO::index_t v)->const GEO::vec3& {
-                    return GEO::Memory::pointer_as_reference<GEO::vec3>(&control_nodes_[CONTROL_NODES_DIM_*v]);
-                }
-            );
+            return control_nodes_.vertices.points();
         }
 
         auto* control_node_ptr(const GEO::index_t v) {
-            return &control_nodes_[CONTROL_NODES_DIM_*v];
+            return control_nodes_.vertices.point_ptr(v);
         }
 
     protected:
@@ -73,9 +61,7 @@ namespace geolio
         const GEO::index_t ORDER_;
 
         virtual void initialize_control_nodes() = 0;
-        const GEO::index_t CONTROL_NODES_DIM_ = 3;
-        GEO::index_t control_nodes_nb_ = 0;
-        std::vector<double> control_nodes_;
+        GEO::Mesh control_nodes_;
         std::vector<GEO::index_t> element_control_nodes_;
     };
 
@@ -292,26 +278,6 @@ namespace geolio
         [[nodiscard]] GEO::index_t cell_inner_cv(const GEO::index_t c, const GEO::index_t lv0, const GEO::index_t lv1, const GEO::index_t lv2) const {
             assert(c < mesh_.cells.nb());
             return element_control_nodes_[c*CONTROL_POINTS_NB_PER_CELL + cell_inner_lcv(lv0, lv1, lv2)];
-        }
-
-        /**
-         * Get the ref of the control point in the grid.
-         * @param[in] cv global control point index
-         * @return
-         */
-        [[nodiscard]] auto& get_cv_position(const GEO::index_t cv) {
-            assert(cv < control_nodes_.size());
-            return control_node(cv);
-        }
-
-        /**
-         * Get the const ref of the control point in the grid.
-         * @param[in] cv global control point index
-         * @return
-         */
-        [[nodiscard]] const auto& get_cv_position(const GEO::index_t cv) const {
-            assert(cv < control_nodes_.size());
-            return control_node(cv);
         }
 
         /**

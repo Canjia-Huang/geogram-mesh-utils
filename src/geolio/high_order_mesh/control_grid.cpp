@@ -69,7 +69,7 @@ namespace geolio
                 const double basis_uv = Bu[i] * Bv[j];
                 for (GEO::index_t k = 0; k <= ORDER_; ++k) {
                     const double lag_basis = basis_uv * Bw[k];
-                    p += lag_basis * get_cv_position(cell_cv(c, i, j, k));
+                    p += lag_basis * control_node(cell_cv(c, i, j, k));
                 }
             }
         }
@@ -135,7 +135,7 @@ namespace geolio
         GEO::vec3 Tu(0, 0, 0), Tv(0, 0, 0);
         for (GEO::index_t i = 0; i < CONTROL_POINTS_NB_PER_EDGE; ++i) {
             for (GEO::index_t j = 0; j < CONTROL_POINTS_NB_PER_EDGE; ++j) {
-                const auto& p = get_cv_position(cell_facet_cv(c, lf, i, j));
+                const auto& p = control_node(cell_facet_cv(c, lf, i, j));
                 Tu += p * dBu[i] * Bv[j];
                 Tv += p * Bu[i] * dBv[j];
             }
@@ -188,9 +188,9 @@ namespace geolio
                     const double lag_basis_duvw = dBu[i] * basis_vw;
                     const double lag_basis_udvw = Bu[i] * basis_dvw;
                     const double lag_basis_uvdw = Bu[i] * basis_vdw;
-                    du += lag_basis_duvw * get_cv_position(cell_cv(c, i, j, k));
-                    dv += lag_basis_udvw * get_cv_position(cell_cv(c, i, j, k));
-                    dw += lag_basis_uvdw * get_cv_position(cell_cv(c, i, j, k));
+                    du += lag_basis_duvw * control_node(cell_cv(c, i, j, k));
+                    dv += lag_basis_udvw * control_node(cell_cv(c, i, j, k));
+                    dw += lag_basis_uvdw * control_node(cell_cv(c, i, j, k));
                 }
             }
         }
