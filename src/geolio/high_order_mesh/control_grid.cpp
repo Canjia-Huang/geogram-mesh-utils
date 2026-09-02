@@ -78,7 +78,7 @@ namespace geolio
     }
 
     [[nodiscard]] GEO::vec3 VolumeControlGrid::compute_cell_uvw_position(
-        GEO::index_t c,
+        const GEO::index_t c,
         const GEO::vec3& uvw,
         const double* cur_control_nodes_ptr
         ) const {

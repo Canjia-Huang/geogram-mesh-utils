@@ -26,6 +26,14 @@ namespace geolio
 
         void set_nodes_type(NodesType nodes_type);
 
+        /**
+         * Get 1D parametric coordinates of control nodes.
+         * @return const reference to node positions in [0,1]
+         */
+        [[nodiscard]] const auto& node_positions_1D() const { return node_positions_1D_; }
+
+        [[nodiscard]] auto order() const { return ORDER_; }
+
         [[nodiscard]] const auto& control_nodes_nb() const { return control_nodes_.vertices.nb(); }
 
         auto& control_node(const GEO::index_t v) {
@@ -57,7 +65,6 @@ namespace geolio
         NodesType nodes_type_ = NodesType::EQUALLY_SPACED_NODES;
         std::vector<double> node_positions_1D_; // 1D distribution of control nodes
 
-        virtual void initialize_nodes_arrangement() = 0;
         const GEO::index_t ORDER_;
 
         virtual void initialize_control_nodes() = 0;
@@ -70,6 +77,7 @@ namespace geolio
         SurfaceControlGrid(const GEO::Mesh& mesh, const GEO::index_t order) : ControlGrid(mesh, order) {}
 
     protected:
+        virtual void initialize_nodes_arrangement() = 0;
         GEO::index_t CONTROL_POINTS_NB_PER_EDGE = GEO::NO_INDEX;
         GEO::index_t CONTROL_POINTS_NB_PER_FACET = GEO::NO_INDEX;
         GEO::index_t INTERNAL_CONTROL_POINTS_NB_PER_EDGE = GEO::NO_INDEX;
@@ -92,11 +100,29 @@ namespace geolio
         VolumeControlGrid(const GEO::Mesh& mesh, const GEO::index_t order) : ControlGrid(mesh, order) {}
 
         /**
+         * Get the number of control points per edge.
+         * @return number of control points on each edge of the grid
+         */
+        [[nodiscard]] auto control_nodes_nb_per_edge() const { return CONTROL_POINTS_NB_PER_EDGE; }
+
+        /**
+         * Get the number of control points per facet.
+         * @return number of control points on each facet of the grid
+         */
+        [[nodiscard]] auto control_nodes_nb_per_facet() const { return CONTROL_POINTS_NB_PER_FACET; }
+
+        /**
+         * Get the number of control points per cell.
+         * @return number of control points in each cell of the grid
+         */
+        [[nodiscard]] auto control_nodes_nb_per_cell() const { return CONTROL_POINTS_NB_PER_CELL; }
+
+        /**
          * Get a local control point index by local vertex index.
          * @param[in] lv local vertex index in the cell, 0,1,...,mesh_.cells.nb_vertices
          * @return local control point index, 0,1,...,CONTROL_POINTS_NB_PER_CELL
          */
-        [[nodiscard]] GEO::index_t vertex_lcv(const GEO::index_t lv) const {
+        [[nodiscard]] GEO::index_t cell_vertex_lcv(const GEO::index_t lv) const {
             assert(lv < mesh_.cells.nb_vertices(0));
             return VERTEX_CONTROL_POINTS_BEGIN_IDX_[lv];
         }
@@ -107,7 +133,7 @@ namespace geolio
          * @param[in] lv local vertex index in the edge (ev0 -> ev1), 0,1,...,order
          * @return local control point index, 0,1,...,CONTROL_POINTS_NB_PER_CELL
          */
-        [[nodiscard]] GEO::index_t edge_lcv(const GEO::index_t le, const GEO::index_t lv) const {
+        [[nodiscard]] GEO::index_t cell_edge_lcv(const GEO::index_t le, const GEO::index_t lv) const {
             assert(le < mesh_.cells.nb_edges(0));
             assert(lv < CONTROL_POINTS_NB_PER_EDGE);
             return EDGE_CONTROL_POINTS_BEGIN_IDX_[le] + lv*EDGE_CONTROL_POINTS_NEXT_IDX_STEP_[le];
@@ -119,7 +145,7 @@ namespace geolio
          * @param[in] lv local vertex index in the edge (ev0 -> ev1), 0,1,...,order-2
          * @return local control point index, 0,1,...,CONTROL_POINTS_NB_PER_CELL
          */
-        [[nodiscard]] GEO::index_t edge_inner_lcv(const GEO::index_t le, const GEO::index_t lv) const {
+        [[nodiscard]] GEO::index_t cell_edge_inner_lcv(const GEO::index_t le, const GEO::index_t lv) const {
             assert(le < mesh_.cells.nb_edges(0));
             assert(lv < INTERNAL_CONTROL_POINTS_NB_PER_EDGE);
             return EDGE_INTERNAL_CONTROL_POINTS_BEGIN_IDX_[le] + lv*EDGE_INTERNAL_CONTROL_POINTS_NEXT_IDX_STEP_[le];
@@ -132,7 +158,7 @@ namespace geolio
          * @param[in] lv1 local vertex index in the facet (fv0 -> fv3), 0,1,...,order
          * @return local control point index, 0,1,...,CONTROL_POINTS_NB_PER_CELL
          */
-        [[nodiscard]] GEO::index_t facet_lcv(const GEO::index_t lf, const GEO::index_t lv0, const GEO::index_t lv1) const {
+        [[nodiscard]] GEO::index_t cell_facet_lcv(const GEO::index_t lf, const GEO::index_t lv0, const GEO::index_t lv1) const {
             assert(lf < mesh_.cells.nb_facets(0));
             assert(lv0 < CONTROL_POINTS_NB_PER_EDGE);
             assert(lv1 < CONTROL_POINTS_NB_PER_EDGE);
@@ -146,7 +172,7 @@ namespace geolio
          * @param[in] lv1 local vertex index in the facet (fv0 -> fv3), 0,1,...,order-2
          * @return local control point index, 0,1,...,CONTROL_POINTS_NB_PER_CELL
          */
-        [[nodiscard]] GEO::index_t facet_inner_lcv(const GEO::index_t lf, const GEO::index_t lv0, const GEO::index_t lv1) const {
+        [[nodiscard]] GEO::index_t cell_facet_inner_lcv(const GEO::index_t lf, const GEO::index_t lv0, const GEO::index_t lv1) const {
             assert(lf < mesh_.cells.nb_facets(0));
             assert(lv0 < INTERNAL_CONTROL_POINTS_NB_PER_EDGE);
             assert(lv1 < INTERNAL_CONTROL_POINTS_NB_PER_EDGE);
@@ -189,7 +215,7 @@ namespace geolio
          */
         [[nodiscard]] GEO::index_t cell_vertex_cv(const GEO::index_t c, const GEO::index_t lv) const {
             assert(c < mesh_.cells.nb());
-            return element_control_nodes_[c*CONTROL_POINTS_NB_PER_CELL + vertex_lcv(lv)];
+            return element_control_nodes_[c*CONTROL_POINTS_NB_PER_CELL + cell_vertex_lcv(lv)];
         }
 
         /**
@@ -201,7 +227,7 @@ namespace geolio
          */
         [[nodiscard]] GEO::index_t cell_edge_cv(const GEO::index_t c, const GEO::index_t le, const GEO::index_t lv) const {
             assert(c < mesh_.cells.nb());
-            return element_control_nodes_[c*CONTROL_POINTS_NB_PER_CELL + edge_lcv(le, lv)];
+            return element_control_nodes_[c*CONTROL_POINTS_NB_PER_CELL + cell_edge_lcv(le, lv)];
         }
 
         /**
@@ -213,7 +239,7 @@ namespace geolio
          */
         [[nodiscard]] GEO::index_t cell_edge_inner_cv(const GEO::index_t c, const GEO::index_t le, const GEO::index_t lv) const {
             assert(c < mesh_.cells.nb());
-            return element_control_nodes_[c*CONTROL_POINTS_NB_PER_CELL + edge_inner_lcv(le, lv)];
+            return element_control_nodes_[c*CONTROL_POINTS_NB_PER_CELL + cell_edge_inner_lcv(le, lv)];
         }
 
         /**
@@ -226,7 +252,7 @@ namespace geolio
          */
         [[nodiscard]] GEO::index_t cell_facet_cv(const GEO::index_t c, const GEO::index_t lf, const GEO::index_t lv0, const GEO::index_t lv1) const {
             assert(c < mesh_.cells.nb());
-            return element_control_nodes_[c*CONTROL_POINTS_NB_PER_CELL + facet_lcv(lf, lv0, lv1)];
+            return element_control_nodes_[c*CONTROL_POINTS_NB_PER_CELL + cell_facet_lcv(lf, lv0, lv1)];
         }
 
         /**
@@ -239,7 +265,7 @@ namespace geolio
          */
         [[nodiscard]] GEO::index_t cell_facet_inner_cv(const GEO::index_t c, const GEO::index_t lf, const GEO::index_t lv0, const GEO::index_t lv1) const {
             assert(c < mesh_.cells.nb());
-            return element_control_nodes_[c*CONTROL_POINTS_NB_PER_CELL + facet_inner_lcv(lf, lv0, lv1)];
+            return element_control_nodes_[c*CONTROL_POINTS_NB_PER_CELL + cell_facet_inner_lcv(lf, lv0, lv1)];
         }
 
         /**
@@ -368,6 +394,7 @@ namespace geolio
             std::vector<double>& dBu, std::vector<double>& dBv, std::vector<double>& dBw) const;
 
     protected:
+        virtual void initialize_nodes_arrangement() = 0;
         GEO::index_t CONTROL_POINTS_NB_PER_EDGE = GEO::NO_INDEX;
         GEO::index_t CONTROL_POINTS_NB_PER_FACET = GEO::NO_INDEX;
         GEO::index_t CONTROL_POINTS_NB_PER_CELL = GEO::NO_INDEX;

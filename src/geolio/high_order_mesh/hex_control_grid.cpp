@@ -7,6 +7,8 @@
 #include <geolio/common/pair_hash.h>
 #include <geolio/common/log.h>
 
+#include "basis_functions.h"
+#include "geolio/common/Gauss_Legendre_quadrature_cube.h"
 #include "geolio/mesh/hex_operations.h"
 
 namespace geolio
@@ -365,7 +367,7 @@ namespace geolio
             for (GEO::index_t lv = 0; lv < 8; ++lv)
                 element_control_nodes_[
                     CELL_BEGIN_IDX +
-                    vertex_lcv(lv)
+                    cell_vertex_lcv(lv)
                     ] = mesh_.cells.vertex(c, lv);
 
             /* For edges */
@@ -382,14 +384,14 @@ namespace geolio
                     for (GEO::index_t lv = 0; lv < INTERNAL_CONTROL_POINTS_NB_PER_EDGE; ++lv)
                         element_control_nodes_[
                             CELL_BEGIN_IDX +
-                            edge_inner_lcv(le, lv)
+                            cell_edge_inner_lcv(le, lv)
                             ] = edge_control_points[lv];
                 }
                 else { // need to inverse
                     for (GEO::index_t lv = 0; lv < INTERNAL_CONTROL_POINTS_NB_PER_EDGE; ++lv)
                         element_control_nodes_[
                             CELL_BEGIN_IDX +
-                            edge_inner_lcv(le, lv)
+                            cell_edge_inner_lcv(le, lv)
                             ] = edge_control_points[INTERNAL_CONTROL_POINTS_NB_PER_EDGE-1-lv];
                 }
             }
@@ -403,7 +405,7 @@ namespace geolio
                     for (GEO::index_t lv0 = 0; lv0 < INTERNAL_CONTROL_POINTS_NB_PER_EDGE; ++lv0)
                         element_control_nodes_[
                             CELL_BEGIN_IDX +
-                            facet_inner_lcv(lf, lv0, lv1)
+                            cell_facet_inner_lcv(lf, lv0, lv1)
                             ] = facet_control_points[lv1*INTERNAL_CONTROL_POINTS_NB_PER_EDGE + lv0];
                 }
             }
@@ -420,6 +422,196 @@ namespace geolio
                             cell_inner_lcv(lv0, lv1, lv2)
                             ] = cell_control_points[lv2*INTERNAL_CONTROL_POINTS_NB_PER_FACET + lv1*INTERNAL_CONTROL_POINTS_NB_PER_EDGE + lv0];
                     }
+                }
+            }
+        }
+    }
+
+    void HexControlGrid::compute_cell_uvw_Jacobian(
+        const GEO::index_t c,
+        const GEO::vec3& uvw,
+        Eigen::Matrix3d& J
+        ) const {
+        assert(c < mesh_.cells.nb());
+        assert(uvw.x >= 0 && uvw.x <= 1);
+        assert(uvw.y >= 0 && uvw.y <= 1);
+        assert(uvw.z >= 0 && uvw.z <= 1);
+
+        GEO::vec3 du, dv, dw;
+        std::vector<double> Bu, Bv, Bw, dBu, dBv, dBw;
+        compute_cell_uvw_dudvdw(c, uvw, du, dv, dw, Bu, Bv, Bw, dBu, dBv, dBw);
+
+        J(0, 0) = du.x;
+        J(1, 0) = du.y;
+        J(2, 0) = du.z;
+        J(0, 1) = dv.x;
+        J(1, 1) = dv.y;
+        J(2, 1) = dv.z;
+        J(0, 2) = dw.x;
+        J(1, 2) = dw.y;
+        J(2, 2) = dw.z;
+    }
+
+    double HexControlGrid::compute_cell_uvw_measure(
+        const GEO::index_t c,
+        const GEO::vec3& uvw,
+        const MeasureType quality_type
+        ) const {
+        assert(c < mesh_.cells.nb());
+        assert(uvw.x >= 0 && uvw.x <= 1);
+        assert(uvw.y >= 0 && uvw.y <= 1);
+        assert(uvw.z >= 0 && uvw.z <= 1);
+
+        GEO::vec3 du, dv, dw;
+        std::vector<double> Bu, Bv, Bw, dBu, dBv, dBw;
+        compute_cell_uvw_dudvdw(c, uvw, du, dv, dw, Bu, Bv, Bw, dBu, dBv, dBw);
+
+        const double det_J = GEO::dot(dw,GEO::cross(du,dv));
+        switch (quality_type) {
+            case MeasureType::JACOBIAN: {
+                return det_J;
+            }
+            case MeasureType::MIPS: {
+                const double F_sq_norm = du.length2()+dv.length2()+dw.length2();
+                return F_sq_norm / (3.0*std::cbrt(det_J*det_J));
+            }
+            case MeasureType::SCALED_JACOBIAN: {
+                return det_J/(du.length()*dv.length()*dw.length());
+            }
+            case MeasureType::INVERSE_MEAN_RATIO: {
+                const double F_sq_norm = du.length2()+dv.length2()+dw.length2();
+                return 3.0*std::cbrt(det_J*det_J)/F_sq_norm;
+            }
+            default: assert(0);
+        }
+        return 0;
+    }
+
+    void HexControlGrid::compute_cell_uvw_detJ_gradient(
+        const GEO::index_t c,
+        const GEO::vec3& uvw,
+        std::vector<double>& gradient
+        ) const {
+        assert(c < mesh_.cells.nb());
+        assert(uvw.x >= 0 && uvw.x <= 1);
+        assert(uvw.y >= 0 && uvw.y <= 1);
+        assert(uvw.z >= 0 && uvw.z <= 1);
+
+        GEO::vec3 du, dv, dw;
+        std::vector<double> Bu, Bv, Bw, dBu, dBv, dBw;
+        compute_cell_uvw_dudvdw(c, uvw, du, dv, dw, Bu, Bv, Bw, dBu, dBv, dBw);
+
+        const GEO::vec3 cross_dvdw = GEO::cross(dv, dw);
+        const GEO::vec3 cross_dwdu = GEO::cross(dw, du);
+        const GEO::vec3 cross_dudv = GEO::cross(du, dv);
+
+        gradient.resize(3*CONTROL_POINTS_NB_PER_CELL);
+
+        for (GEO::index_t k = 0; k < CONTROL_POINTS_NB_PER_EDGE; ++k) {
+            for (GEO::index_t j = 0; j < CONTROL_POINTS_NB_PER_EDGE; ++j) {
+                const double basis_vw = Bv[j] * Bw[k];
+                const double basis_dvw= dBv[j] * Bw[k];
+                const double basis_vdw= Bv[j] * dBw[k];
+                for (GEO::index_t i = 0; i < CONTROL_POINTS_NB_PER_EDGE; ++i) {
+                    const double lag_basis_duvw = dBu[i] * basis_vw;
+                    const double lag_basis_udvw = Bu[i] * basis_dvw;
+                    const double lag_basis_uvdw = Bu[i] * basis_vdw;
+                    const auto& lcv = cell_lcv(i, j, k);
+                    const auto& g = lag_basis_duvw*cross_dvdw + lag_basis_udvw*cross_dwdu + lag_basis_uvdw*cross_dudv;
+                    gradient[3*lcv] = g.x;
+                    gradient[3*lcv+1] = g.y;
+                    gradient[3*lcv+2] = g.z;
+                }
+            }
+        }
+    }
+
+    void HexControlGrid::compute_cells_volume(
+        std::vector<double>& volumes
+        ) const {
+        volumes.resize(mesh_.cells.nb());
+
+        /* 2k-1 >= 3*order-1  ->  k >= 1.5*order */
+        std::vector<std::pair<GEO::vec3, double>> points_and_weights;
+        geolio::get_Gauss_Legendre_quadrature_cube(std::ceil(1.5*ORDER_), points_and_weights);
+
+        for (const auto& c : mesh_.cells) {
+            double V = 0;
+            for (const auto& [uvw, w] : points_and_weights)
+                V += w * compute_cell_uvw_measure(c, uvw, HexControlGrid::MeasureType::JACOBIAN);
+            volumes[c] = V;
+        }
+
+        // DEBUG
+        {
+            // GEO::Mesh M_out;
+            // M_out.copy(mesh_);
+            // GEO::Attribute<double> M_out_c_volume(M_out.cells.attributes(), "volume");
+            // GEO::Attribute<double> M_out_c_appro_volume(M_out.cells.attributes(), "appro_volume");
+            // for (const auto& c : mesh_.cells) {
+            //     M_out_c_volume[c] = volumes[c];
+            //
+            //     const auto& p0 = mesh_.cells.point(c, 0);
+            //     const auto& p1 = mesh_.cells.point(c, 1);
+            //     const auto& p2 = mesh_.cells.point(c, 2);
+            //     const auto& p4 = mesh_.cells.point(c, 4);
+            //     M_out_c_appro_volume[c] = GEO::length(p1-p0)*GEO::length(p2-p0)*GEO::length(p4-p0);
+            // }
+            //
+            // GEO::mesh_save(M_out, "debug.geogram");
+            // THROW_RUNTIME_ERROR("im here");
+        }
+    }
+
+    void HexControlGrid::compute_cell_vertices_position_matrix(
+        const GEO::index_t c,
+        Eigen::MatrixXd& P
+        ) {
+        assert(c < mesh_.cells.nb());
+        assert(P.rows() == 3);
+        assert(P.cols() == CONTROL_POINTS_NB_PER_CELL);
+
+        for (GEO::index_t i = 0; i < CONTROL_POINTS_NB_PER_CELL; ++i) {
+            const auto& cv = element_control_nodes_[CONTROL_POINTS_NB_PER_CELL*c+i];
+            const auto& cp = control_node(cv);
+            P(0, i) = cp.x;
+            P(1, i) = cp.y;
+            P(2, i) = cp.z;
+        }
+    }
+
+    void HexControlGrid::compute_basis_gradient_matrix(
+        const GEO::vec3& uvw,
+        Eigen::MatrixXd& Bg
+        ) const {
+        assert(uvw.x >= 0 && uvw.x <= 1);
+        assert(uvw.y >= 0 && uvw.y <= 1);
+        assert(uvw.z >= 0 && uvw.z <= 1);
+        assert(Bg.rows() == CONTROL_POINTS_NB_PER_CELL);
+        assert(Bg.cols() == 3);
+
+        std::vector<double> Bu(ORDER_+1);
+        std::vector<double> Bv(ORDER_+1);
+        std::vector<double> Bw(ORDER_+1);
+        std::vector<double> dBu(ORDER_+1);
+        std::vector<double> dBv(ORDER_+1);
+        std::vector<double> dBw(ORDER_+1);
+        Lagrange_basis_1D(uvw.x, node_positions_1D_, Bu);
+        Lagrange_basis_1D(uvw.y, node_positions_1D_, Bv);
+        Lagrange_basis_1D(uvw.z, node_positions_1D_, Bw);
+        Lagrange_basis_deriv_1D(uvw.x, node_positions_1D_, dBu);
+        Lagrange_basis_deriv_1D(uvw.y, node_positions_1D_, dBv);
+        Lagrange_basis_deriv_1D(uvw.z, node_positions_1D_, dBw);
+        for (GEO::index_t i = 0; i < CONTROL_POINTS_NB_PER_EDGE; ++i) {
+            for (GEO::index_t j = 0; j < CONTROL_POINTS_NB_PER_EDGE; ++j) {
+                const auto dBu_Bv = dBu[i]*Bv[j];
+                const auto Bu_dBv = Bu[i]*dBv[j];
+                const auto Bu_Bv = Bu[i]*Bv[j];
+                for (GEO::index_t k = 0; k < CONTROL_POINTS_NB_PER_EDGE; ++k) {
+                    const auto N = cell_lcv(i, j, k);
+                    Bg(N, 0) = dBu_Bv*Bw[k];
+                    Bg(N, 1) = Bu_dBv*Bw[k];
+                    Bg(N, 2) = Bu_Bv*dBw[k];
                 }
             }
         }
