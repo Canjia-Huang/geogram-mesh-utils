@@ -15,6 +15,8 @@ namespace geolio
 
         virtual ~ControlGrid() = default;
 
+        const auto& mesh() const { return mesh_; }
+
         enum class NodesType {
             EQUALLY_SPACED_NODES,
             CHEBYSHEV_GAUSS,
