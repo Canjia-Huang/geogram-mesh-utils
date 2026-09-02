@@ -26,7 +26,41 @@ namespace geolio
 
         void set_nodes_type(NodesType nodes_type);
 
-        [[nodiscard]] const auto& control_nodes() const { return control_nodes_; }
+        // [[nodiscard]] const auto& control_nodes() const { return control_nodes_; }
+
+        [[nodiscard]] const auto& control_nodes_nb() const { return control_nodes_nb_; }
+
+        auto& control_node(const GEO::index_t v) {
+            assert(v < control_nodes_nb_);
+            return GEO::Memory::pointer_as_reference<GEO::vec3>(&control_nodes_[CONTROL_NODES_DIM_*v]);
+        }
+
+        [[nodiscard]] const auto& control_node(const GEO::index_t v) const {
+            assert(v < control_nodes_nb_);
+            return GEO::Memory::pointer_as_reference<GEO::vec3>(&control_nodes_[CONTROL_NODES_DIM_*v]);
+        }
+
+        auto control_nodes() {
+            return GEO::transform_range_ref(
+                GEO::index_range(0, control_nodes_nb_),
+                [this](GEO::index_t v)->const GEO::vec3& {
+                    return GEO::Memory::pointer_as_reference<GEO::vec3>(&control_nodes_[CONTROL_NODES_DIM_*v]);
+                }
+            );
+        }
+
+        [[nodiscard]] auto control_nodes() const {
+            return GEO::transform_range_ref(
+                GEO::index_range(0, control_nodes_nb_),
+                [this](GEO::index_t v)->const GEO::vec3& {
+                    return GEO::Memory::pointer_as_reference<GEO::vec3>(&control_nodes_[CONTROL_NODES_DIM_*v]);
+                }
+            );
+        }
+
+        auto* control_node_ptr(const GEO::index_t v) {
+            return &control_nodes_[CONTROL_NODES_DIM_*v];
+        }
 
     protected:
         const GEO::Mesh& mesh_;
@@ -39,7 +73,9 @@ namespace geolio
         const GEO::index_t ORDER_;
 
         virtual void initialize_control_nodes() = 0;
-        std::vector<GEO::vec3> control_nodes_;
+        const GEO::index_t CONTROL_NODES_DIM_ = 3;
+        GEO::index_t control_nodes_nb_ = 0;
+        std::vector<double> control_nodes_;
         std::vector<GEO::index_t> element_control_nodes_;
     };
 
@@ -265,7 +301,7 @@ namespace geolio
          */
         [[nodiscard]] auto& get_cv_position(const GEO::index_t cv) {
             assert(cv < control_nodes_.size());
-            return control_nodes_[cv];
+            return control_node(cv);
         }
 
         /**
@@ -275,7 +311,7 @@ namespace geolio
          */
         [[nodiscard]] const auto& get_cv_position(const GEO::index_t cv) const {
             assert(cv < control_nodes_.size());
-            return control_nodes_[cv];
+            return control_node(cv);
         }
 
         /**
@@ -297,6 +333,29 @@ namespace geolio
          *       `grid_` to compute the mapped position.
          */
         [[nodiscard]] GEO::vec3 compute_cell_uvw_position(GEO::index_t c, const GEO::vec3& uvw) const;
+
+        /**
+         * @brief Map a parametric coordinate to physical space using provided control positions.
+         *
+         * Variant of `compute_cell_uvw_position` that evaluates the cell mapping
+         * using an externally supplied flat array of control-node positions. This
+         * is useful for evaluating hypothetical configurations (e.g., during
+         * optimization) without modifying the internal control grid.
+         *
+         * @param[in] c Index of the hexahedral cell (0..hex_mesh_.cells.nb()-1).
+         * @param[in] uvw Parametric coordinate in the cell-local domain [0,1]^3.
+         * @param[in] cur_control_nodes_ptr Pointer to a flat array of control-node
+         *            coordinates in the same layout used by the optimizer
+         *            (`[x0,y0,z0,x1,y1,z1,...]` for all control vertices). The
+         *            array must contain at least `3 * control_points_nb()` entries.
+         *
+         * @return Physical-space position corresponding to the input parametric point
+         *         evaluated with the provided control-node positions.
+         *
+         * @note The function does not take ownership of `control_nodes_position` and
+         *       treats it as read-only. Caller must ensure the buffer is valid.
+         */
+        [[nodiscard]] GEO::vec3 compute_cell_uvw_position(GEO::index_t c, const GEO::vec3& uvw, const double* cur_control_nodes_ptr) const;
 
         /**
          * Evaluate the (non-unit) physical normal of a high-order cell facet.

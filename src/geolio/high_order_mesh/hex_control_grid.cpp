@@ -186,18 +186,16 @@ namespace geolio
         // LOG::DEBUG("found {} facets and {} edges in the hex mesh", hex_facets_nb, hex_edges_control_points.size());
 
         /* == Create grid elements ================================================================================= */
-        control_nodes_.clear();
-        control_nodes_.resize(
-            mesh_.vertices.nb() + // vertices
-            hex_edges_control_points.size() * INTERNAL_CONTROL_POINTS_NB_PER_EDGE + // edges
-            hex_facets_nb * INTERNAL_CONTROL_POINTS_NB_PER_FACET + // facets
-            mesh_.cells.nb() * INTERNAL_CONTROL_POINTS_NB_PER_CELL // cells
-            );
+        control_nodes_nb_ = mesh_.vertices.nb() + // vertices
+                            hex_edges_control_points.size() * INTERNAL_CONTROL_POINTS_NB_PER_EDGE + // edges
+                            hex_facets_nb * INTERNAL_CONTROL_POINTS_NB_PER_FACET + // facets
+                            mesh_.cells.nb() * INTERNAL_CONTROL_POINTS_NB_PER_CELL; // cells
+        control_nodes_.assign(CONTROL_NODES_DIM_*control_nodes_nb_, 0.0);
         GEO::index_t new_v = 0;
 
         /* == For vertices == */
         for (const auto& v : mesh_.vertices)
-            control_nodes_[new_v++] = mesh_.vertices.point(v);
+            control_node(new_v++) = mesh_.vertices.point(v);
 
         /* == For edges == */
         for (auto& [edge, control_vertices] : hex_edges_control_points) {
@@ -205,7 +203,7 @@ namespace geolio
             const auto& ep1 = mesh_.vertices.point(edge.second);
             for (GEO::index_t i = 0, i_end = ORDER_-1; i < i_end; ++i) {
                 const double r = node_positions_1D_[i+1];
-                control_nodes_[new_v] = (1-r)*ep0 + r*ep1;
+                control_node(new_v) = (1-r)*ep0 + r*ep1;
                 control_vertices[i] = new_v;
                 ++new_v;
             }
@@ -239,10 +237,10 @@ namespace geolio
                     for (GEO::index_t j = 0, j_end = ORDER_-1; j < j_end; ++j) {
                         const double rj = node_positions_1D_[j+1];
 
-                        control_nodes_[new_v] = (1-ri)*(1-rj)*lf_p0
-                                                    + ri*(1-rj)*lf_p3
-                                                    + (1-ri)*rj*lf_p1
-                                                    + ri*rj*lf_p2;
+                        control_node(new_v) = (1-ri)*(1-rj)*lf_p0
+                                            + ri*(1-rj)*lf_p3
+                                            + (1-ri)*rj*lf_p1
+                                            + ri*rj*lf_p2;
                         lf_control_points.push_back(new_v);
                         ++new_v;
                     }
@@ -280,7 +278,7 @@ namespace geolio
                     else if (nclf_v0 == lf_v2) {
                         for (GEO::index_t i = 0, i_end = ORDER_-1; i < i_end; ++i) {
                             for (GEO::index_t j = 0, j_end = ORDER_-1; j < j_end; ++j)
-                                nclf_control_points.push_back(lf_control_points[std::pow(ORDER_-1,2)-1-i-(ORDER_-1)*j]);
+                                nclf_control_points.push_back(lf_control_points[(ORDER_-1)*(ORDER_-1)-1-i-(ORDER_-1)*j]);
                         }
                     }
                     else if (nclf_v0 == lf_v3) {
@@ -320,7 +318,7 @@ namespace geolio
                     for (GEO::index_t k = 0, k_end = ORDER_-1; k < k_end; ++k) {
                         const double rk = node_positions_1D_[k+1];
 
-                        control_nodes_[new_v] = (1-ri)*(1-rj)*(1-rk)*c_p0
+                        control_node(new_v) = (1-ri)*(1-rj)*(1-rk)*c_p0
                                                 + ri*(1-rj)*(1-rk)*c_p1
                                                 + (1-ri)*rj*(1-rk)*c_p2
                                                 + ri*rj*(1-rk)*c_p3
@@ -338,7 +336,6 @@ namespace geolio
         assert(new_v == control_nodes_.size());
 
         /* == Create regular index ================================================================================= */
-        element_control_nodes_.clear();
         element_control_nodes_.assign(CONTROL_POINTS_NB_PER_CELL * mesh_.cells.nb(), GEO::NO_VERTEX);
         /* [(order+1)^3 * c + lv] -> hex cell c's control vertex lv
             For a hex (0, 1, 2, 3, 4, 5, 6, 7),
