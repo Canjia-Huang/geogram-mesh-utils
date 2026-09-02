@@ -26,6 +26,8 @@ namespace geolio
 
         void set_nodes_type(NodesType nodes_type);
 
+        [[nodiscard]] const auto& control_nodes() const { return control_nodes_; }
+
     protected:
         const GEO::Mesh& mesh_;
 
@@ -339,6 +341,7 @@ namespace geolio
             GEO::vec3& du, GEO::vec3& dv, GEO::vec3& dw,
             std::vector<double>& Bu, std::vector<double>& Bv, std::vector<double>& Bw,
             std::vector<double>& dBu, std::vector<double>& dBv, std::vector<double>& dBw) const;
+
     protected:
         GEO::index_t CONTROL_POINTS_NB_PER_EDGE = GEO::NO_INDEX;
         GEO::index_t CONTROL_POINTS_NB_PER_FACET = GEO::NO_INDEX;

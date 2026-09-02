@@ -340,6 +340,24 @@ namespace geolio
         /* == Create regular index ================================================================================= */
         element_control_nodes_.clear();
         element_control_nodes_.assign(CONTROL_POINTS_NB_PER_CELL * mesh_.cells.nb(), GEO::NO_VERTEX);
+        /* [(order+1)^3 * c + lv] -> hex cell c's control vertex lv
+            For a hex (0, 1, 2, 3, 4, 5, 6, 7),
+
+              +Z                4-------6        lf-0: (0-2-6-4)     le-0:  (0-1)
+              |                /|      /|        lf-1: (3-1-5-7)     le-1:  (1-3)
+              o --- +Y        5-------7 |        lf-2: (1-0-4-5)     le-2:  (3-2)
+             /                | 0-----|-2        lf-3: (2-3-7-6)     le-3:  (2-0)
+            +X                |/      |/         lf-4: (1-3-2-0)     le-4:  (4-5)
+                              1-------3          lf-5: (4-6-7-5)     le-5:  (5-7)
+                                                                     le-6:  (7-6)
+                                                                     le-7:  (6-4)
+                                                                     le-8:  (0-4)
+                                                                     le-9:  (1-5)
+                                                                     le-10: (3-7)
+                                                                     le-11: (2-6)
+
+            the arrangement of the control points is:
+                dimension 1: cv0 -> cv1, dimension 2: cv0 -> cv2 ,dimension 3: cv0 -> cv4 */
 
         for (const auto& c : mesh_.cells) {
             const GEO::index_t CELL_BEGIN_IDX = c*CONTROL_POINTS_NB_PER_CELL;
