@@ -5,11 +5,13 @@
 #ifndef GEOLIO_OVM_IO_H
 #define GEOLIO_OVM_IO_H
 #include <geogram/mesh/mesh_io.h>
-
 #include "line_stream.h"
 
 namespace geolio
 {
+    /**
+     * I/O for ".ovm" files exported by OpenVolumeMesh https://www.graphics.rwth-aachen.de/software/openvolumemesh/
+     */
     class OVM_IOHandler : public GEO::MeshIOHandler {
     public:
         bool load(
