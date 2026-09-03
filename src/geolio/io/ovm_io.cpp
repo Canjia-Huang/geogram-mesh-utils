@@ -131,25 +131,28 @@ namespace geolio
                     }
 
                     /* Create facets */
+                    constexpr GEO::index_t FACET_TYPE_TRI = 0;
+                    constexpr GEO::index_t FACET_TYPE_QUAD = 1;
+                    constexpr GEO::index_t FACET_TYPE_POLY = 2;
                     for (GEO::index_t begin_fi = 0, fi_end = facet_ptr.size(); begin_fi < fi_end;) {
                         GEO::index_t end_fi = begin_fi;
                         GEO::index_t facets_nb = 0;
-                        GEO::index_t facet_type; // 0: triangle, 1: quad, 2: polygon
+                        GEO::index_t facet_type; // FACET_TYPE_TRI, FACET_TYPE_QUAD, FACET_TYPE_POLY
                         {
                             if (const GEO::index_t fv_nb = facet_ptr[begin_fi];
                                 fv_nb == 3)
-                                facet_type = 0;
+                                facet_type = FACET_TYPE_TRI;
                             else if (fv_nb == 4)
-                                facet_type = 1;
+                                facet_type = FACET_TYPE_QUAD;
                             else
-                                facet_type = 2;
+                                facet_type = FACET_TYPE_POLY;
                         }
 
                         while (end_fi < fi_end) {
                             if (const GEO::index_t fv_nb = facet_ptr[end_fi];
-                                (facet_type == 0 && fv_nb == 3) ||
-                                (facet_type == 1 && fv_nb == 4) ||
-                                (facet_type == 2 && fv_nb > 4)
+                                (facet_type == FACET_TYPE_TRI  && fv_nb == 3) ||
+                                (facet_type == FACET_TYPE_QUAD && fv_nb == 4) ||
+                                (facet_type == FACET_TYPE_POLY && fv_nb > 4)
                                 ) {
                                 ++facets_nb;
                                 end_fi += fv_nb+1;
@@ -158,7 +161,7 @@ namespace geolio
                                 break;
                         }
 
-                        if (facet_type == 0) {
+                        if (facet_type == FACET_TYPE_TRI) {
                             GEO::index_t new_f = M.facets.create_triangles(facets_nb);
                             for (; begin_fi < end_fi; ++begin_fi) {
                                 assert(facet_ptr[begin_fi] == 3);
@@ -170,7 +173,7 @@ namespace geolio
                             }
                             assert(new_f == M.facets.nb());
                         }
-                        else if (facet_type == 1) {
+                        else if (facet_type == FACET_TYPE_QUAD) {
                             GEO::index_t new_f = M.facets.create_quads(facets_nb);
                             for (; begin_fi < end_fi; ++begin_fi) {
                                 assert(facet_ptr[begin_fi] == 4);
@@ -184,7 +187,7 @@ namespace geolio
                             assert(new_f == M.facets.nb());
                         }
                         else {
-                            assert(facet_type == 2);
+                            assert(facet_type == FACET_TYPE_POLY);
                             M.facets.reserve(facets_nb);
                             for (; begin_fi < end_fi; ++begin_fi) {
                                 const GEO::index_t fv_nb = facet_ptr[begin_fi];
@@ -211,9 +214,6 @@ namespace geolio
                     const GEO::index_t nb_polyhedra = in.field_as_uint(0);
 
                     std::vector<GEO::index_t> cell_ptr; // nb_vertices, hf0, hf1, ..., hfn, nb_vertices, hf1, ...
-                    GEO::index_t tets_nb = 0;
-                    GEO::index_t hexes_nb = 0;
-                    GEO::index_t polyhedra_nb = 0;
                     for (GEO::index_t i = 0; i < nb_polyhedra; ++i) {
                         in.get_line();
                         in.get_fields();
@@ -221,13 +221,7 @@ namespace geolio
                             throw std::runtime_error("Line "+std::to_string(in.line_number())+" :Invalid cell, empty line!");
 
                         const GEO::index_t cf_nb = in.field_as_uint(0);
-                        if (cf_nb == 4)
-                            ++tets_nb;
-                        else if (cf_nb == 6)
-                            ++hexes_nb;
-                        else if (cf_nb > 6)
-                            ++polyhedra_nb;
-                        else
+                        if (cf_nb != 4 && cf_nb != 6)
                             throw std::runtime_error("Line "+std::to_string(in.line_number())+" :Invalid cell vertices nb "+std::to_string(cf_nb)+"!");
 
                         if (in.nb_fields() != cf_nb+1)
@@ -244,137 +238,165 @@ namespace geolio
                     }
 
                     /* Create cells */
-                    if (tets_nb != 0) {
-                        throw std::runtime_error("Not support tets yet!");
-                    }
-                    if (hexes_nb != 0) {
-                        GEO::index_t new_c = M.cells.create_hexes(hexes_nb);
-                        for (GEO::index_t i = 0, i_end = cell_ptr.size(); i < i_end; ++i) {
-                            const GEO::index_t cf_nb = cell_ptr[i];
-                            if (cf_nb == 6) {
-                                const auto& hf0 = cell_ptr[i+1];
-                                const auto& hf1 = cell_ptr[i+2];
-                                const auto& hf3 = cell_ptr[i+4];
-                                const auto& hf4 = cell_ptr[i+5];
-                                const auto f0 = hf0/2;
-                                const auto f1 = hf1/2;
-                                const auto f3 = hf3/2;
-                                const auto f4 = hf4/2;
-                                assert(f0 < M.facets.nb());
-                                assert(f1 < M.facets.nb());
-                                assert(M.facets.nb_vertices(f0) == 4); // quad
-                                assert(M.facets.nb_vertices(f1) == 4); // quad
-                                // ref: https://github.com/LIHPC-Computational-Geometry/ovm.io/blob/main/app/ovm.io.cpp
-                                // OVM convention is
-                                //       5-------6
-                                //      /|      /|
-                                //     / |     / |
-                                //    3-------2  |
-                                //    |  4----|--7
-                                //    | /     | /
-                                //    |/      |/
-                                //    0-------1
-                                //
-                                // and Geogram convention is
-                                //        4-------6
-                                //       /|      /|
-                                //      / |     / |
-                                //     0-------2  |
-                                //     |  5----|--7
-                                //     | /     | /
-                                //     |/      |/
-                                //     1-------3
-                                /* Find v0 (f0, f3, f4) */
-                                GEO::index_t v0 = GEO::NO_VERTEX;
-                                {
-                                    for (GEO::index_t lv0 = 0; lv0 < 4; ++lv0) {
-                                        const auto& f0v = M.facets.vertex(f0, lv0);
-                                        for (GEO::index_t lv3 = 0; lv3 < 4; ++lv3) {
-                                            if (const auto& f3v = M.facets.vertex(f3, lv3);
-                                                f3v != f0v)
-                                                continue;
-                                            for (GEO::index_t lv4 = 0; lv4 < 4; ++lv4) {
-                                                if (const auto& f4v = M.facets.vertex(f4, lv4);
-                                                    f4v != f0v)
+                    constexpr GEO::index_t CELL_TYPE_TET = 0;
+                    constexpr GEO::index_t CELL_TYPE_HEX = 1;
+                    for (GEO::index_t begin_ci = 0, ci_end = cell_ptr.size(); begin_ci < ci_end;) {
+                        GEO::index_t end_ci = begin_ci;
+                        GEO::index_t cells_nb = 0;
+                        GEO::index_t cell_type; // CELL_TYPE_TET, CELL_TYPE_HEX
+                        {
+                            if (const GEO::index_t cf_nb = cell_ptr[begin_ci];
+                                cf_nb == 4)
+                                cell_type = CELL_TYPE_TET;
+                            else {
+                                assert(cf_nb == 6);
+                                cell_type = CELL_TYPE_HEX;
+                            }
+                        }
+
+                        while (end_ci < ci_end) {
+                            if (const GEO::index_t cf_nb = cell_ptr[end_ci];
+                                (cell_type == CELL_TYPE_TET && cf_nb == 4) ||
+                                (cell_type == CELL_TYPE_HEX && cf_nb == 6)
+                                ) {
+                                ++cells_nb;
+                                end_ci += cf_nb+1;
+                                }
+                            else
+                                break;
+                        }
+
+                        if (cell_type == CELL_TYPE_TET) {
+                            throw std::runtime_error("Not support tets yet!");
+                        }
+                        else if (cell_type == CELL_TYPE_HEX) {
+                            GEO::index_t new_c = M.cells.create_hexes(cells_nb);
+                            for (; begin_ci < end_ci; ++begin_ci) {
+                                const GEO::index_t cf_nb = cell_ptr[begin_ci];
+                                if (cf_nb == 6) {
+                                    const auto& hf0 = cell_ptr[begin_ci+1];
+                                    const auto& hf1 = cell_ptr[begin_ci+2];
+                                    const auto& hf3 = cell_ptr[begin_ci+4];
+                                    const auto& hf4 = cell_ptr[begin_ci+5];
+                                    const auto f0 = hf0/2;
+                                    const auto f1 = hf1/2;
+                                    const auto f3 = hf3/2;
+                                    const auto f4 = hf4/2;
+                                    assert(f0 < M.facets.nb());
+                                    assert(f1 < M.facets.nb());
+                                    assert(M.facets.nb_vertices(f0) == 4); // quad
+                                    assert(M.facets.nb_vertices(f1) == 4); // quad
+                                    // ref: https://github.com/LIHPC-Computational-Geometry/ovm.io/blob/main/app/ovm.io.cpp
+                                    // OVM convention is
+                                    //       5-------6
+                                    //      /|      /|
+                                    //     / |     / |
+                                    //    3-------2  |
+                                    //    |  4----|--7
+                                    //    | /     | /
+                                    //    |/      |/
+                                    //    0-------1
+                                    //
+                                    // and Geogram convention is
+                                    //        4-------6
+                                    //       /|      /|
+                                    //      / |     / |
+                                    //     0-------2  |
+                                    //     |  5----|--7
+                                    //     | /     | /
+                                    //     |/      |/
+                                    //     1-------3
+                                    /* Find v0 (f0, f3, f4) */
+                                    GEO::index_t v0 = GEO::NO_VERTEX;
+                                    {
+                                        for (GEO::index_t lv0 = 0; lv0 < 4; ++lv0) {
+                                            const auto& f0v = M.facets.vertex(f0, lv0);
+                                            for (GEO::index_t lv3 = 0; lv3 < 4; ++lv3) {
+                                                if (const auto& f3v = M.facets.vertex(f3, lv3);
+                                                    f3v != f0v)
                                                     continue;
-                                                v0 = f0v;
-                                                break;
+                                                for (GEO::index_t lv4 = 0; lv4 < 4; ++lv4) {
+                                                    if (const auto& f4v = M.facets.vertex(f4, lv4);
+                                                        f4v != f0v)
+                                                        continue;
+                                                    v0 = f0v;
+                                                    break;
+                                                }
+                                                if (v0 != GEO::NO_VERTEX)
+                                                    break;
                                             }
                                             if (v0 != GEO::NO_VERTEX)
                                                 break;
                                         }
-                                        if (v0 != GEO::NO_VERTEX)
-                                            break;
+                                        assert(v0 != GEO::NO_VERTEX);
                                     }
-                                    assert(v0 != GEO::NO_VERTEX);
-                                }
 
-                                /* Find v4 (f1, f3, f4) */
-                                GEO::index_t v4 = GEO::NO_VERTEX;
-                                {
-                                    for (GEO::index_t lv1 = 0; lv1 < 4; ++lv1) {
-                                        const auto& f1v = M.facets.vertex(f1, lv1);
-                                        for (GEO::index_t lv3 = 0; lv3 < 4; ++lv3) {
-                                            if (const auto& f3v = M.facets.vertex(f3, lv3);
-                                                f3v != f1v)
-                                                continue;
-                                            for (GEO::index_t lv4 = 0; lv4 < 4; ++lv4) {
-                                                if (const auto& f4v = M.facets.vertex(f4, lv4);
-                                                    f4v != f1v)
+                                    /* Find v4 (f1, f3, f4) */
+                                    GEO::index_t v4 = GEO::NO_VERTEX;
+                                    {
+                                        for (GEO::index_t lv1 = 0; lv1 < 4; ++lv1) {
+                                            const auto& f1v = M.facets.vertex(f1, lv1);
+                                            for (GEO::index_t lv3 = 0; lv3 < 4; ++lv3) {
+                                                if (const auto& f3v = M.facets.vertex(f3, lv3);
+                                                    f3v != f1v)
                                                     continue;
-                                                v4 = f1v;
-                                                break;
+                                                for (GEO::index_t lv4 = 0; lv4 < 4; ++lv4) {
+                                                    if (const auto& f4v = M.facets.vertex(f4, lv4);
+                                                        f4v != f1v)
+                                                        continue;
+                                                    v4 = f1v;
+                                                    break;
+                                                }
+                                                if (v4 != GEO::NO_VERTEX)
+                                                    break;
                                             }
                                             if (v4 != GEO::NO_VERTEX)
                                                 break;
                                         }
-                                        if (v4 != GEO::NO_VERTEX)
-                                            break;
+                                        assert(v4 != GEO::NO_VERTEX);
                                     }
-                                    assert(v4 != GEO::NO_VERTEX);
-                                }
 
-                                for (GEO::index_t lv = 0; lv < 4; ++lv) {
-                                    if (M.facets.vertex(f0, lv) != v0)
-                                        continue;
-                                    if (hf0%2 == 0) {
-                                        M.cells.set_vertex(new_c, 0, M.facets.vertex(f0, (lv+3)%4));
-                                        M.cells.set_vertex(new_c, 1, M.facets.vertex(f0, lv));
-                                        M.cells.set_vertex(new_c, 2, M.facets.vertex(f0, (lv+2)%4));
-                                        M.cells.set_vertex(new_c, 3, M.facets.vertex(f0, (lv+1)%4));
+                                    for (GEO::index_t lv = 0; lv < 4; ++lv) {
+                                        if (M.facets.vertex(f0, lv) != v0)
+                                            continue;
+                                        if (hf0%2 == 0) {
+                                            M.cells.set_vertex(new_c, 0, M.facets.vertex(f0, (lv+3)%4));
+                                            M.cells.set_vertex(new_c, 1, M.facets.vertex(f0, lv));
+                                            M.cells.set_vertex(new_c, 2, M.facets.vertex(f0, (lv+2)%4));
+                                            M.cells.set_vertex(new_c, 3, M.facets.vertex(f0, (lv+1)%4));
+                                        }
+                                        else { // inverse
+                                            M.cells.set_vertex(new_c, 0, M.facets.vertex(f0, (lv+1)%4));
+                                            M.cells.set_vertex(new_c, 1, M.facets.vertex(f0, lv));
+                                            M.cells.set_vertex(new_c, 2, M.facets.vertex(f0, (lv+2)%4));
+                                            M.cells.set_vertex(new_c, 3, M.facets.vertex(f0, (lv+3)%4));
+                                        }
                                     }
-                                    else { // inverse
-                                        M.cells.set_vertex(new_c, 0, M.facets.vertex(f0, (lv+1)%4));
-                                        M.cells.set_vertex(new_c, 1, M.facets.vertex(f0, lv));
-                                        M.cells.set_vertex(new_c, 2, M.facets.vertex(f0, (lv+2)%4));
-                                        M.cells.set_vertex(new_c, 3, M.facets.vertex(f0, (lv+3)%4));
-                                    }
-                                }
 
-                                for (GEO::index_t lv = 0; lv < 4; ++lv) {
-                                    if (M.facets.vertex(f1, lv) != v4)
-                                        continue;
-                                    if (hf1%2 == 0) {
-                                        M.cells.set_vertex(new_c, 4, M.facets.vertex(f1, (lv+1)%4));
-                                        M.cells.set_vertex(new_c, 5, M.facets.vertex(f1, lv));
-                                        M.cells.set_vertex(new_c, 6, M.facets.vertex(f1, (lv+2)%4));
-                                        M.cells.set_vertex(new_c, 7, M.facets.vertex(f1, (lv+3)%4));
+                                    for (GEO::index_t lv = 0; lv < 4; ++lv) {
+                                        if (M.facets.vertex(f1, lv) != v4)
+                                            continue;
+                                        if (hf1%2 == 0) {
+                                            M.cells.set_vertex(new_c, 4, M.facets.vertex(f1, (lv+1)%4));
+                                            M.cells.set_vertex(new_c, 5, M.facets.vertex(f1, lv));
+                                            M.cells.set_vertex(new_c, 6, M.facets.vertex(f1, (lv+2)%4));
+                                            M.cells.set_vertex(new_c, 7, M.facets.vertex(f1, (lv+3)%4));
+                                        }
+                                        else { // inverse
+                                            M.cells.set_vertex(new_c, 4, M.facets.vertex(f1, (lv+3)%4));
+                                            M.cells.set_vertex(new_c, 5, M.facets.vertex(f1, lv));
+                                            M.cells.set_vertex(new_c, 6, M.facets.vertex(f1, (lv+2)%4));
+                                            M.cells.set_vertex(new_c, 7, M.facets.vertex(f1, (lv+1)%4));
+                                        }
                                     }
-                                    else { // inverse
-                                        M.cells.set_vertex(new_c, 4, M.facets.vertex(f1, (lv+3)%4));
-                                        M.cells.set_vertex(new_c, 5, M.facets.vertex(f1, lv));
-                                        M.cells.set_vertex(new_c, 6, M.facets.vertex(f1, (lv+2)%4));
-                                        M.cells.set_vertex(new_c, 7, M.facets.vertex(f1, (lv+1)%4));
-                                    }
+                                    ++new_c;
                                 }
-                                ++new_c;
+                                begin_ci += cf_nb;
                             }
-                            i += cf_nb;
+                            assert(new_c == M.cells.nb());
                         }
-                        assert(new_c == M.cells.nb());
-                    }
-                    if (polyhedra_nb != 0) {
-                        throw std::runtime_error("Not support polyhedra yet!");
+
+                        assert(begin_ci == end_ci);
                     }
 
                     M.cells.connect();
