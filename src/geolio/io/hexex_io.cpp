@@ -3,13 +3,10 @@
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
 #include "hexex_io.h"
-
 #include <ranges>
 #include <unordered_set>
-
 #include "line_stream.h"
 #include <geolio/common/log.h>
-
 #include "geolio/common/array_hash.h"
 
 namespace geolio
@@ -23,8 +20,10 @@ namespace geolio
         M.vertices.set_dimension(3);
 
         LineInput in(filename);
-        if (!in.OK())
+        if (!in.OK()) {
+            LOG::ERROR("Cannot load file `{}`!", filename);
             return false;
+        }
 
         try {
             /* Load vertices */
@@ -203,7 +202,7 @@ namespace geolio
                         }
                     }
                     else
-                        throw std::runtime_error("Line "+std::to_string(in.line_number())+" :Invalid keyword");
+                        throw std::runtime_error("Line "+std::to_string(in.line_number())+" :Invalid keyword!");
                 }
             }
         }
