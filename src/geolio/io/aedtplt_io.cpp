@@ -19,8 +19,10 @@ namespace geolio
         M.vertices.set_dimension(3);
 
         LineInput in(filename);
-        if (!in.OK())
+        if (!in.OK()) {
+            LOG::ERROR("Cannot load file `{}`!", filename);
             return false;
+        }
 
         try {
             while (!in.eof()) {
