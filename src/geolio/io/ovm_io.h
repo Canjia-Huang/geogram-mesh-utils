@@ -6,6 +6,8 @@
 #define GEOLIO_OVM_IO_H
 #include <geogram/mesh/mesh_io.h>
 
+#include "line_stream.h"
+
 namespace geolio
 {
     class OVM_IOHandler : public GEO::MeshIOHandler {
@@ -23,6 +25,9 @@ namespace geolio
             ) override {
             return false;
         }
+
+    private:
+        static void parse_property(LineInput& in, GEO::AttributesManager& attributes_manager);
     };
 }
 
