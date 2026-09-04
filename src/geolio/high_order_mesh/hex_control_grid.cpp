@@ -21,7 +21,7 @@ namespace geolio
         assert(mesh.cells.nb() > 0);
         assert(std::all_of(
             mesh.cells.cell_type_ptr(0),
-            mesh.cells.cell_type_ptr(mesh.cells.nb()),
+            mesh.cells.cell_type_ptr(0)+mesh.cells.nb(),
             [&](const auto cell_type) { return cell_type == GEO::MESH_HEX; })); // check all-hex mesh
 
         HexControlGrid::initialize_nodes_arrangement();
@@ -30,6 +30,8 @@ namespace geolio
 
     void HexControlGrid::initialize_nodes_arrangement(
         ) {
+        // LOG::TRACE(__FUNCTION__);
+
         CONTROL_POINTS_NB_PER_EDGE = ORDER_+1;
         CONTROL_POINTS_NB_PER_FACET = CONTROL_POINTS_NB_PER_EDGE * CONTROL_POINTS_NB_PER_EDGE;
         CONTROL_POINTS_NB_PER_CELL = CONTROL_POINTS_NB_PER_EDGE * CONTROL_POINTS_NB_PER_EDGE * CONTROL_POINTS_NB_PER_EDGE;
@@ -144,6 +146,7 @@ namespace geolio
 
     void HexControlGrid::initialize_control_nodes(
         ) {
+        // LOG::TRACE(__FUNCTION__);
         assert(node_positions_1D_.size() == ORDER_+1);
 
         /* == Get all shared edges and facets ====================================================================== */
@@ -189,17 +192,19 @@ namespace geolio
 
         /* == Create grid elements ================================================================================= */
         control_nodes_.vertices.clear();
-        control_nodes_.vertices.create_vertices(
+        GEO::index_t new_v = control_nodes_.vertices.create_vertices(
                             mesh_.vertices.nb() + // vertices
                             hex_edges_control_points.size() * INTERNAL_CONTROL_POINTS_NB_PER_EDGE + // edges
                             hex_facets_nb * INTERNAL_CONTROL_POINTS_NB_PER_FACET + // facets
                             mesh_.cells.nb() * INTERNAL_CONTROL_POINTS_NB_PER_CELL // cells
                             );
-        GEO::index_t new_v = 0;
+        assert(new_v == 0);
 
         /* == For vertices == */
-        for (const auto& v : mesh_.vertices)
+        for (const auto& v : mesh_.vertices) {
+            LOG::DEBUG("new_v: {}/{}", new_v, control_nodes_nb());
             control_node(new_v++) = mesh_.vertices.point(v);
+        }
 
         /* == For edges == */
         for (auto& [edge, control_vertices] : hex_edges_control_points) {

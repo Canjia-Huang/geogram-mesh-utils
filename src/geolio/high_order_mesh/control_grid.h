@@ -75,7 +75,7 @@ namespace geolio
          * @brief Get the total number of control nodes.
          * @return Number of vertices stored in the control-node mesh.
          */
-        [[nodiscard]] const auto& control_nodes_nb() const { return control_nodes_.vertices.nb(); }
+        [[nodiscard]] auto control_nodes_nb() const { return control_nodes_.vertices.nb(); }
 
         /**
          * @brief Access a mutable control node by global index.
