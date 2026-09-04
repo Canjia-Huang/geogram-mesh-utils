@@ -82,7 +82,7 @@ namespace geolio
         GEO::vec3 Tu(0, 0, 0), Tv(0, 0, 0);
         for (GEO::index_t i = 0; i <= this->order_; ++i) {
             for (GEO::index_t j = 0; j <= this->order_; ++j) {
-                const auto& p = this->control_node(this->facet_cv(f, i, j));
+                const auto& p = this->control_node(this->facet_nd(f, i, j));
                 Tu += p * dBu[i] * Bv[j];
                 Tv += p * Bu[i] * dBv[j];
             }
@@ -95,8 +95,8 @@ namespace geolio
     void SurfaceControlGrid<DIM>::compute_facet_uv_dudv(
         const GEO::index_t f,
         const GEO::vec2& uv,
-        GEO::vec2& du,
-        GEO::vec2& dv,
+        GEO::vecng<DIM, double>& du,
+        GEO::vecng<DIM, double>& dv,
         std::vector<double>& Bu,
         std::vector<double>& Bv,
         std::vector<double>& dBu,
@@ -122,9 +122,12 @@ namespace geolio
             for (GEO::index_t j = 0; j <= this->order_; ++j) {
                 const double lag_basis_duv = dBu[i] * Bv[j];
                 const double lag_basis_udv = Bu[i] * dBv[j];
-                du += lag_basis_duv * this->control_node(this->facet_cv(f, i, j));
-                dv += lag_basis_udv * this->control_node(this->facet_cv(f, i, j));
+                du += lag_basis_duv * this->control_node(this->facet_nd(f, i, j));
+                dv += lag_basis_udv * this->control_node(this->facet_nd(f, i, j));
             }
         }
     }
+
+    template class SurfaceControlGrid<2>;
+    template class SurfaceControlGrid<3>;
 }

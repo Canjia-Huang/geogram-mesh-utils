@@ -13,6 +13,13 @@ namespace geolio
     public:
         QuadControlGrid(const GEO::Mesh& mesh, GEO::index_t order);
 
+        void append_discretized_high_order_facets(
+            GEO::Mesh& mesh_out,
+            GEO::index_t resolution = 10,
+            GEO::Attribute<GEO::index_t>* mesh_out_v_facet = nullptr,
+            GEO::Attribute<GEO::vec2>* mesh_out_v_uv = nullptr,
+            GEO::Attribute<GEO::index_t>* mesh_out_f_facet = nullptr) const;
+
     protected:
         /**
              * @brief Initialize local indexing/layout rules for hexahedral control nodes.

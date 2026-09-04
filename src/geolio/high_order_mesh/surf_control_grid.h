@@ -88,7 +88,7 @@ namespace geolio
          */
         [[nodiscard]] GEO::index_t facet_vertex_nd(const GEO::index_t f, const GEO::index_t lv) const {
             assert(f < this->mesh_.facets.nb());
-            return this->element_control_nodes_[f*this->CONTROL_POINTS_NB_PER_FACET_ + this->facet_vertex_lcv(lv)];
+            return this->element_control_nodes_[f*this->CONTROL_POINTS_NB_PER_FACET_ + this->facet_vertex_lnd(lv)];
         }
 
         /**
@@ -100,7 +100,7 @@ namespace geolio
          */
         [[nodiscard]] GEO::index_t facet_edge_nd(const GEO::index_t f, const GEO::index_t le, const GEO::index_t lv) const {
             assert(f < this->mesh_.facets.nb());
-            return this->element_control_nodes_[f*this->CONTROL_POINTS_NB_PER_FACET_ + this->facet_edge_lcv(le, lv)];
+            return this->element_control_nodes_[f*this->CONTROL_POINTS_NB_PER_FACET_ + this->facet_edge_lnd(le, lv)];
         }
 
         /**
@@ -112,7 +112,7 @@ namespace geolio
          */
         [[nodiscard]] GEO::index_t facet_edge_inner_nd(const GEO::index_t f, const GEO::index_t le, const GEO::index_t lv) const {
             assert(f < this->mesh_.facets.nb());
-            return this->element_control_nodes_[f*this->CONTROL_POINTS_NB_PER_FACET_ + this->facet_edge_inner_lcv(le, lv)];
+            return this->element_control_nodes_[f*this->CONTROL_POINTS_NB_PER_FACET_ + this->facet_edge_inner_lnd(le, lv)];
         }
 
         /**
@@ -136,7 +136,7 @@ namespace geolio
          */
         [[nodiscard]] GEO::index_t facet_nd(const GEO::index_t f, const GEO::index_t lv0, const GEO::index_t lv1) const {
             assert(f < this->mesh_.facets.nb());
-            return this->element_control_nodes_[f*this->CONTROL_POINTS_NB_PER_FACET_ + this->facet_lcv(lv0, lv1)];
+            return this->element_control_nodes_[f*this->CONTROL_POINTS_NB_PER_FACET_ + this->facet_lnd(lv0, lv1)];
         }
 
         /**
@@ -148,7 +148,7 @@ namespace geolio
          */
         [[nodiscard]] GEO::index_t facet_inner_nd(const GEO::index_t f, const GEO::index_t lv0, const GEO::index_t lv1) const {
             assert(f < this->mesh_.facets.nb());
-            return this->element_control_nodes_[f*this->CONTROL_POINTS_NB_PER_FACET_ + this->facet_inner_lcv(lv0, lv1)];
+            return this->element_control_nodes_[f*this->CONTROL_POINTS_NB_PER_FACET_ + this->facet_inner_lnd(lv0, lv1)];
         }
 
         /**
@@ -229,10 +229,13 @@ namespace geolio
          */
         void compute_facet_uv_dudv(
             GEO::index_t f, const GEO::vec2& uv,
-            GEO::vec2& du, GEO::vec2& dv,
+            GEO::vecng<DIM, double>& du, GEO::vecng<DIM, double>& dv,
             std::vector<double>& Bu, std::vector<double>& Bv,
             std::vector<double>& dBu, std::vector<double>& dBv) const;
     };
+
+    extern template class SurfaceControlGrid<2>;
+    extern template class SurfaceControlGrid<3>;
 }
 
 #endif //HOSM_SURF_CONTROL_GRID_H

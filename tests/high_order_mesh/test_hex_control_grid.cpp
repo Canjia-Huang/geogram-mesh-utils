@@ -4,7 +4,6 @@
 //
 #include <geolio/high_order_mesh/hex_control_grid.h>
 #include <gtest/gtest.h>
-
 #include "../utils.h"
 
 namespace geolio::test

@@ -286,8 +286,7 @@ namespace geolio
             GEO::index_t resolution = 10,
             GEO::Attribute<GEO::index_t>* mesh_out_v_cell = nullptr,
             GEO::Attribute<GEO::vec3>* mesh_out_v_uvw = nullptr,
-            GEO::Attribute<GEO::index_t>* mesh_out_f_cell = nullptr
-            ) const;
+            GEO::Attribute<GEO::index_t>* mesh_out_f_cell = nullptr) const;
 
         /**
          * @brief Append a discretized volumetric mesh of all high-order cells (for visualization purposes).

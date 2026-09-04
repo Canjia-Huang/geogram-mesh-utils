@@ -612,7 +612,6 @@ namespace geolio
 
         const GEO::index_t VERTICES_NB_PER_EDGE = resolution+1;
 
-        /* Append cell facets */
         GEO::index_t new_v = mesh_out.vertices.create_vertices(6*mesh_.cells.nb() * (resolution+1) * (resolution+1));
         GEO::index_t new_f = mesh_out.facets.create_quads(6*mesh_.cells.nb() * resolution * resolution);
         for (const auto& c : mesh_.cells) {
@@ -634,7 +633,7 @@ namespace geolio
                     for (GEO::index_t j = 0; j < VERTICES_NB_PER_EDGE; ++j) {
                         const double v = static_cast<double>(j)/resolution;
 
-                        GEO::vec3 uvw = project_hex_lf_uv_to_uvw(GEO::vec2(u,v), lf);
+                        const GEO::vec3 uvw = project_hex_lf_uv_to_uvw(GEO::vec2(u,v), lf);
 
                         mesh_out.vertices.point(new_v) = compute_cell_uvw_position(c, uvw);
 
@@ -657,26 +656,26 @@ namespace geolio
                  * +-----+-----+- ... -+-----+
                  */
                 for (GEO::index_t i = 0; i < resolution; ++i) {
-                for (GEO::index_t j = 0; j < resolution; ++j) {
-                    const GEO::index_t v0 = VERTICES_NB_PER_EDGE*i+j;
-                    const GEO::index_t v1 = v0+VERTICES_NB_PER_EDGE;
-                    const GEO::index_t v2 = v1+1;
-                    const GEO::index_t v3 = v0+1;
-                    assert(v0 < mesh_out.vertices.nb());
-                    assert(v1 < mesh_out.vertices.nb());
-                    assert(v2 < mesh_out.vertices.nb());
-                    assert(v3 < mesh_out.vertices.nb());
-                    mesh_out.facets.set_vertex(new_f, 0, PREV_M_VERTICES+v0);
-                    mesh_out.facets.set_vertex(new_f, 1, PREV_M_VERTICES+v1);
-                    mesh_out.facets.set_vertex(new_f, 2, PREV_M_VERTICES+v2);
-                    mesh_out.facets.set_vertex(new_f, 3, PREV_M_VERTICES+v3);
+                    for (GEO::index_t j = 0; j < resolution; ++j) {
+                        const GEO::index_t v0 = VERTICES_NB_PER_EDGE*i+j;
+                        const GEO::index_t v1 = v0+VERTICES_NB_PER_EDGE;
+                        const GEO::index_t v2 = v1+1;
+                        const GEO::index_t v3 = v0+1;
+                        assert(v0 < mesh_out.vertices.nb());
+                        assert(v1 < mesh_out.vertices.nb());
+                        assert(v2 < mesh_out.vertices.nb());
+                        assert(v3 < mesh_out.vertices.nb());
+                        mesh_out.facets.set_vertex(new_f, 0, PREV_M_VERTICES+v0);
+                        mesh_out.facets.set_vertex(new_f, 1, PREV_M_VERTICES+v1);
+                        mesh_out.facets.set_vertex(new_f, 2, PREV_M_VERTICES+v2);
+                        mesh_out.facets.set_vertex(new_f, 3, PREV_M_VERTICES+v3);
 
-                    if (mesh_out_f_cell != nullptr)
-                        (*mesh_out_f_cell)[new_f] = c;
+                        if (mesh_out_f_cell != nullptr)
+                            (*mesh_out_f_cell)[new_f] = c;
 
-                    ++new_f;
+                        ++new_f;
+                    }
                 }
-            }
             }
         }
 

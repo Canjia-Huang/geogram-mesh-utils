@@ -178,7 +178,7 @@ namespace geolio
 
             /* For facets */
             const auto& facet_control_points = quad_facets_control_points[f];
-            assert(facet_control_points.size() == this->INTERNAL_CONTROL_POINTS_NB_PER_CELL_);
+            assert(facet_control_points.size() == this->INTERNAL_CONTROL_POINTS_NB_PER_FACET_);
 
             for (GEO::index_t lv1 = 0; lv1 < this->INTERNAL_CONTROL_POINTS_NB_PER_EDGE_; ++lv1) {
                 for (GEO::index_t lv0 = 0; lv0 < this->INTERNAL_CONTROL_POINTS_NB_PER_EDGE_; ++lv0) {
@@ -189,6 +189,98 @@ namespace geolio
                 }
             }
         }
+    }
+
+    template<GEO::index_t DIM>
+    void QuadControlGrid<DIM>::append_discretized_high_order_facets(
+       GEO::Mesh& mesh_out,
+       GEO::index_t resolution,
+       GEO::Attribute<GEO::index_t>* mesh_out_v_facet,
+       GEO::Attribute<GEO::vec2>* mesh_out_v_uv,
+       GEO::Attribute<GEO::index_t>* mesh_out_f_facet
+       ) const {
+        assert(mesh_out.vertices.dimension() == DIM);
+        if (mesh_out_v_facet != nullptr) {
+            assert(mesh_out_v_facet->is_bound());
+            assert(mesh_out_v_facet->size() == mesh_out.vertices.nb());
+        }
+        if (mesh_out_v_uv != nullptr) {
+            assert(mesh_out_v_uv->is_bound());
+            assert(mesh_out_v_uv->size() == mesh_out.vertices.nb());
+        }
+        if (mesh_out_f_facet != nullptr) {
+            assert(mesh_out_f_facet->is_bound());
+            assert(mesh_out_f_facet->size() == mesh_out.facets.nb());
+        }
+
+        const GEO::index_t VERTICES_NB_PER_EDGE = resolution+1;
+
+        GEO::index_t new_v = mesh_out.vertices.create_vertices(this->mesh_.facets.nb() * (resolution+1) * (resolution+1));
+        GEO::index_t new_f = mesh_out.facets.create_quads(this->mesh_.facets.nb() * resolution * resolution);
+        for (const auto& f : this->mesh_.facets) {
+            const auto PREV_M_VERTICES = new_v;
+
+            /*
+             * Vertices:
+             * y & j
+             *   |
+             *  ...
+             *   |         |       ...       |         |
+             * (0,1) --- (1,1) --- ... --- (n,1) -- (n+1,1)
+             *   |         |       ...       |         |
+             * (0,0) --- (1,0) --- ... --- (n,0) -- (n+1,0) -> x & i
+             */
+            for (GEO::index_t i = 0; i < VERTICES_NB_PER_EDGE; ++i) {
+                const double u = static_cast<double>(i)/resolution;
+                for (GEO::index_t j = 0; j < VERTICES_NB_PER_EDGE; ++j) {
+                    const double v = static_cast<double>(j)/resolution;
+
+                    const GEO::vec2 uv(u, v);
+
+                    mesh_out.vertices.point<DIM>(new_v) = this->compute_facet_uv_position(f, uv);
+
+                    if (mesh_out_v_facet != nullptr)
+                        (*mesh_out_v_facet)[new_v] = f;
+                    if (mesh_out_v_uv != nullptr)
+                        (*mesh_out_v_uv)[new_v] = uv;
+
+                    ++new_v;
+                }
+            }
+
+            /*
+             * Facets:
+             * ...
+             * +-----+-----+- ... -+-----+      v3 --- v2
+             * | n+1 | n+2 |  ...  |2n+1 |       |     |
+             * +-----+-----+- ... -+-----+      v0 --- v1
+             * |  0  |  1  |  ...  |  n  |
+             * +-----+-----+- ... -+-----+
+             */
+            for (GEO::index_t i = 0; i < resolution; ++i) {
+                for (GEO::index_t j = 0; j < resolution; ++j) {
+                    const GEO::index_t v0 = VERTICES_NB_PER_EDGE*i+j;
+                    const GEO::index_t v1 = v0+VERTICES_NB_PER_EDGE;
+                    const GEO::index_t v2 = v1+1;
+                    const GEO::index_t v3 = v0+1;
+                    assert(v0 < mesh_out.vertices.nb());
+                    assert(v1 < mesh_out.vertices.nb());
+                    assert(v2 < mesh_out.vertices.nb());
+                    assert(v3 < mesh_out.vertices.nb());
+                    mesh_out.facets.set_vertex(new_f, 0, PREV_M_VERTICES+v0);
+                    mesh_out.facets.set_vertex(new_f, 1, PREV_M_VERTICES+v1);
+                    mesh_out.facets.set_vertex(new_f, 2, PREV_M_VERTICES+v2);
+                    mesh_out.facets.set_vertex(new_f, 3, PREV_M_VERTICES+v3);
+
+                    if (mesh_out_f_facet != nullptr)
+                        (*mesh_out_f_facet)[new_f] = f;
+
+                    ++new_f;
+                }
+            }
+        }
+
+        mesh_out.facets.connect();
     }
 
     template class QuadControlGrid<2>;
