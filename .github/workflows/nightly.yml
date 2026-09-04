@@ -1,12 +1,9 @@
-name: Build and Test
+name: Nightly
 
+# Runs daily at 00:00 UTC on the default branch.
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
   schedule:
-    - cron: '0 8 * * *'
+    - cron: '0 0 * * *'
   workflow_dispatch:
 
 jobs:

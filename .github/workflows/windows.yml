@@ -1,0 +1,66 @@
+name: Windows CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.build_type }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Release, Debug]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          submodules: 'recursive'
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v3
+
+      # == Install Dependency Geogram =================================================================================
+
+      - name: Install Dependency Geogram
+        shell: pwsh
+        run: |
+          git clone --recurse-submodules https://github.com/BrunoLevy/geogram.git
+          cd geogram
+          .\configure.bat
+          $geogramRoot = Get-Location
+          echo "GEOGRAM_DIR=$geogramRoot" >> $env:GITHUB_ENV
+          # Build the configuration matching the matrix build type (Release or
+          # Debug); the Build/Test steps below link the corresponding geogram lib.
+          cmake --build build/Windows --config ${{ matrix.build_type }} --parallel (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
+
+      # == Install Dependency Eigen3 ==================================================================================
+
+      - name: Install Dependency Eigen3
+        shell: pwsh
+        run: |
+          $eigenVersion = "3.4.0"
+          Invoke-WebRequest -Uri "https://gitlab.com/libeigen/eigen/-/archive/$eigenVersion/eigen-$eigenVersion.tar.gz" -OutFile "eigen.tar.gz"
+          tar -xzf "eigen.tar.gz"
+          # The release archive only ships Eigen3Config.cmake.in; running Eigen's own
+          # CMake configure generates the real Eigen3Config.cmake into the build tree.
+          cmake -S "eigen-$eigenVersion" -B "eigen-build"
+          echo "Eigen3_DIR=$(Get-Location)/eigen-build" >> $env:GITHUB_ENV
+
+      # == Configure and make =========================================================================================
+
+      - name: Configure CMake
+        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+
+      - name: Build
+        run: cmake --build build --config ${{ matrix.build_type }} --parallel
+
+      # == Test =======================================================================================================
+
+      - name: Test
+        working-directory: build
+        run: ctest --output-on-failure -C ${{ matrix.build_type }}

@@ -1,17 +1,18 @@
 //
-// Created by huangcanjia <huangcanjia0214@gmail.com> on 2026/8/29.
+// Created by huangcanjia <huangcanjia0214@gmail.com> on 2026/9/3.
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
-#ifndef GEOLIO_HEXEX_IO_H
-#define GEOLIO_HEXEX_IO_H
+#ifndef GEOLIO_OVM_IO_H
+#define GEOLIO_OVM_IO_H
 #include <geogram/mesh/mesh_io.h>
+#include "line_stream.h"
 
 namespace geolio
 {
     /**
-     * I/O for ".hexex" files exported by the hexahedral mesh integer grid mapping method.
+     * I/O for ".ovm" files exported by OpenVolumeMesh https://www.graphics.rwth-aachen.de/software/openvolumemesh/
      */
-    class HEXEX_IOHandler : public GEO::MeshIOHandler {
+    class OVM_IOHandler : public GEO::MeshIOHandler {
     public:
         bool load(
             const std::string& filename,
@@ -26,7 +27,10 @@ namespace geolio
             ) override {
             return false;
         }
+
+    private:
+        static void parse_property(LineInput& in, GEO::AttributesManager& attributes_manager);
     };
 }
 
-#endif //GEOLIO_HEXEX_IO_H
+#endif //GEOLIO_OVM_IO_H

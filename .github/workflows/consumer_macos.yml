@@ -1,20 +1,14 @@
-name: External Consumption Test
+name: macOS Consumer
 
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  workflow_dispatch:
 
 jobs:
   test-consumption:
-    name: ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: macos-latest
 
     steps:
       # ================================================================================================
@@ -34,32 +28,7 @@ jobs:
       # Install Geogram. geolio locates it through the GEOGRAM_DIR environment variable.
       # ================================================================================================
 
-      - name: Install Dependency Geogram (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get install cmake build-essential libx11-dev libxcb1-dev libxau-dev libxdmcp-dev
-          sudo apt-get install libxi-dev libxcursor-dev libxinerama-dev libxrandr-dev
-          sudo apt-get install libtbb-dev
-          git clone --recurse-submodules https://github.com/BrunoLevy/geogram.git
-          cd geogram
-          echo "GEOGRAM_DIR=$(pwd)" >> $GITHUB_ENV
-          ./configure.sh
-          cd build/Linux64-gcc-dynamic-Release
-          make -j
-
-      - name: Install Dependency Geogram (Windows)
-        shell: pwsh
-        if: runner.os == 'Windows'
-        run: |
-          git clone --recurse-submodules https://github.com/BrunoLevy/geogram.git
-          cd geogram
-          .\configure.bat
-          $geogramRoot = Get-Location
-          echo "GEOGRAM_DIR=$geogramRoot" >> $env:GITHUB_ENV
-          cmake --build build/Windows --config Release --parallel
-
-      - name: Install Dependency Geogram (macOS)
-        if: runner.os == 'macOS'
+      - name: Install Dependency Geogram
         run: |
           git clone --recurse-submodules https://github.com/BrunoLevy/geogram.git
           cd geogram
@@ -73,26 +42,7 @@ jobs:
       # environment variable in config mode.
       # ================================================================================================
 
-      - name: Install Dependency Eigen3 (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libeigen3-dev
-
-      - name: Install Dependency Eigen3 (Windows)
-        shell: pwsh
-        if: runner.os == 'Windows'
-        run: |
-          $eigenVersion = "3.4.0"
-          Invoke-WebRequest -Uri "https://gitlab.com/libeigen/eigen/-/archive/$eigenVersion/eigen-$eigenVersion.tar.gz" -OutFile "eigen.tar.gz"
-          tar -xzf "eigen.tar.gz"
-          # The release archive only ships Eigen3Config.cmake.in; running Eigen's own
-          # CMake configure generates the real Eigen3Config.cmake into the build tree.
-          cmake -S "eigen-$eigenVersion" -B "eigen-build"
-          echo "Eigen3_DIR=$(Get-Location)/eigen-build" >> $env:GITHUB_ENV
-
-      - name: Install Dependency Eigen3 (macOS)
-        if: runner.os == 'macOS'
+      - name: Install Dependency Eigen3
         run: |
           brew install eigen
           echo "Eigen3_DIR=$(brew --prefix eigen)/share/eigen3/cmake" >> $GITHUB_ENV
