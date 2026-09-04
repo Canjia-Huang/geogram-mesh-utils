@@ -1,4 +1,4 @@
-name: Windows External Consumption
+name: Linux Consumer
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   test-consumption:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     steps:
       # ================================================================================================
@@ -29,14 +29,16 @@ jobs:
       # ================================================================================================
 
       - name: Install Dependency Geogram
-        shell: pwsh
         run: |
+          sudo apt-get install cmake build-essential libx11-dev libxcb1-dev libxau-dev libxdmcp-dev
+          sudo apt-get install libxi-dev libxcursor-dev libxinerama-dev libxrandr-dev
+          sudo apt-get install libtbb-dev
           git clone --recurse-submodules https://github.com/BrunoLevy/geogram.git
           cd geogram
-          .\configure.bat
-          $geogramRoot = Get-Location
-          echo "GEOGRAM_DIR=$geogramRoot" >> $env:GITHUB_ENV
-          cmake --build build/Windows --config Release --parallel
+          echo "GEOGRAM_DIR=$(pwd)" >> $GITHUB_ENV
+          ./configure.sh
+          cd build/Linux64-gcc-dynamic-Release
+          make -j
 
       # ================================================================================================
       # Install Eigen3. geolio finds it through find_package(Eigen3), which honors the Eigen3_DIR
@@ -44,15 +46,9 @@ jobs:
       # ================================================================================================
 
       - name: Install Dependency Eigen3
-        shell: pwsh
         run: |
-          $eigenVersion = "3.4.0"
-          Invoke-WebRequest -Uri "https://gitlab.com/libeigen/eigen/-/archive/$eigenVersion/eigen-$eigenVersion.tar.gz" -OutFile "eigen.tar.gz"
-          tar -xzf "eigen.tar.gz"
-          # The release archive only ships Eigen3Config.cmake.in; running Eigen's own
-          # CMake configure generates the real Eigen3Config.cmake into the build tree.
-          cmake -S "eigen-$eigenVersion" -B "eigen-build"
-          echo "Eigen3_DIR=$(Get-Location)/eigen-build" >> $env:GITHUB_ENV
+          sudo apt-get update
+          sudo apt-get install -y libeigen3-dev
 
       # ================================================================================================
       # Parent project that consumes geolio as a submodule:

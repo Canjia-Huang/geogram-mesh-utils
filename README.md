@@ -1,14 +1,14 @@
 # Geolio
 
-![Linux CI](https://github.com/Canjia-Huang/geolio/actions/workflows/linux.yml/badge.svg)
-![macOS CI](https://github.com/Canjia-Huang/geolio/actions/workflows/macos.yml/badge.svg)
-![Windows CI](https://github.com/Canjia-Huang/geolio/actions/workflows/windows.yml/badge.svg)
-![Nightly](https://github.com/Canjia-Huang/geolio/actions/workflows/nightly.yml/badge.svg)
+[![Linux CI](https://github.com/Canjia-Huang/geolio/actions/workflows/linux.yml/badge.svg)](https://github.com/Canjia-Huang/geolio/actions/workflows/linux.yml)
+[![macOS CI](https://github.com/Canjia-Huang/geolio/actions/workflows/macos.yml/badge.svg)](https://github.com/Canjia-Huang/geolio/actions/workflows/macos.yml)
+[![Windows CI](https://github.com/Canjia-Huang/geolio/actions/workflows/windows.yml/badge.svg)](https://github.com/Canjia-Huang/geolio/actions/workflows/windows.yml)
+[![Nightly](https://github.com/Canjia-Huang/geolio/actions/workflows/nightly.yml/badge.svg)](https://github.com/Canjia-Huang/geolio/actions/workflows/nightly.yml)
 
-![Linux External Consumption](https://github.com/Canjia-Huang/geolio/actions/workflows/external_consumption_linux.yml/badge.svg)
-![macOS External Consumption](https://github.com/Canjia-Huang/geolio/actions/workflows/external_consumption_macos.yml/badge.svg)
-![Windows External Consumption](https://github.com/Canjia-Huang/geolio/actions/workflows/external_consumption_windows.yml/badge.svg)
-![External Consumption Nightly](https://github.com/Canjia-Huang/geolio/actions/workflows/external_consumption_nightly.yml/badge.svg)
+[![Linux Consumer](https://github.com/Canjia-Huang/geolio/actions/workflows/consumer_linux.yml/badge.svg)](https://github.com/Canjia-Huang/geolio/actions/workflows/consumer_linux.yml)
+[![macOS Consumer](https://github.com/Canjia-Huang/geolio/actions/workflows/consumer_macos.yml/badge.svg)](https://github.com/Canjia-Huang/geolio/actions/workflows/consumer_macos.yml)
+[![Windows Consumer](https://github.com/Canjia-Huang/geolio/actions/workflows/consumer_windows.yml/badge.svg)](https://github.com/Canjia-Huang/geolio/actions/workflows/consumer_windows.yml)
+[![Consumer Nightly](https://github.com/Canjia-Huang/geolio/actions/workflows/consumer_nightly.yml/badge.svg)](https://github.com/Canjia-Huang/geolio/actions/workflows/consumer_nightly.yml)
 
 **Geolio** is a C++ library designed for performing various processing tasks in computer graphics (mainly mesh processing).
 

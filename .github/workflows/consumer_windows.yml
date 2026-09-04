@@ -1,4 +1,4 @@
-name: macOS External Consumption
+name: Windows Consumer
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   test-consumption:
-    runs-on: macos-latest
+    runs-on: windows-latest
 
     steps:
       # ================================================================================================
@@ -29,13 +29,14 @@ jobs:
       # ================================================================================================
 
       - name: Install Dependency Geogram
+        shell: pwsh
         run: |
           git clone --recurse-submodules https://github.com/BrunoLevy/geogram.git
           cd geogram
-          echo "GEOGRAM_DIR=$(pwd)" >> $GITHUB_ENV
-          ./configure.sh
-          cd build/Darwin-clang-dynamic-Release
-          make -j
+          .\configure.bat
+          $geogramRoot = Get-Location
+          echo "GEOGRAM_DIR=$geogramRoot" >> $env:GITHUB_ENV
+          cmake --build build/Windows --config Release --parallel
 
       # ================================================================================================
       # Install Eigen3. geolio finds it through find_package(Eigen3), which honors the Eigen3_DIR
@@ -43,9 +44,15 @@ jobs:
       # ================================================================================================
 
       - name: Install Dependency Eigen3
+        shell: pwsh
         run: |
-          brew install eigen
-          echo "Eigen3_DIR=$(brew --prefix eigen)/share/eigen3/cmake" >> $GITHUB_ENV
+          $eigenVersion = "3.4.0"
+          Invoke-WebRequest -Uri "https://gitlab.com/libeigen/eigen/-/archive/$eigenVersion/eigen-$eigenVersion.tar.gz" -OutFile "eigen.tar.gz"
+          tar -xzf "eigen.tar.gz"
+          # The release archive only ships Eigen3Config.cmake.in; running Eigen's own
+          # CMake configure generates the real Eigen3Config.cmake into the build tree.
+          cmake -S "eigen-$eigenVersion" -B "eigen-build"
+          echo "Eigen3_DIR=$(Get-Location)/eigen-build" >> $env:GITHUB_ENV
 
       # ================================================================================================
       # Parent project that consumes geolio as a submodule:
