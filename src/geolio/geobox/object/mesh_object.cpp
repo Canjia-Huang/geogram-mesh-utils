@@ -23,13 +23,15 @@ namespace geolio::geobox
         mesh_.copy(mesh);
         mesh_gfx_.set_mesh(&mesh_);
 
+        if (mesh_.edges.nb() == 0 && mesh_.facets.nb() == 0 && mesh_.cells.nb() == 0)
+            show_vertices_ = true;
         // Seed the absolute (model-space) marker size from the mesh extent:
         // one hundredth of the bounding-box diagonal roughly reproduces the
         // on-screen size of the former fixed pixel points at the initial
         // framing, whatever the scale of the model.
         if (mesh_.vertices.nb() != 0) {
-            const float diag = bbox_diagonal();
-            if (diag > 0.0f)
+            if (const float diag = bbox_diagonal();
+                diag > 0.0f)
                 vertices_size_ = 0.01f * diag;
         }
 
