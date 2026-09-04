@@ -6,6 +6,8 @@
 #include <geogram_gfx/imgui_ext/imgui_ext.h>
 #include <geogram_gfx/third_party/imgui/imgui.h>
 #include <geogram/mesh/mesh_geometry.h>
+#include <geogram_gfx/GLUP/GLUP.h>
+#include <geogram_gfx/basic/GL.h>
 
 #include "geolio/common/log.h"
 
@@ -20,6 +22,16 @@ namespace geolio::geobox
     {
         mesh_.copy(mesh);
         mesh_gfx_.set_mesh(&mesh_);
+
+        // Seed the absolute (model-space) marker size from the mesh extent:
+        // one hundredth of the bounding-box diagonal roughly reproduces the
+        // on-screen size of the former fixed pixel points at the initial
+        // framing, whatever the scale of the model.
+        if (mesh_.vertices.nb() != 0) {
+            const float diag = bbox_diagonal();
+            if (diag > 0.0f)
+                vertices_size_ = 0.01f * diag;
+        }
 
         set_attribute(attribute_);
     }
@@ -153,7 +165,22 @@ namespace geolio::geobox
             if (show_vertices_) {
                 ImGui::Indent();
 
-                ImGui::SliderFloat("sz.", &vertices_size_, 0.1f, 5.0f, "%.1f");
+                // The size is an absolute (model-space) value: markers are
+                // discs of this diameter in the model, so their on-screen
+                // size follows the camera distance (near large, far small).
+                // The range goes up to the model's bounding-box diagonal and
+                // the drag speed is scaled accordingly, so both coarse and
+                // fine adjustments are convenient.
+                const float diag = bbox_diagonal();
+                ImGui::DragFloat(
+                    "sz.##vertices", &vertices_size_,
+                    diag * 0.0001f,
+                    0.0f, diag > 0.0f ? diag : 1.0f, "%.6g");
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip(
+                        "Marker diameter in model coordinates (absolute "
+                        "size). The on-screen size therefore varies with "
+                        "the camera distance.");
                 ImGui::SliderFloat("trsp.##vertices", &vertices_transparency_, 0.0f, 1.0f, "%.2f");
 
                 ImGui::Unindent();
@@ -247,8 +274,10 @@ namespace geolio::geobox
     void MeshObject::reload(
         ) {
         if (GEO::Mesh mesh;
-            mesh.load(filepath_))
+            mesh.load(filepath_)) {
             mesh_.copy(mesh);
+            bbox_diag_ = -1.0f; // invalidate the cached bounding-box diagonal
+        }
     }
 
     void MeshObject::get_bbox(
@@ -273,32 +302,139 @@ namespace geolio::geobox
             GEO::get_bbox(mesh_, xyzmin, xyzmax);
     }
 
+    float MeshObject::bbox_diagonal(
+        ) const {
+        if (bbox_diag_ < 0.0f) {
+            double xyzmin[3] = {0.0, 0.0, 0.0};
+            double xyzmax[3] = {0.0, 0.0, 0.0};
+            get_bbox(xyzmin, xyzmax);
+            double d2 = 0.0;
+            for (GEO::coord_index_t c = 0; c < 3; ++c) {
+                const double d = xyzmax[c] - xyzmin[c];
+                d2 += d * d;
+            }
+            bbox_diag_ = static_cast<float>(std::sqrt(d2));
+        }
+        return bbox_diag_;
+    }
+
     void MeshObject::draw_points(
         ) {
-        if(show_vertices_) {
-            if(vertices_transparency_ != 0.0f) {
-                glDepthMask(GL_FALSE);
-                glEnable(GL_BLEND);
-                glBlendEquation(GL_FUNC_ADD);
-                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            }
-            mesh_gfx_.set_points_color(
-                vertices_color_.x, vertices_color_.y, vertices_color_.z,
-                1.0f - vertices_transparency_
+        if (!show_vertices_ || mesh_.vertices.nb() == 0 ||
+            vertices_size_ <= 0.0f)
+            return;
+
+        // Vertex markers have an absolute (model-space) diameter
+        // (vertices_size_), so their on-screen size must follow the camera
+        // distance (near large, far small). MeshGfx::draw_vertices() cannot
+        // express that: GLUP points rasterize with a single point-sprite size
+        // for the whole draw call, i.e. a constant size on screen. Instead,
+        // each vertex is drawn as a camera-facing disc of the requested world
+        // diameter using GLUP's sphere impostor primitive (per-vertex radius
+        // in the w component of glupVertex4d), which gives the round marker
+        // silhouette with correct perspective scaling.
+        const bool blended = vertices_transparency_ != 0.0f;
+        if (blended) {
+            glDepthMask(GL_FALSE);
+            glEnable(GL_BLEND);
+            glBlendEquation(GL_FUNC_ADD);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        }
+
+        // Render flat markers: without shading, the impostor spheres look
+        // like round discs. Restore the previous lighting state afterwards
+        // so the next object's surface pass is unaffected.
+        const bool lighting = glupIsEnabled(GLUP_LIGHTING) != GL_FALSE;
+        glupDisable(GLUP_LIGHTING);
+
+        // Vertices sit exactly on the surface, so the default GL_LESS depth
+        // test would cull them at equal depth; use an inclusive test so the
+        // markers stay visible on top of the model.
+        glDepthFunc(GL_LEQUAL);
+
+        const double radius = 0.5 * static_cast<double>(vertices_size_);
+
+        // When a scalar attribute is displayed on the vertices, color each
+        // marker through GLUP's 1-D colormap texturing (the same state
+        // MeshGfx::begin_attributes() sets up), so the markers keep the
+        // attribute coloring; otherwise use the plain vertex color.
+        GEO::ReadOnlyScalarAttributeAdapter scalar_attribute;
+        bool textured = false;
+        if (show_attributes_ &&
+            attribute_subelements_ == GEO::MESH_VERTICES) {
+            scalar_attribute.bind_if_is_defined(
+                mesh_.vertices.attributes(), attribute_name_
             );
-            mesh_gfx_.set_points_size(vertices_size_);
-
-            // Vertices sit exactly on the surface, so the default GL_LESS
-            // depth test would cull them at equal depth; use an inclusive test
-            // so they stay visible on top of the model.
-            glDepthFunc(GL_LEQUAL);
-            mesh_gfx_.draw_vertices();
-            glDepthFunc(GL_LESS);
-
-            if(vertices_transparency_ != 0.0f) {
-                glDisable(GL_BLEND);
-                glDepthMask(GL_TRUE);
+            if (scalar_attribute.is_bound()) {
+                textured = true;
+                glupEnable(GLUP_TEXTURING);
+                glupTextureMode(GLUP_TEXTURE_REPLACE);
+                glupTextureType(GLUP_TEXTURE_1D);
+                glActiveTexture(GL_TEXTURE0 + GLUP_TEXTURE_1D_UNIT);
+                glBindTexture(
+                    GL_TEXTURE_2D,
+                    colormaps_[current_colormap_index_].texture
+                );
+                GEO::glupMapTexCoords1d(
+                    static_cast<double>(attribute_min_),
+                    static_cast<double>(attribute_max_),
+                    1
+                );
+                glupSetColor3f(
+                    GLUP_FRONT_AND_BACK_COLOR, 1.0f, 1.0f, 1.0f
+                );
             }
+        }
+        if (!textured) {
+            const float rgba[4] = {
+                vertices_color_.x,
+                vertices_color_.y,
+                vertices_color_.z,
+                1.0f - vertices_transparency_
+            };
+            glupSetColor4fv(GLUP_FRONT_COLOR, rgba);
+        }
+
+        glupBegin(GLUP_SPHERES);
+        {
+            const bool single_precision = mesh_.vertices.single_precision();
+            const GEO::coord_index_t dim = mesh_.vertices.dimension();
+            const GEO::index_t nb = mesh_.vertices.nb();
+            for (GEO::index_t v = 0; v < nb; ++v) {
+                double p[3] = {0.0, 0.0, 0.0};
+                if (single_precision) {
+                    const float* pp =
+                        mesh_.vertices.single_precision_point_ptr(v);
+                    for (GEO::coord_index_t c = 0; c < dim && c < 3; ++c)
+                        p[c] = static_cast<double>(pp[c]);
+                }
+                else {
+                    const double* pp = mesh_.vertices.point_ptr(v);
+                    for (GEO::coord_index_t c = 0; c < dim && c < 3; ++c)
+                        p[c] = pp[c];
+                }
+                if (textured)
+                    glupTexCoord1d(scalar_attribute[v]);
+                glupVertex4d(p[0], p[1], p[2], radius);
+            }
+        }
+        glupEnd();
+
+        if (textured) {
+            glupDisable(GLUP_TEXTURING);
+            // Reset the texture matrix, as MeshGfx::end_attributes() does.
+            glupMatrixMode(GLUP_TEXTURE_MATRIX);
+            glupLoadIdentity();
+            glupMatrixMode(GLUP_MODELVIEW_MATRIX);
+        }
+        if (lighting)
+            glupEnable(GLUP_LIGHTING);
+
+        glDepthFunc(GL_LESS);
+
+        if (blended) {
+            glDisable(GL_BLEND);
+            glDepthMask(GL_TRUE);
         }
     }
 

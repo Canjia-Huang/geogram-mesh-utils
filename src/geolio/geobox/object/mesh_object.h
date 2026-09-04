@@ -53,12 +53,25 @@ namespace geolio::geobox
          */
         void get_bbox(double* xyzmin, double* xyzmax) const override;
 
+        /**
+         * @brief Returns the length of the mesh bounding-box diagonal.
+         * @details The result is cached in bbox_diag_ and recomputed when the
+         *          mesh changes (see reload()); it is used to give the vertex
+         *          marker size slider a sensible range and default for models
+         *          of any scale.
+         */
+        float bbox_diagonal() const;
+
         auto& mesh() { return mesh_; }
 
     protected:
         /**
-         * @brief Draws the mesh vertices.
-         * @ref <geogram_gfx/gui/simple_mesh_application.cpp> draw_points()
+         * @brief Draws the mesh vertices as markers with an absolute
+         *        (model-space) size.
+         * @details Each vertex is drawn as a camera-facing disc of diameter
+         *          vertices_size_ (in mesh coordinates), so the on-screen
+         *          size follows the camera distance (near large, far small)
+         *          instead of staying constant in pixels.
          */
         void draw_points();
 
@@ -107,9 +120,20 @@ namespace geolio::geobox
         GEO::MeshGfx mesh_gfx_;
 
         bool show_vertices_ = false;
+        /**
+         * Absolute (model-space) diameter of the vertex markers, expressed
+         * in the same units as the mesh coordinates. Because the size is
+         * fixed in world space, the on-screen size of a marker grows when
+         * the camera gets closer and shrinks when it moves away (near
+         * large, far small). The constructor seeds it to a small fraction
+         * of the bounding-box diagonal.
+         */
         float vertices_size_ = 1.0f;
         GEO::vec4f vertices_color_ = GEO::vec4f(0.0f, 1.0f, 0.0f, 1.0f);
         float vertices_transparency_ = 0.0f;
+
+        /** Cached bounding-box diagonal; < 0 means "not computed yet". */
+        mutable float bbox_diag_ = -1.0f;
 
         bool show_surface_ = true;
         bool show_surface_sides_ = false;
