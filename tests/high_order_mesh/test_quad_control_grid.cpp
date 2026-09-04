@@ -110,6 +110,101 @@ namespace geolio::test
         this->save_high_order_mesh_facets(get_current_test_name()+"_facets.geogram");
     }
 
+    TYPED_TEST(SingleQuadControlGridTest, facet_normal) {
+        if constexpr (constexpr GEO::index_t DIM = TypeParam::value;
+            DIM == 3
+            ) {
+            constexpr GEO::index_t f = 0;
+            {
+                auto& p = this->control_grid->control_node(this->control_grid->facet_edge_nd(f, 3, 0));
+                for (GEO::index_t d = 0; d < DIM; ++d)
+                    p[d] += 0.1*GEO::Numeric::random_float32();
+                p[2] += 0.2;
+            }
+            {
+                auto& p = this->control_grid->control_node(this->control_grid->facet_edge_nd(f, 1, 2));
+                for (GEO::index_t d = 0; d < DIM; ++d)
+                    p[d] += 0.1*GEO::Numeric::random_float32();
+                p[2] -= 0.2;
+            }
+
+            constexpr GEO::index_t points_nb = 100;
+            GEO::Mesh mesh_out;
+            GEO::index_t new_v = mesh_out.vertices.create_vertices(2*points_nb);
+            GEO::index_t new_e = mesh_out.edges.create_edges(points_nb);
+            for (GEO::index_t i = 0; i < points_nb; ++i) {
+                const GEO::vec2 uv(GEO::Numeric::random_float32(), GEO::Numeric::random_float32());
+                const auto position = this->control_grid->compute_facet_uv_position(f, uv);
+                const auto normal = this->control_grid->compute_facet_uv_normal(f, uv);
+
+                mesh_out.vertices.point(new_v) = position;
+                mesh_out.vertices.point(new_v+1) = position + 0.2*normal;
+                mesh_out.edges.set_vertex(new_e, 0, new_v);
+                mesh_out.edges.set_vertex(new_e, 1, new_v+1);
+                new_v += 2;
+                ++new_e;
+            }
+
+            this->control_grid->append_discretized_high_order_facets(mesh_out, 30);
+            mesh_out.save(get_current_test_name()+".geogram");
+        }
+    }
+
+    TYPED_TEST(SingleQuadControlGridTest, dudv) {
+        constexpr GEO::index_t DIM = TypeParam::value;
+
+        constexpr GEO::index_t f = 0;
+        {
+            auto& p = this->control_grid->control_node(this->control_grid->facet_edge_nd(f, 1, 0));
+            for (GEO::index_t d = 0; d < DIM; ++d)
+                p[d] += 0.1*GEO::Numeric::random_float32();
+            if constexpr (DIM == 3)
+                p[2] += 0.2;
+        }
+        {
+            auto& p = this->control_grid->control_node(this->control_grid->facet_edge_nd(f, 3, 2));
+            for (GEO::index_t d = 0; d < DIM; ++d)
+                p[d] += 0.1*GEO::Numeric::random_float32();
+            if constexpr (DIM == 3)
+                p[2] -= 0.2;
+        }
+
+        constexpr GEO::index_t resolution = 10;
+        GEO::Mesh mesh_out(DIM);
+        GEO::Attribute<GEO::index_t> mesh_out_e_axis(mesh_out.edges.attributes(), "axis");
+        GEO::index_t new_v = mesh_out.vertices.create_vertices(3*std::pow(resolution+1, 2));
+        GEO::index_t new_e = mesh_out.edges.create_edges(2*std::pow(resolution+1, 2));
+        for (GEO::index_t i = 0; i < resolution+1; ++i) {
+            const double ri = static_cast<double>(i)/resolution;
+            for (GEO::index_t j = 0; j < resolution+1; ++j) {
+                const double rj = static_cast<double>(j)/resolution;
+
+                const GEO::vec2 uv(ri, rj);
+                GEO::vecng<DIM, double> du, dv;
+                std::vector<double> Bu, Bv, dBu, dBv;
+                this->control_grid->compute_facet_uv_dudv(f, uv, du, dv, Bu, Bv, dBu, dBv);
+
+                const auto p = this->control_grid->compute_facet_uv_position(f, uv);
+                constexpr double length = 0.05;
+                mesh_out.vertices.point<DIM>(new_v) = p;
+                mesh_out.vertices.point<DIM>(new_v+1) = p + length*du;
+                mesh_out.vertices.point<DIM>(new_v+2) = p + length*dv;
+                mesh_out.edges.set_vertex(new_e, 0, new_v);
+                mesh_out.edges.set_vertex(new_e, 1, new_v+1);
+                mesh_out.edges.set_vertex(new_e+1, 0, new_v);
+                mesh_out.edges.set_vertex(new_e+1, 1, new_v+2);
+                mesh_out_e_axis[new_e] = 0;
+                mesh_out_e_axis[new_e+1] = 1;
+
+                new_v += 3;
+                new_e += 2;
+            }
+        }
+
+        this->control_grid->append_discretized_high_order_facets(mesh_out, 30);
+        mesh_out.save(get_current_test_name()+".geogram");
+    }
+
     template <typename DimType>
     class TwoQuadControlGridTest : public QuadControlGridTest<DimType::value> {
     protected:

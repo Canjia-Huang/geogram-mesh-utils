@@ -192,7 +192,7 @@ namespace geolio
          * @note The function does not take ownership of `cur_control_nodes_ptr` and
          *       treats it as read-only. Caller must ensure the buffer is valid.
          */
-        [[nodiscard]] GEO::vecng<DIM, double> compute_cell_uvw_position(GEO::index_t f, const GEO::vec2& uv, const double* cur_control_nodes_ptr) const;
+        [[nodiscard]] GEO::vecng<DIM, double> compute_facet_uv_position(GEO::index_t f, const GEO::vec2& uv, const double* cur_control_nodes_ptr) const;
 
         /**
          * Evaluate the (non-unit) physical normal of a high-order facet.

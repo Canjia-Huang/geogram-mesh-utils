@@ -34,7 +34,7 @@ namespace geolio
     }
 
     template<GEO::index_t DIM>
-    [[nodiscard]] GEO::vecng<DIM, double> SurfaceControlGrid<DIM>::compute_cell_uvw_position(
+    [[nodiscard]] GEO::vecng<DIM, double> SurfaceControlGrid<DIM>::compute_facet_uv_position(
         const GEO::index_t f,
         const GEO::vec2& uv,
         const double* cur_control_nodes_ptr
