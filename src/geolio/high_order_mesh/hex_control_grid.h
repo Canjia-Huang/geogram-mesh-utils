@@ -9,6 +9,167 @@
 
 namespace geolio
 {
+    /**
+     * @brief Projects a 3D parametric coordinate to a 1D parameter on a hexahedron edge.
+     *
+     * Projects a point (u,v,w) from the unit cubic parametric domain [0,1]^3 to
+     * a specified hexahedron edge, returning the 1D parameter t ∈ [0,1] on that edge.
+     *
+     * @param uvw The 3D parametric coordinate in the unit cube (u, v, w) ∈ [0,1]^3
+     * @param le  The local edge index of the hexahedron, range [0, 11]
+     *
+     * @return The projected 1D parameter t ∈ [0,1], representing the position on the edge
+     *         (t=0 corresponds to the start of the edge, t=1 to the end)
+     */
+    inline double project_uvw_to_hex_le_t(
+        const GEO::vec3& uvw,
+        const GEO::index_t le
+        ) {
+        assert(le < 12);
+        switch (le) {
+            case 0: return uvw.x;
+            case 1: return uvw.y;
+            case 2: return 1-uvw.x;
+            case 3: return 1-uvw.y;
+            case 4: return uvw.x;
+            case 5: return uvw.y;
+            case 6: return 1-uvw.x;
+            case 7: return 1-uvw.y;
+            case 8: [[fallthrough]];
+            case 9: [[fallthrough]];
+            case 10: [[fallthrough]];
+            case 11: return uvw.z;
+            default: return -1;
+        }
+    }
+
+    /**
+     * @brief Projects a 3D parametric coordinate to 2D parameters on a hexahedron facet.
+     *
+     * Projects a point (u,v,w) from the unit cubic parametric domain [0,1]^3 to
+     * a specified hexahedron facet, returning the 2D parameters (u', v') ∈ [0,1]^2 on that facet.
+     *
+     * @param uvw The 3D parametric coordinate in the unit cube (u, v, w) ∈ [0,1]^3
+     * @param lf  The local facet index of the hexahedron, range [0, 5]
+     *
+     * @return The projected 2D parameters (u', v') ∈ [0,1]^2, representing the position on the facet
+     */
+    inline GEO::vec2 project_uvw_to_hex_lf_uv(
+        const GEO::vec3& uvw,
+        const GEO::index_t lf
+        ) {
+        assert(lf < 6);
+        GEO::vec2 uv;
+        switch (lf) {
+            case 0: uv = GEO::vec2(uvw.y, uvw.z); break;
+            case 1: uv = GEO::vec2(1-uvw.y, uvw.z); break;
+            case 2: uv = GEO::vec2(1-uvw.x, uvw.z); break;
+            case 3: uv = GEO::vec2(uvw.x, uvw.z); break;
+            case 4: uv = GEO::vec2(uvw.y, 1-uvw.x); break;
+            case 5: uv = GEO::vec2(uvw.y, uvw.x); break;
+            default: uv = GEO::vec2(-1, -1);
+        }
+        return uv;
+    }
+
+    /**
+     * @brief Projects a hexahedron vertex to 3D parametric coordinates.
+     *
+     * Given a local vertex index in a hexahedron (0-7), returns the corresponding
+     * 3D parametric coordinate (u,v,w) in the unit cube domain [0,1]^3 for that vertex.
+     * Vertex indexing follows standard hexahedron topology: bottom face vertices 0-3
+     * (z=0), top face vertices 4-7 (z=1).
+     *
+     * @param[in] lv Local vertex index in the hexahedron, range [0, 7].
+     *
+     * @return The 3D parametric coordinate (u,v,w) ∈ {0,1}^3 corresponding to the vertex.
+     *         If `lv` is out of range, returns (-1,-1,-1).
+     */
+    inline GEO::vec3 project_hex_lv_to_uvw(
+        const GEO::index_t lv
+        ) {
+        assert(lv < 8);
+        GEO::vec3 uvw;
+        switch (lv) {
+            case 0: uvw = GEO::vec3(0, 0, 0); break;
+            case 1: uvw = GEO::vec3(1, 0, 0); break;
+            case 2: uvw = GEO::vec3(0, 1, 0); break;
+            case 3: uvw = GEO::vec3(1, 1, 0); break;
+            case 4: uvw = GEO::vec3(0, 0, 1); break;
+            case 5: uvw = GEO::vec3(1, 0, 1); break;
+            case 6: uvw = GEO::vec3(0, 1, 1); break;
+            case 7: uvw = GEO::vec3(1, 1, 1); break;
+            default: uvw = GEO::vec3(-1, -1, -1);
+        }
+        return uvw;
+    }
+
+    /**
+     * @brief Projects a 1D parameter on a hexahedron edge back to 3D parametric coords.
+     *
+     * Given a scalar parameter t in [0,1] defined along the local hexahedron edge
+     * identified by `le`, return the corresponding 3D parametric coordinate (u,v,w)
+     * in the unit cube domain [0,1]^3 that lies on that edge.
+     *
+     * @param[in] t  The 1D parameter along the edge (t=0 -> edge start, t=1 -> edge end).
+     * @param[in] le Local edge index in the hexahedron (0..11).
+     * @return The 3D parametric coordinate (u,v,w) in [0,1]^3 corresponding to the edge
+     *         parameter. If `le` is out of range, returns (-1,-1,-1).
+     */
+    inline GEO::vec3 project_hex_le_t_to_uvw(
+        const double t,
+        const GEO::index_t le
+        ) {
+        assert(le < 12);
+        GEO::vec3 uvw;
+        switch (le) {
+            case 0: uvw = GEO::vec3(t, 0, 0); break;
+            case 1: uvw = GEO::vec3(1, t, 0); break;
+            case 2: uvw = GEO::vec3(1-t, 1, 0); break;
+            case 3: uvw = GEO::vec3(0, 1-t, 0); break;
+            case 4: uvw = GEO::vec3(t, 0, 1); break;
+            case 5: uvw = GEO::vec3(1, t, 1); break;
+            case 6: uvw = GEO::vec3(1-t, 1, 1); break;
+            case 7: uvw = GEO::vec3(0, 1-t, 1); break;
+            case 8: uvw = GEO::vec3(0, 0, t); break;
+            case 9: uvw = GEO::vec3(1, 0, t); break;
+            case 10: uvw = GEO::vec3(1, 1, t); break;
+            case 11: uvw = GEO::vec3(0, 1, t); break;
+            default: uvw = GEO::vec3(-1, -1, -1);
+        }
+        return uvw;
+    }
+
+    /**
+     * @brief Projects 2D parameters on a hexahedron facet back to 3D parametric coordinates.
+     *
+     * Performs the inverse operation of proj_uvw_to_hex_lf_uv(). Given 2D parameters (u', v')
+     * on a specified hexahedron facet, returns the corresponding 3D parametric coordinate (u, v, w)
+     * in the unit cubic domain [0,1]^3.
+     *
+     * @param uv The 2D parameter on the hexahedron facet (u', v') ∈ [0,1]^2
+     * @param lf The local facet index of the hexahedron, range [0, 5]
+     *
+     * @return The 3D parametric coordinate (u, v, w) ∈ [0,1]^3 corresponding to the input 2D parameters
+     */
+    inline GEO::vec3 project_hex_lf_uv_to_uvw(
+        const GEO::vec2& uv,
+        const GEO::index_t lf
+        ) {
+        assert(lf < 6);
+        GEO::vec3 uvw;
+        switch(lf) {
+            case 0: uvw = GEO::vec3(0, uv.x, uv.y); break;
+            case 1: uvw = GEO::vec3(1, 1-uv.x, uv.y); break;
+            case 2: uvw = GEO::vec3(1-uv.x, 0, uv.y); break;
+            case 3: uvw = GEO::vec3(uv.x, 1, uv.y); break;
+            case 4: uvw = GEO::vec3(1-uv.y, uv.x, 0); break;
+            case 5: uvw = GEO::vec3(uv.y, uv.x, 1); break;
+            default: uvw = GEO::vec3(-1, -1, -1);
+        }
+        return uvw;
+    }
+
     class HexControlGrid : public VolumeControlGrid {
     public:
         /**
@@ -106,6 +267,27 @@ namespace geolio
         void compute_basis_gradient_matrix(
             const GEO::vec3& uvw,
             Eigen::MatrixXd& Bg) const;
+
+        /**
+         * @brief Append a discretized surface mesh of all high-order cell facets.
+         *
+         * @param[in,out] mesh_out Output mesh that receives the discretized facets.
+         * @param[in] resolution Number of samples per parametric direction on each facet.
+         *                      Must be greater than 0; larger values produce finer tessellation.
+         * @param[out] mesh_out_v_cell Optional vertex attribute storing the source cell index
+         *                             for each generated output vertex.
+         * @param[out] mesh_out_v_uvw Optional vertex attribute storing the corresponding
+         *                            parametric coordinate of each generated output vertex.
+         * @param[out] mesh_out_f_cell Optional face attribute storing the source cell index
+         *                             for each generated output facet.
+         */
+        void append_discretized_high_order_cells_facets(
+            GEO::Mesh& mesh_out,
+            GEO::index_t resolution = 10,
+            GEO::Attribute<GEO::index_t>* mesh_out_v_cell = nullptr,
+            GEO::Attribute<GEO::vec3>* mesh_out_v_uvw = nullptr,
+            GEO::Attribute<GEO::index_t>* mesh_out_f_cell = nullptr
+            ) const;
 
     protected:
         /**
