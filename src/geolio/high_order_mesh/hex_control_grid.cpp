@@ -612,83 +612,51 @@ namespace geolio
 
         const GEO::index_t VERTICES_NB_PER_EDGE = resolution+1;
 
-        /* Statistics on the number of facet */
-        std::vector<GEO::index_t> cf_to_append;
-        {
-            std::vector<bool> processed_cf(8*mesh_.cells.nb(), false);
-            for (const auto& c : mesh_.cells) {
-                for (GEO::index_t lf = 0; lf < 6; ++lf) {
-                    if (processed_cf[8*c+lf])
-                        continue;
+        /* Append cell facets */
+        GEO::index_t new_v = mesh_out.vertices.create_vertices(6*mesh_.cells.nb() * (resolution+1) * (resolution+1));
+        GEO::index_t new_f = mesh_out.facets.create_quads(6*mesh_.cells.nb() * resolution * resolution);
+        for (const auto& c : mesh_.cells) {
+            for (GEO::index_t lf = 0; lf < 6; ++lf) {
+                const auto PREV_M_VERTICES = new_v;
 
-                    cf_to_append.push_back(8*c+lf);
+                /*
+                 * Vertices:
+                 * y & j
+                 *   |
+                 *  ...
+                 *   |         |       ...       |         |
+                 * (0,1) --- (1,1) --- ... --- (n,1) -- (n+1,1)
+                 *   |         |       ...       |         |
+                 * (0,0) --- (1,0) --- ... --- (n,0) -- (n+1,0) -> x & i
+                 */
+                for (GEO::index_t i = 0; i < VERTICES_NB_PER_EDGE; ++i) {
+                    const double u = static_cast<double>(i)/resolution;
+                    for (GEO::index_t j = 0; j < VERTICES_NB_PER_EDGE; ++j) {
+                        const double v = static_cast<double>(j)/resolution;
 
-                    processed_cf[8*c+lf] = true;
-                    if (const auto& nc = mesh_.cells.adjacent(c, lf);
-                        nc != GEO::NO_CELL) {
-                        const auto nlf = find_hex_facet(
-                            mesh_,
-                            nc,
-                            mesh_.cells.facet_vertex(c, lf, 2),
-                            mesh_.cells.facet_vertex(c, lf, 1),
-                            mesh_.cells.facet_vertex(c, lf, 0));
-                        assert(nlf != GEO::NO_INDEX);
-                        processed_cf[8*nc+nlf] = true;
+                        GEO::vec3 uvw = project_hex_lf_uv_to_uvw(GEO::vec2(u,v), lf);
+
+                        mesh_out.vertices.point(new_v) = compute_cell_uvw_position(c, uvw);
+
+                        if (mesh_out_v_cell != nullptr)
+                            (*mesh_out_v_cell)[new_v] = c;
+                        if (mesh_out_v_uvw != nullptr)
+                            (*mesh_out_v_uvw)[new_v] = uvw;
+
+                        ++new_v;
                     }
                 }
-            }
-        }
 
-        /* Append cell facets */
-        const GEO::index_t facets_nb = cf_to_append.size();
-        GEO::index_t new_v = mesh_out.vertices.create_vertices(facets_nb * (resolution+1) * (resolution+1));
-        GEO::index_t new_f = mesh_out.facets.create_quads(facets_nb * resolution * resolution);
-        for (const auto& cf : cf_to_append) {
-            const GEO::index_t c = cf/8;
-            const GEO::index_t lf = cf%8;
-            assert(c < mesh_.cells.nb());
-            assert(lf < 6);
-
-            const auto PREV_M_VERTICES = new_v;
-
-            /*
-             * Vertices:
-             * y & j
-             *   |
-             *  ...
-             *   |         |       ...       |         |
-             * (0,1) --- (1,1) --- ... --- (n,1) -- (n+1,1)
-             *   |         |       ...       |         |
-             * (0,0) --- (1,0) --- ... --- (n,0) -- (n+1,0) -> x & i
-             */
-            for (GEO::index_t i = 0; i < VERTICES_NB_PER_EDGE; ++i) {
-                const double u = static_cast<double>(i)/resolution;
-                for (GEO::index_t j = 0; j < VERTICES_NB_PER_EDGE; ++j) {
-                    const double v = static_cast<double>(j)/resolution;
-
-                    GEO::vec3 uvw = project_hex_lf_uv_to_uvw(GEO::vec2(u,v), lf);
-
-                    mesh_out.vertices.point(new_v) = compute_cell_uvw_position(c, uvw);
-
-                    if (mesh_out_v_cell != nullptr)
-                        (*mesh_out_v_cell)[new_v] = c;
-                    if (mesh_out_v_uvw != nullptr)
-                        (*mesh_out_v_uvw)[new_v] = uvw;
-
-                    ++new_v;
-                }
-            }
-
-            /*
-             * Facets:
-             * ...
-             * +-----+-----+- ... -+-----+      v3 --- v2
-             * | n+1 | n+2 |  ...  |2n+1 |       |     |
-             * +-----+-----+- ... -+-----+      v0 --- v1
-             * |  0  |  1  |  ...  |  n  |
-             * +-----+-----+- ... -+-----+
-             */
-            for (GEO::index_t i = 0; i < resolution; ++i) {
+                /*
+                 * Facets:
+                 * ...
+                 * +-----+-----+- ... -+-----+      v3 --- v2
+                 * | n+1 | n+2 |  ...  |2n+1 |       |     |
+                 * +-----+-----+- ... -+-----+      v0 --- v1
+                 * |  0  |  1  |  ...  |  n  |
+                 * +-----+-----+- ... -+-----+
+                 */
+                for (GEO::index_t i = 0; i < resolution; ++i) {
                 for (GEO::index_t j = 0; j < resolution; ++j) {
                     const GEO::index_t v0 = VERTICES_NB_PER_EDGE*i+j;
                     const GEO::index_t v1 = v0+VERTICES_NB_PER_EDGE;
@@ -708,6 +676,7 @@ namespace geolio
 
                     ++new_f;
                 }
+            }
             }
         }
 

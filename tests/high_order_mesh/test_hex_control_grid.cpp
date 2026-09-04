@@ -130,4 +130,46 @@ namespace geolio::test
         save_high_order_mesh_border(get_current_test_name()+"_border.geogram");
         save_high_order_mesh_cells(get_current_test_name()+"_cells.geogram");
     }
+
+    class TwoHexControlGridTest : public HexControlGridTest {
+    protected:
+        void SetUp() override {
+            mesh.vertices.create_vertices(12);
+            mesh.vertices.point(0) = GEO::vec3(0, 0, 0);
+            mesh.vertices.point(1) = GEO::vec3(1, 0, 0);
+            mesh.vertices.point(2) = GEO::vec3(0, 1, 0);
+            mesh.vertices.point(3) = GEO::vec3(1, 1, 0);
+            mesh.vertices.point(4) = GEO::vec3(0, 0, 1);
+            mesh.vertices.point(5) = GEO::vec3(1, 0, 1);
+            mesh.vertices.point(6) = GEO::vec3(0, 1, 1);
+            mesh.vertices.point(7) = GEO::vec3(1, 1, 1);
+            mesh.vertices.point(8) = GEO::vec3(0, 2, 0);
+            mesh.vertices.point(9) = GEO::vec3(1, 2, 0);
+            mesh.vertices.point(10) = GEO::vec3(0, 2, 1);
+            mesh.vertices.point(11) = GEO::vec3(1, 2, 1);
+            mesh.cells.create_hex(0, 1, 2, 3, 4, 5, 6, 7);
+            mesh.cells.create_hex(2, 8, 6, 10, 3, 9, 7, 11);
+
+            constexpr GEO::index_t order = 6;
+            control_grid = std::make_unique<HexControlGrid>(mesh, order);
+        }
+    };
+
+    TEST_F(TwoHexControlGridTest, regular) {
+        save_control_nodes(get_current_test_name()+"_nodes.geogram");
+        save_high_order_mesh_border(get_current_test_name()+"_border.geogram");
+        save_high_order_mesh_cells(get_current_test_name()+"_cells.geogram");
+    }
+
+    TEST_F(TwoHexControlGridTest, random) {
+        control_grid->control_node(control_grid->cell_edge_cv(0, 2, 3)) += 0.1 *
+            GEO::vec3(GEO::Numeric::random_float32(), GEO::Numeric::random_float32(), GEO::Numeric::random_float32());
+        control_grid->control_node(control_grid->cell_facet_cv(1, 0, 2, 4)) += 0.1 *
+            GEO::vec3(GEO::Numeric::random_float32(), GEO::Numeric::random_float32(), GEO::Numeric::random_float32());
+        control_grid->control_node(control_grid->cell_cv(1, 2, 4, 1)) += 0.1 *
+            GEO::vec3(GEO::Numeric::random_float32(), GEO::Numeric::random_float32(), GEO::Numeric::random_float32());
+        save_control_nodes(get_current_test_name()+"_nodes.geogram");
+        save_high_order_mesh_border(get_current_test_name()+"_border.geogram");
+        save_high_order_mesh_cells(get_current_test_name()+"_cells.geogram");
+    }
 }
