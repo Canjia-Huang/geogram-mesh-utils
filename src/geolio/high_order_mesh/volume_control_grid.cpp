@@ -18,17 +18,17 @@ namespace geolio
 
         GEO::vec3 p(0, 0, 0);
 
-        std::vector<double> Bu(ORDER_+1);
-        std::vector<double> Bv(ORDER_+1);
-        std::vector<double> Bw(ORDER_+1);
+        std::vector<double> Bu(order_+1);
+        std::vector<double> Bv(order_+1);
+        std::vector<double> Bw(order_+1);
         Lagrange_basis_1D(uvw.x, node_positions_1D_, Bu);
         Lagrange_basis_1D(uvw.y, node_positions_1D_, Bv);
         Lagrange_basis_1D(uvw.z, node_positions_1D_, Bw);
 
-        for (GEO::index_t i = 0; i <= ORDER_; ++i) {
-            for (GEO::index_t j = 0; j <= ORDER_; ++j) {
+        for (GEO::index_t i = 0; i <= order_; ++i) {
+            for (GEO::index_t j = 0; j <= order_; ++j) {
                 const double basis_uv = Bu[i] * Bv[j];
-                for (GEO::index_t k = 0; k <= ORDER_; ++k) {
+                for (GEO::index_t k = 0; k <= order_; ++k) {
                     const double lag_basis = basis_uv * Bw[k];
                     p += lag_basis * control_node(cell_cv(c, i, j, k));
                 }
@@ -50,17 +50,17 @@ namespace geolio
 
         GEO::vec3 p(0, 0, 0);
 
-        std::vector<double> Bu(ORDER_+1);
-        std::vector<double> Bv(ORDER_+1);
-        std::vector<double> Bw(ORDER_+1);
+        std::vector<double> Bu(order_+1);
+        std::vector<double> Bv(order_+1);
+        std::vector<double> Bw(order_+1);
         Lagrange_basis_1D(uvw.x, node_positions_1D_, Bu);
         Lagrange_basis_1D(uvw.y, node_positions_1D_, Bv);
         Lagrange_basis_1D(uvw.z, node_positions_1D_, Bw);
 
-        for (GEO::index_t i = 0; i <= ORDER_; ++i) {
-            for (GEO::index_t j = 0; j <= ORDER_; ++j) {
+        for (GEO::index_t i = 0; i <= order_; ++i) {
+            for (GEO::index_t j = 0; j <= order_; ++j) {
                 const double basis_uv = Bu[i] * Bv[j];
-                for (GEO::index_t k = 0; k <= ORDER_; ++k) {
+                for (GEO::index_t k = 0; k <= order_; ++k) {
                     const auto& cv = cell_cv(c, i, j, k);
                     const double lag_basis = basis_uv * Bw[k];
                     p += lag_basis * GEO::vec3(
@@ -84,18 +84,18 @@ namespace geolio
         assert(uv.x >= 0 && uv.x <= 1);
         assert(uv.y >= 0 && uv.y <= 1);
 
-        std::vector<double> Bu(ORDER_+1);
-        std::vector<double> Bv(ORDER_+1);
-        std::vector<double> dBu(ORDER_+1);
-        std::vector<double> dBv(ORDER_+1);
+        std::vector<double> Bu(order_+1);
+        std::vector<double> Bv(order_+1);
+        std::vector<double> dBu(order_+1);
+        std::vector<double> dBv(order_+1);
         Lagrange_basis_1D(uv.x, node_positions_1D_, Bu);
         Lagrange_basis_1D(uv.y, node_positions_1D_, Bv);
         Lagrange_basis_deriv_1D(uv.x, node_positions_1D_, dBu);
         Lagrange_basis_deriv_1D(uv.y, node_positions_1D_, dBv);
 
         GEO::vec3 Tu(0, 0, 0), Tv(0, 0, 0);
-        for (GEO::index_t i = 0; i < CONTROL_POINTS_NB_PER_EDGE; ++i) {
-            for (GEO::index_t j = 0; j < CONTROL_POINTS_NB_PER_EDGE; ++j) {
+        for (GEO::index_t i = 0; i < CONTROL_POINTS_NB_PER_EDGE_; ++i) {
+            for (GEO::index_t j = 0; j < CONTROL_POINTS_NB_PER_EDGE_; ++j) {
                 const auto& p = control_node(cell_facet_cv(c, lf, i, j));
                 Tu += p * dBu[i] * Bv[j];
                 Tv += p * Bu[i] * dBv[j];
@@ -127,12 +127,12 @@ namespace geolio
         dv.x = 0; dv.y = 0; dv.z = 0;
         dw.x = 0; dw.y = 0; dw.z = 0;
 
-        Bu.resize(ORDER_+1);
-        Bv.resize(ORDER_+1);
-        Bw.resize(ORDER_+1);
-        dBu.resize(ORDER_+1);
-        dBv.resize(ORDER_+1);
-        dBw.resize(ORDER_+1);
+        Bu.resize(order_+1);
+        Bv.resize(order_+1);
+        Bw.resize(order_+1);
+        dBu.resize(order_+1);
+        dBv.resize(order_+1);
+        dBw.resize(order_+1);
         Lagrange_basis_1D(uvw.x, node_positions_1D_, Bu);
         Lagrange_basis_1D(uvw.y, node_positions_1D_, Bv);
         Lagrange_basis_1D(uvw.z, node_positions_1D_, Bw);
@@ -140,12 +140,12 @@ namespace geolio
         Lagrange_basis_deriv_1D(uvw.y, node_positions_1D_, dBv);
         Lagrange_basis_deriv_1D(uvw.z, node_positions_1D_, dBw);
 
-        for (GEO::index_t k = 0; k < CONTROL_POINTS_NB_PER_EDGE; ++k) {
-            for (GEO::index_t j = 0; j < CONTROL_POINTS_NB_PER_EDGE; ++j) {
+        for (GEO::index_t k = 0; k < CONTROL_POINTS_NB_PER_EDGE_; ++k) {
+            for (GEO::index_t j = 0; j < CONTROL_POINTS_NB_PER_EDGE_; ++j) {
                 const double basis_vw = Bv[j] * Bw[k];
                 const double basis_dvw= dBv[j] * Bw[k];
                 const double basis_vdw= Bv[j] * dBw[k];
-                for (GEO::index_t i = 0; i < CONTROL_POINTS_NB_PER_EDGE; ++i) {
+                for (GEO::index_t i = 0; i < CONTROL_POINTS_NB_PER_EDGE_; ++i) {
                     const double lag_basis_duvw = dBu[i] * basis_vw;
                     const double lag_basis_udvw = Bu[i] * basis_dvw;
                     const double lag_basis_uvdw = Bu[i] * basis_vdw;
