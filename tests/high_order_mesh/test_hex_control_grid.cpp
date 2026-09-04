@@ -11,7 +11,22 @@ namespace geolio::test
 {
     class HexControlGridTest : public ::testing::Test {
     public:
-        void save_high_order_mesh(const std::string& filepath) {
+        void save_control_nodes(const std::string& filepath) const {
+            ASSERT_FALSE(control_grid == nullptr);
+
+            GEO::Mesh mesh_out;
+            GEO::Attribute<GEO::index_t> mesh_out_v_idx(mesh_out.vertices.attributes(), "idx");
+
+            mesh_out.vertices.create_vertices(control_grid->control_nodes_nb());
+            for (const auto& v : mesh_out.vertices) {
+                mesh_out.vertices.point(v) = control_grid->control_node(v);
+                mesh_out_v_idx[v] = v;
+            }
+
+            EXPECT_TRUE(mesh_out.save(filepath));
+        }
+
+        void save_high_order_mesh_border(const std::string& filepath) const {
             ASSERT_FALSE(control_grid == nullptr);
 
             GEO::Mesh mesh_out;
@@ -19,17 +34,62 @@ namespace geolio::test
             GEO::Attribute<GEO::vec3> mesh_out_v_uvw(mesh_out.vertices.attributes(), "uvw");
             GEO::Attribute<GEO::index_t> mesh_out_f_cell(mesh_out.facets.attributes(), "cell");
 
-            control_grid->append_discretized_high_order_cells_facets(
+            control_grid->append_discretized_high_order_cells_border(
                 mesh_out,
                 20,
                 &mesh_out_v_cell,
                 &mesh_out_v_uvw,
                 &mesh_out_f_cell);
 
+            eval_vertices_quality(mesh_out, mesh_out_v_cell, mesh_out_v_uvw);
+
+            EXPECT_TRUE(mesh_out.save(filepath));
+        }
+
+        void save_high_order_mesh_cells(const std::string& filepath) const {
+            ASSERT_FALSE(control_grid == nullptr);
+
+            GEO::Mesh mesh_out;
+            GEO::Attribute<GEO::index_t> mesh_out_v_cell(mesh_out.vertices.attributes(), "cell");
+            GEO::Attribute<GEO::vec3> mesh_out_v_uvw(mesh_out.vertices.attributes(), "uvw");
+            GEO::Attribute<GEO::index_t> mesh_out_c_cell(mesh_out.cells.attributes(), "cell");
+
+            control_grid->append_discretized_high_order_cells(
+                mesh_out,
+                20,
+                &mesh_out_v_cell,
+                &mesh_out_v_uvw,
+                &mesh_out_c_cell);
+
+            eval_vertices_quality(mesh_out, mesh_out_v_cell, mesh_out_v_uvw);
+
             EXPECT_TRUE(mesh_out.save(filepath));
         }
 
     protected:
+        void eval_vertices_quality(
+            const GEO::Mesh& mesh_out,
+            const GEO::Attribute<GEO::index_t>& mesh_out_v_cell,
+            const GEO::Attribute<GEO::vec3>& mesh_out_v_uvw
+            ) const {
+            GEO::Attribute<double> mesh_out_v_det_jacobian(mesh_out.vertices.attributes(), "det_jacobian");
+            GEO::Attribute<double> mesh_out_v_scaled_jacobian(mesh_out.vertices.attributes(), "scaled_jacobian");
+            GEO::Attribute<double> mesh_out_v_inverse_mean_ratio(mesh_out.vertices.attributes(), "inverse_mean_ratio");
+            GEO::Attribute<double> mesh_out_v_MIPS(mesh_out.vertices.attributes(), "MIPS");
+            for (const auto& v : mesh_out.vertices) {
+                const auto& c = mesh_out_v_cell[v];
+                const auto& uvw = mesh_out_v_uvw[v];
+                mesh_out_v_det_jacobian[v] = control_grid->compute_cell_uvw_measure(
+                    c, uvw, HexControlGrid::MeasureType::DET_JACOBIAN);
+                mesh_out_v_scaled_jacobian[v] = control_grid->compute_cell_uvw_measure(
+                    c, uvw, HexControlGrid::MeasureType::SCALED_JACOBIAN);
+                mesh_out_v_inverse_mean_ratio[v] = control_grid->compute_cell_uvw_measure(
+                    c, uvw, HexControlGrid::MeasureType::INVERSE_MEAN_RATIO);
+                mesh_out_v_MIPS[v] = control_grid->compute_cell_uvw_measure(
+                    c, uvw, HexControlGrid::MeasureType::MIPS);
+            }
+        }
+
         GEO::Mesh mesh;
         std::unique_ptr<HexControlGrid> control_grid;
     };
@@ -53,7 +113,21 @@ namespace geolio::test
         }
     };
 
-    TEST_F(SingleHexControlGridTest, test) {
-        save_high_order_mesh(get_current_test_name()+".geogram");
+    TEST_F(SingleHexControlGridTest, regular) {
+        save_control_nodes(get_current_test_name()+"_nodes.geogram");
+        save_high_order_mesh_border(get_current_test_name()+"_border.geogram");
+        save_high_order_mesh_cells(get_current_test_name()+"_cells.geogram");
+    }
+
+    TEST_F(SingleHexControlGridTest, random) {
+        control_grid->control_node(control_grid->cell_edge_cv(0, 1, 2)) += 0.1 *
+            GEO::vec3(GEO::Numeric::random_float32(), GEO::Numeric::random_float32(), GEO::Numeric::random_float32());
+        control_grid->control_node(control_grid->cell_facet_cv(0, 2, 2, 3)) += 0.1 *
+            GEO::vec3(GEO::Numeric::random_float32(), GEO::Numeric::random_float32(), GEO::Numeric::random_float32());
+        control_grid->control_node(control_grid->cell_cv(0, 1, 2, 3)) += 0.1 *
+            GEO::vec3(GEO::Numeric::random_float32(), GEO::Numeric::random_float32(), GEO::Numeric::random_float32());
+        save_control_nodes(get_current_test_name()+"_nodes.geogram");
+        save_high_order_mesh_border(get_current_test_name()+"_border.geogram");
+        save_high_order_mesh_cells(get_current_test_name()+"_cells.geogram");
     }
 }

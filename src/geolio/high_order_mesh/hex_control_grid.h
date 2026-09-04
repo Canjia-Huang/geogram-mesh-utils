@@ -198,7 +198,7 @@ namespace geolio
                 Eigen::Matrix3d& J) const;
 
         enum class MeasureType {
-            JACOBIAN,             // Signed Jacobian determinant; non-positive values indicate inversion or degeneration.
+            DET_JACOBIAN,             // Signed Jacobian determinant; non-positive values indicate inversion or degeneration.
             SCALED_JACOBIAN,      // Skew measure / normalized Jacobian; 1.0 is ideal, and non-positive values indicate collapse or inversion.
             INVERSE_MEAN_RATIO,   // Shape-quality metric combining angle and aspect-ratio distortion; 1.0 is best and 0 indicates degeneration.
             MIPS                  // Minimizes shear and anisotropic stretching; 1.0 is best and the value grows toward infinity near degeneration.
@@ -281,13 +281,20 @@ namespace geolio
          * @param[out] mesh_out_f_cell Optional face attribute storing the source cell index
          *                             for each generated output facet.
          */
-        void append_discretized_high_order_cells_facets(
+        void append_discretized_high_order_cells_border(
             GEO::Mesh& mesh_out,
             GEO::index_t resolution = 10,
             GEO::Attribute<GEO::index_t>* mesh_out_v_cell = nullptr,
             GEO::Attribute<GEO::vec3>* mesh_out_v_uvw = nullptr,
             GEO::Attribute<GEO::index_t>* mesh_out_f_cell = nullptr
             ) const;
+
+        void append_discretized_high_order_cells(
+            GEO::Mesh& mesh_out,
+            GEO::index_t resolution = 10,
+            GEO::Attribute<GEO::index_t>* mesh_out_v_cell = nullptr,
+            GEO::Attribute<GEO::vec3>* mesh_out_v_uvw = nullptr,
+            GEO::Attribute<GEO::index_t>* mesh_out_c_cell = nullptr) const;
 
     protected:
         /**

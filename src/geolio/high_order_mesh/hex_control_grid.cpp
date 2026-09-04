@@ -67,7 +67,7 @@ namespace geolio
 
         const double det_J = GEO::dot(dw,GEO::cross(du,dv));
         switch (quality_type) {
-            case MeasureType::JACOBIAN: {
+            case MeasureType::DET_JACOBIAN: {
                 return det_J;
             }
             case MeasureType::MIPS: {
@@ -137,7 +137,7 @@ namespace geolio
         for (const auto& c : mesh_.cells) {
             double V = 0;
             for (const auto& [uvw, w] : points_and_weights)
-                V += w * compute_cell_uvw_measure(c, uvw, HexControlGrid::MeasureType::JACOBIAN);
+                V += w * compute_cell_uvw_measure(c, uvw, HexControlGrid::MeasureType::DET_JACOBIAN);
             volumes[c] = V;
         }
     }
@@ -590,14 +590,13 @@ namespace geolio
         }
     }
 
-    void HexControlGrid::append_discretized_high_order_cells_facets(
+    void HexControlGrid::append_discretized_high_order_cells_border(
         GEO::Mesh& mesh_out,
         const GEO::index_t resolution,
         GEO::Attribute<GEO::index_t>* mesh_out_v_cell,
         GEO::Attribute<GEO::vec3>* mesh_out_v_uvw,
         GEO::Attribute<GEO::index_t>* mesh_out_f_cell
         ) const {
-        LOG::TRACE(__FUNCTION__);
         if (mesh_out_v_cell != nullptr) {
             assert(mesh_out_v_cell->is_bound());
             assert(mesh_out_v_cell->size() == mesh_out.vertices.nb());
@@ -711,5 +710,102 @@ namespace geolio
                 }
             }
         }
+
+        mesh_out.facets.connect();
+    }
+
+    void HexControlGrid::append_discretized_high_order_cells(
+        GEO::Mesh& mesh_out,
+        const GEO::index_t resolution,
+        GEO::Attribute<GEO::index_t>* mesh_out_v_cell,
+        GEO::Attribute<GEO::vec3>* mesh_out_v_uvw,
+        GEO::Attribute<GEO::index_t>* mesh_out_c_cell
+        ) const {
+        if (mesh_out_v_cell != nullptr) {
+            assert(mesh_out_v_cell->is_bound());
+            assert(mesh_out_v_cell->size() == mesh_out.vertices.nb());
+        }
+        if (mesh_out_v_uvw != nullptr) {
+            assert(mesh_out_v_uvw->is_bound());
+            assert(mesh_out_v_uvw->size() == mesh_out.vertices.nb());
+        }
+        if (mesh_out_c_cell != nullptr) {
+            assert(mesh_out_c_cell->is_bound());
+            assert(mesh_out_c_cell->size() == mesh_out.cells.nb());
+        }
+
+        const GEO::index_t VERTICES_NB_PER_EDGE = resolution+1;
+        const GEO::index_t VERTICES_NB_PER_FACET = VERTICES_NB_PER_EDGE * VERTICES_NB_PER_EDGE;
+        GEO::index_t new_v = mesh_out.vertices.create_vertices(mesh_.cells.nb() * (resolution+1) * (resolution+1) * (resolution+1));
+        GEO::index_t new_c = mesh_out.cells.create_hexes(mesh_.cells.nb() * resolution * resolution * resolution);
+        for (const auto& c : mesh_.cells) {
+            const auto PREV_M_VERTICES = new_v;
+
+            /* Vertices */
+            for (GEO::index_t i = 0; i < VERTICES_NB_PER_EDGE; ++i) {
+                const double u = static_cast<double>(i)/resolution;
+                for (GEO::index_t j = 0; j < VERTICES_NB_PER_EDGE; ++j) {
+                    const double v = static_cast<double>(j)/resolution;
+                    for (GEO::index_t k = 0; k < VERTICES_NB_PER_EDGE; ++k) {
+                        const double w = static_cast<double>(k)/resolution;
+                        const GEO::vec3 uvw(u, v, w);
+                        mesh_out.vertices.point(new_v) = compute_cell_uvw_position(c, uvw);
+
+                        if (mesh_out_v_cell != nullptr)
+                            (*mesh_out_v_cell)[new_v] = c;
+                        if (mesh_out_v_uvw != nullptr)
+                            (*mesh_out_v_uvw)[new_v] = uvw;
+
+                        ++new_v;
+                    }
+                }
+            }
+
+            /* Cells
+             *    +Z                4-------6
+             *    |                /|      /|
+             *    o --- +Y        5-------7 |
+             *   /                | 0-----|-2
+             *  +X                |/      |/
+             *                    1-------3
+             */
+            for (GEO::index_t i = 0; i < resolution; ++i) {
+                for (GEO::index_t j = 0; j < resolution; ++j) {
+                    for (GEO::index_t k = 0; k < resolution; ++k) {
+                        const GEO::index_t v0 = VERTICES_NB_PER_FACET*i+VERTICES_NB_PER_EDGE*j+k;
+                        const GEO::index_t v1 = v0+VERTICES_NB_PER_FACET;
+                        const GEO::index_t v2 = v0+VERTICES_NB_PER_EDGE;
+                        const GEO::index_t v3 = v1+VERTICES_NB_PER_EDGE;
+                        const GEO::index_t v4 = v0+1;
+                        const GEO::index_t v5 = v4+VERTICES_NB_PER_FACET;
+                        const GEO::index_t v6 = v4+VERTICES_NB_PER_EDGE;
+                        const GEO::index_t v7 = v5+VERTICES_NB_PER_EDGE;
+                        assert(v0 < mesh_out.vertices.nb());
+                        assert(v1 < mesh_out.vertices.nb());
+                        assert(v2 < mesh_out.vertices.nb());
+                        assert(v3 < mesh_out.vertices.nb());
+                        assert(v4 < mesh_out.vertices.nb());
+                        assert(v5 < mesh_out.vertices.nb());
+                        assert(v6 < mesh_out.vertices.nb());
+                        assert(v7 < mesh_out.vertices.nb());
+                        mesh_out.cells.set_vertex(new_c, 0, PREV_M_VERTICES+v0);
+                        mesh_out.cells.set_vertex(new_c, 1, PREV_M_VERTICES+v1);
+                        mesh_out.cells.set_vertex(new_c, 2, PREV_M_VERTICES+v2);
+                        mesh_out.cells.set_vertex(new_c, 3, PREV_M_VERTICES+v3);
+                        mesh_out.cells.set_vertex(new_c, 4, PREV_M_VERTICES+v4);
+                        mesh_out.cells.set_vertex(new_c, 5, PREV_M_VERTICES+v5);
+                        mesh_out.cells.set_vertex(new_c, 6, PREV_M_VERTICES+v6);
+                        mesh_out.cells.set_vertex(new_c, 7, PREV_M_VERTICES+v7);
+
+                        if (mesh_out_c_cell != nullptr)
+                            (*mesh_out_c_cell)[new_c] = c;
+
+                        ++new_c;
+                    }
+                }
+            }
+        }
+
+        mesh_out.cells.connect();
     }
 }
