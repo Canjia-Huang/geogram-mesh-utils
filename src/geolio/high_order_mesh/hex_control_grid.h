@@ -269,7 +269,7 @@ namespace geolio
             Eigen::MatrixXd& Bg) const;
 
         /**
-         * @brief Append a discretized surface mesh of all high-order cell facets.
+         * @brief Append a discretized surface mesh of all high-order cell facets (for visualization purposes).
          *
          * @param[in,out] mesh_out Output mesh that receives the discretized facets.
          * @param[in] resolution Number of samples per parametric direction on each facet.
@@ -289,6 +289,23 @@ namespace geolio
             GEO::Attribute<GEO::index_t>* mesh_out_f_cell = nullptr
             ) const;
 
+        /**
+         * @brief Append a discretized volumetric mesh of all high-order cells (for visualization purposes).
+         *
+         * The routine samples each hexahedral cell with a regular
+         * `resolution x resolution x resolution` grid in parametric space and appends
+         * the generated volume elements to \p mesh_out.
+         *
+         * @param[in,out] mesh_out Output mesh that receives the discretized cells.
+         * @param[in] resolution Number of samples per parametric direction inside each cell.
+         *                      Must be greater than 0; larger values produce finer subdivision.
+         * @param[out] mesh_out_v_cell Optional vertex attribute storing the source cell index
+         *                             for each generated output vertex.
+         * @param[out] mesh_out_v_uvw Optional vertex attribute storing the corresponding
+         *                            parametric coordinate of each generated output vertex.
+         * @param[out] mesh_out_c_cell Optional cell attribute storing the source cell index
+         *                             for each generated output volume element.
+         */
         void append_discretized_high_order_cells(
             GEO::Mesh& mesh_out,
             GEO::index_t resolution = 10,
