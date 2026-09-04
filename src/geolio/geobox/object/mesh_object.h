@@ -82,7 +82,12 @@ namespace geolio::geobox
         void draw_surface();
 
         /**
-         * @brief Draws the mesh edges.
+         * @brief Draws the explicit 1-D edges of the mesh (mesh.edges).
+         * @details Unlike the facet/cell wireframes, which are derived on the
+         *          fly from mesh.facets/mesh.cells while drawing, this pass
+         *          renders the edges actually stored in mesh.edges as
+         *          standalone lines, with their own visibility/color/width
+         *          (show_edges_, edges_color_, edges_width_).
          * @ref <geogram_gfx/gui/simple_mesh_application.cpp> draw_edges()
          */
         void draw_edges();
@@ -119,6 +124,9 @@ namespace geolio::geobox
         GEO::Mesh mesh_;
         GEO::MeshGfx mesh_gfx_;
 
+        /** Cached bounding-box diagonal; < 0 means "not computed yet". */
+        mutable float bbox_diag_ = -1.0f;
+
         bool show_vertices_ = false;
         /**
          * Absolute (model-space) diameter of the vertex markers, expressed
@@ -132,8 +140,11 @@ namespace geolio::geobox
         GEO::vec4f vertices_color_ = GEO::vec4f(0.0f, 1.0f, 0.0f, 1.0f);
         float vertices_transparency_ = 0.0f;
 
-        /** Cached bounding-box diagonal; < 0 means "not computed yet". */
-        mutable float bbox_diag_ = -1.0f;
+        // Explicit 1-D edges stored in mesh.edges, drawn as standalone lines
+        // (independent from the facet/cell wireframes).
+        bool show_edges_ = true;
+        float edges_width_ = 0.3f;
+        GEO::vec4f edges_color_ = GEO::vec4f(0.00f, 0.55f, 0.05f, 1.0f);
 
         bool show_surface_ = true;
         bool show_surface_sides_ = false;
@@ -141,9 +152,11 @@ namespace geolio::geobox
         GEO::vec4f surface_color_2_ = GEO::vec4f(1.0f, 0.5f, 0.0f, 1.0f);
         float surface_transparency_ = 0.0f;
 
-        bool show_mesh_ = true;
-        float mesh_width_ = 0.1f;
-        GEO::vec4f mesh_color_ = GEO::vec4f(0.05f, 0.05f, 0.05f, 1.0f);
+        // Wireframe of the surface facets ("mesh" lines: the edges of
+        // mesh.facets, drawn over the surface).
+        bool show_surface_mesh_ = true;
+        float surface_mesh_width_ = 0.1f;
+        GEO::vec4f surface_mesh_color_ = GEO::vec4f(0.05f, 0.05f, 0.05f, 1.0f);
 
         bool show_surface_borders_ = true;
         float surface_borders_width_ = 0.3f;
@@ -156,6 +169,12 @@ namespace geolio::geobox
         bool show_hexes_ = true;
         bool show_connectors_ = true;
         const std::vector<ColormapInfo>& colormaps_;
+
+        // Wireframe of the volume cells (the edges of mesh.cells, drawn by
+        // GLUP while rendering the volume).
+        bool show_volume_mesh_ = true;
+        float volume_mesh_width_ = 0.1f;
+        GEO::vec4f volume_mesh_color_ = GEO::vec4f(0.05f, 0.05f, 0.05f, 1.0f);
 
         bool show_attributes_ = false;
         GEO::index_t current_colormap_index_ = 0;

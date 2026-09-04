@@ -35,6 +35,13 @@ namespace geolio::geobox
                 vertices_size_ = 0.01f * diag;
         }
 
+        if (mesh_.edges.nb() == 0)
+            show_edges_ = false;
+        if (mesh_.facets.nb() == 0)
+            show_surface_mesh_ = false;
+        if (mesh_.cells.nb() == 0)
+            show_volume_ = false;
+
         set_attribute(attribute_);
     }
 
@@ -188,6 +195,21 @@ namespace geolio::geobox
                 ImGui::Unindent();
             }
 
+            /* == Edges (explicit mesh.edges) ========================================================================= */
+            if (mesh_.edges.nb() != 0) {
+                ImGui::Separator();
+                ImGui::Checkbox("##EdgeOnOff", &show_edges_);
+                ImGui::SameLine();
+                ImGui::ColorEdit3WithPalette("Edge.", edges_color_.data());
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip(
+                        "Explicit 1-D edges stored in the mesh (mesh.edges), "
+                        "e.g. feature edges. Independent from the facet and "
+                        "cell wireframes.");
+                if (show_edges_)
+                    ImGui::SliderFloat("wid.##edges", &edges_width_, 0.1f, 2.0f, "%.1f");
+            }
+
             /* == Facets =========================================================================================== */
             if (mesh_.facets.nb() != 0) {
                 ImGui::Separator();
@@ -204,11 +226,15 @@ namespace geolio::geobox
 
                     ImGui::SliderFloat("trsp.##surface", &surface_transparency_, 0.0f, 1.0f, "%.2f");
 
-                    ImGui::Checkbox("##MeshOnOff", &show_mesh_);
+                    ImGui::Checkbox("##MeshOnOff", &show_surface_mesh_);
                     ImGui::SameLine();
-                    ImGui::ColorEdit3WithPalette("mesh", mesh_color_.data());
-                    if (show_mesh_)
-                        ImGui::SliderFloat("wid.##mesh", &mesh_width_, 0.1f, 2.0f, "%.1f");
+                    ImGui::ColorEdit3WithPalette("mesh", surface_mesh_color_.data());
+                    if (ImGui::IsItemHovered())
+                        ImGui::SetTooltip(
+                            "Wireframe of the surface facets "
+                            "(the edges of mesh.facets).");
+                    if (show_surface_mesh_)
+                        ImGui::SliderFloat("wid.##mesh", &surface_mesh_width_, 0.1f, 2.0f, "%.1f");
 
                     ImGui::Checkbox("##BordersOnOff", &show_surface_borders_);
                     ImGui::SameLine();
@@ -229,6 +255,16 @@ namespace geolio::geobox
 
                 if (show_volume_) {
                     ImGui::Indent();
+
+                    ImGui::Checkbox("##CellMeshOnOff", &show_volume_mesh_);
+                    ImGui::SameLine();
+                    ImGui::ColorEdit3WithPalette("cell mesh", volume_mesh_color_.data());
+                    if (ImGui::IsItemHovered())
+                        ImGui::SetTooltip(
+                            "Wireframe of the volume cells "
+                            "(the edges of mesh.cells).");
+                    if (show_volume_mesh_)
+                        ImGui::SliderFloat("wid.##cellmesh", &volume_mesh_width_, 0.1f, 2.0f, "%.1f");
 
                     ImGui::SliderFloat("shrk.", &cells_shrink_, 0.0f, 1.0f, "%.2f");
                     if (!mesh_.cells.are_simplices()) {
@@ -459,9 +495,11 @@ namespace geolio::geobox
                 surface_color_2_.x, surface_color_2_.y, surface_color_2_.z, alpha);
         }
 
-        mesh_gfx_.set_show_mesh(show_mesh_);
-        mesh_gfx_.set_mesh_color(mesh_color_.x, mesh_color_.y, mesh_color_.z);
-        mesh_gfx_.set_mesh_width(static_cast<GEO::index_t>(mesh_width_ * 10.0f));
+        mesh_gfx_.set_show_mesh(show_surface_mesh_);
+        mesh_gfx_.set_mesh_color(
+            surface_mesh_color_.x, surface_mesh_color_.y, surface_mesh_color_.z);
+        mesh_gfx_.set_mesh_width(
+            static_cast<GEO::index_t>(surface_mesh_width_ * 10.0f));
 
         if (show_surface_) {
             const float specular_backup = glupGetSpecular();
@@ -480,8 +518,9 @@ namespace geolio::geobox
 
                 // The border pass above leaves MeshGfx's mesh color set to the border
                 // color; restore it so later passes (edges, volume wireframe) use the
-                // mesh color.
-                mesh_gfx_.set_mesh_color(mesh_color_.x, mesh_color_.y, mesh_color_.z);
+                // surface mesh color.
+                mesh_gfx_.set_mesh_color(
+                    surface_mesh_color_.x, surface_mesh_color_.y, surface_mesh_color_.z);
             }
         }
 
@@ -493,8 +532,22 @@ namespace geolio::geobox
 
     void MeshObject::draw_edges(
         ) {
-        if (show_mesh_)
-            mesh_gfx_.draw_edges();
+        if (!show_edges_ || mesh_.edges.nb() == 0)
+            return;
+
+        // MeshGfx::draw_edges() renders only the explicit mesh.edges store and
+        // picks up the color/width from its mesh_color_/mesh_width_ members;
+        // borrow them for this pass, then restore them so the facet and cell
+        // wireframes keep their own styles.
+        mesh_gfx_.set_mesh_color(
+            edges_color_.x, edges_color_.y, edges_color_.z);
+        mesh_gfx_.set_mesh_width(
+            static_cast<GEO::index_t>(edges_width_ * 10.0f));
+        mesh_gfx_.draw_edges();
+        mesh_gfx_.set_mesh_color(
+            surface_mesh_color_.x, surface_mesh_color_.y, surface_mesh_color_.z);
+        mesh_gfx_.set_mesh_width(
+            static_cast<GEO::index_t>(surface_mesh_width_ * 10.0f));
     }
 
     void MeshObject::draw_volume(
@@ -515,7 +568,24 @@ namespace geolio::geobox
                 mesh_gfx_.set_cells_color(
                     volume_color_.x, volume_color_.y, volume_color_.z);
 
+            // The cell wireframe is emitted by GLUP itself (GLUP_DRAW_MESH),
+            // whose state MeshGfx derives from its show_mesh_/mesh_color_/
+            // mesh_width_ members at the start of draw_volume(); override
+            // them for this pass and restore them afterwards, so the cell
+            // wireframe is independent from the facet wireframe and from the
+            // explicit mesh.edges.
+            const bool saved_show_mesh = mesh_gfx_.get_show_mesh();
+            mesh_gfx_.set_show_mesh(show_volume_mesh_);
+            mesh_gfx_.set_mesh_color(
+                volume_mesh_color_.x, volume_mesh_color_.y, volume_mesh_color_.z);
+            mesh_gfx_.set_mesh_width(
+                static_cast<GEO::index_t>(volume_mesh_width_ * 10.0f));
             mesh_gfx_.draw_volume();
+            mesh_gfx_.set_show_mesh(saved_show_mesh);
+            mesh_gfx_.set_mesh_color(
+                surface_mesh_color_.x, surface_mesh_color_.y, surface_mesh_color_.z);
+            mesh_gfx_.set_mesh_width(
+                static_cast<GEO::index_t>(surface_mesh_width_ * 10.0f));
 
             mesh_gfx_.set_lighting(lighting);
         }
