@@ -6,6 +6,7 @@
 #define GEOLIO_NODE_POSITIONS_H
 #include <cassert>
 #include <vector>
+#include <cmath>
 
 namespace geolio
 {
