@@ -120,11 +120,11 @@ namespace geolio::test
     }
 
     TEST_F(SingleHexControlGridTest, random) {
-        control_grid->control_node(control_grid->cell_edge_cv(0, 1, 2)) += 0.1 *
+        control_grid->control_node(control_grid->cell_edge_nd(0, 1, 2)) += 0.1 *
             GEO::vec3(GEO::Numeric::random_float32(), GEO::Numeric::random_float32(), GEO::Numeric::random_float32());
-        control_grid->control_node(control_grid->cell_facet_cv(0, 2, 2, 3)) += 0.1 *
+        control_grid->control_node(control_grid->cell_facet_nd(0, 2, 2, 3)) += 0.1 *
             GEO::vec3(GEO::Numeric::random_float32(), GEO::Numeric::random_float32(), GEO::Numeric::random_float32());
-        control_grid->control_node(control_grid->cell_cv(0, 1, 2, 3)) += 0.1 *
+        control_grid->control_node(control_grid->cell_nd(0, 1, 2, 3)) += 0.1 *
             GEO::vec3(GEO::Numeric::random_float32(), GEO::Numeric::random_float32(), GEO::Numeric::random_float32());
         save_control_nodes(get_current_test_name()+"_nodes.geogram");
         save_high_order_mesh_border(get_current_test_name()+"_border.geogram");
@@ -162,11 +162,11 @@ namespace geolio::test
     }
 
     TEST_F(TwoHexControlGridTest, random) {
-        control_grid->control_node(control_grid->cell_edge_cv(0, 2, 3)) += 0.1 *
+        control_grid->control_node(control_grid->cell_edge_nd(0, 2, 3)) += 0.1 *
             GEO::vec3(GEO::Numeric::random_float32(), GEO::Numeric::random_float32(), GEO::Numeric::random_float32());
-        control_grid->control_node(control_grid->cell_facet_cv(1, 0, 2, 4)) += 0.1 *
+        control_grid->control_node(control_grid->cell_facet_nd(1, 0, 2, 4)) += 0.1 *
             GEO::vec3(GEO::Numeric::random_float32(), GEO::Numeric::random_float32(), GEO::Numeric::random_float32());
-        control_grid->control_node(control_grid->cell_cv(1, 2, 4, 1)) += 0.1 *
+        control_grid->control_node(control_grid->cell_nd(1, 2, 4, 1)) += 0.1 *
             GEO::vec3(GEO::Numeric::random_float32(), GEO::Numeric::random_float32(), GEO::Numeric::random_float32());
         save_control_nodes(get_current_test_name()+"_nodes.geogram");
         save_high_order_mesh_border(get_current_test_name()+"_border.geogram");
