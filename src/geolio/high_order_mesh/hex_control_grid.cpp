@@ -115,7 +115,7 @@ namespace geolio
                     const double lag_basis_duvw = dBu[i] * basis_vw;
                     const double lag_basis_udvw = Bu[i] * basis_dvw;
                     const double lag_basis_uvdw = Bu[i] * basis_vdw;
-                    const auto& lcv = cell_lcv(i, j, k);
+                    const auto& lcv = cell_lnd(i, j, k);
                     const auto& g = lag_basis_duvw*cross_dvdw + lag_basis_udvw*cross_dwdu + lag_basis_uvdw*cross_dudv;
                     gradient[3*lcv] = g.x;
                     gradient[3*lcv+1] = g.y;
@@ -187,7 +187,7 @@ namespace geolio
                 const auto Bu_dBv = Bu[i]*dBv[j];
                 const auto Bu_Bv = Bu[i]*Bv[j];
                 for (GEO::index_t k = 0; k < CONTROL_POINTS_NB_PER_EDGE_; ++k) {
-                    const auto N = cell_lcv(i, j, k);
+                    const auto N = cell_lnd(i, j, k);
                     Bg(N, 0) = dBu_Bv*Bw[k];
                     Bg(N, 1) = Bu_dBv*Bw[k];
                     Bg(N, 2) = Bu_Bv*dBw[k];
@@ -530,7 +530,7 @@ namespace geolio
             for (GEO::index_t lv = 0; lv < 8; ++lv)
                 element_control_nodes_[
                     CELL_BEGIN_IDX +
-                    cell_vertex_lcv(lv)
+                    cell_vertex_lnd(lv)
                     ] = mesh_.cells.vertex(c, lv);
 
             /* For edges */
@@ -547,14 +547,14 @@ namespace geolio
                     for (GEO::index_t lv = 0; lv < INTERNAL_CONTROL_POINTS_NB_PER_EDGE_; ++lv)
                         element_control_nodes_[
                             CELL_BEGIN_IDX +
-                            cell_edge_inner_lcv(le, lv)
+                            cell_edge_inner_lnd(le, lv)
                             ] = edge_control_points[lv];
                 }
                 else { // need to inverse
                     for (GEO::index_t lv = 0; lv < INTERNAL_CONTROL_POINTS_NB_PER_EDGE_; ++lv)
                         element_control_nodes_[
                             CELL_BEGIN_IDX +
-                            cell_edge_inner_lcv(le, lv)
+                            cell_edge_inner_lnd(le, lv)
                             ] = edge_control_points[INTERNAL_CONTROL_POINTS_NB_PER_EDGE_-1-lv];
                 }
             }
@@ -568,7 +568,7 @@ namespace geolio
                     for (GEO::index_t lv0 = 0; lv0 < INTERNAL_CONTROL_POINTS_NB_PER_EDGE_; ++lv0)
                         element_control_nodes_[
                             CELL_BEGIN_IDX +
-                            cell_facet_inner_lcv(lf, lv0, lv1)
+                            cell_facet_inner_lnd(lf, lv0, lv1)
                             ] = facet_control_points[lv1*INTERNAL_CONTROL_POINTS_NB_PER_EDGE_ + lv0];
                 }
             }
@@ -582,7 +582,7 @@ namespace geolio
                     for (GEO::index_t lv0 = 0; lv0 < INTERNAL_CONTROL_POINTS_NB_PER_EDGE_; ++lv0) {
                         element_control_nodes_[
                             CELL_BEGIN_IDX +
-                            cell_inner_lcv(lv0, lv1, lv2)
+                            cell_inner_lnd(lv0, lv1, lv2)
                             ] = cell_control_points[lv2*INTERNAL_CONTROL_POINTS_NB_PER_FACET_ + lv1*INTERNAL_CONTROL_POINTS_NB_PER_EDGE_ + lv0];
                     }
                 }

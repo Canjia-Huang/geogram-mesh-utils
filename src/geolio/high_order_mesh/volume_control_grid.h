@@ -22,47 +22,47 @@ namespace geolio
         }
 
         /**
-         * Get a local control point index by local vertex index.
+         * Get a local control node index by local vertex index.
          * @param[in] lv local vertex index in the cell, 0,1,...,mesh_.cells.nb_vertices
-         * @return local control point index, 0,1,...,CONTROL_POINTS_NB_PER_CELL
+         * @return local control node index, 0,1,...,CONTROL_POINTS_NB_PER_CELL
          */
-        [[nodiscard]] GEO::index_t cell_vertex_lcv(const GEO::index_t lv) const {
+        [[nodiscard]] GEO::index_t cell_vertex_lnd(const GEO::index_t lv) const {
             assert(lv < mesh_.cells.nb_vertices(0));
             return ELEMENT_VERTEX_CONTROL_POINTS_BEGIN_IDX_[lv];
         }
 
         /**
-         * Get a local control point index by local edge index and local vertex index in the edge.
+         * Get a local control node index by local edge index and local vertex index in the edge.
          * @param[in] le local edge index, 0,1,...,mesh_.cells.nb_edges
          * @param[in] lv local vertex index in the edge (ev0 -> ev1), 0,1,...,order
-         * @return local control point index, 0,1,...,CONTROL_POINTS_NB_PER_CELL
+         * @return local control node index, 0,1,...,CONTROL_POINTS_NB_PER_CELL
          */
-        [[nodiscard]] GEO::index_t cell_edge_lcv(const GEO::index_t le, const GEO::index_t lv) const {
+        [[nodiscard]] GEO::index_t cell_edge_lnd(const GEO::index_t le, const GEO::index_t lv) const {
             assert(le < mesh_.cells.nb_edges(0));
             assert(lv < CONTROL_POINTS_NB_PER_EDGE_);
             return ELEMENT_EDGE_CONTROL_POINTS_BEGIN_IDX_[le] + lv*ELEMENT_EDGE_CONTROL_POINTS_NEXT_IDX_STEP_[le];
         }
 
         /**
-         * Get a local internal control point index by local edge index and local vertex index in the edge.
+         * Get a local internal control node index by local edge index and local vertex index in the edge.
          * @param[in] le local edge index, 0,1,...,mesh_.cells.nb_edges
          * @param[in] lv local vertex index in the edge (ev0 -> ev1), 0,1,...,order-2
-         * @return local control point index, 0,1,...,CONTROL_POINTS_NB_PER_CELL
+         * @return local control node index, 0,1,...,CONTROL_POINTS_NB_PER_CELL
          */
-        [[nodiscard]] GEO::index_t cell_edge_inner_lcv(const GEO::index_t le, const GEO::index_t lv) const {
+        [[nodiscard]] GEO::index_t cell_edge_inner_lnd(const GEO::index_t le, const GEO::index_t lv) const {
             assert(le < mesh_.cells.nb_edges(0));
             assert(lv < INTERNAL_CONTROL_POINTS_NB_PER_EDGE_);
             return ELEMENT_EDGE_INTERNAL_CONTROL_POINTS_BEGIN_IDX_[le] + lv*ELEMENT_EDGE_INTERNAL_CONTROL_POINTS_NEXT_IDX_STEP_[le];
         }
 
         /**
-         * Get a local control point index by local facet index and two local vertex index in the facet.
+         * Get a local control node index by local facet index and two local vertex index in the facet.
          * @param[in] lf local facet index, 0,1,...,mesh_.cells.nb_facets
          * @param[in] lv0 local vertex index in the facet (fv0 -> fv1), 0,1,...,order
          * @param[in] lv1 local vertex index in the facet (fv0 -> fv3), 0,1,...,order
-         * @return local control point index, 0,1,...,CONTROL_POINTS_NB_PER_CELL
+         * @return local control node index, 0,1,...,CONTROL_POINTS_NB_PER_CELL
          */
-        [[nodiscard]] GEO::index_t cell_facet_lcv(const GEO::index_t lf, const GEO::index_t lv0, const GEO::index_t lv1) const {
+        [[nodiscard]] GEO::index_t cell_facet_lnd(const GEO::index_t lf, const GEO::index_t lv0, const GEO::index_t lv1) const {
             assert(lf < mesh_.cells.nb_facets(0));
             assert(lv0 < CONTROL_POINTS_NB_PER_EDGE_);
             assert(lv1 < CONTROL_POINTS_NB_PER_EDGE_);
@@ -70,13 +70,13 @@ namespace geolio
         }
 
         /**
-         * Get a local internal control point index by local facet index and two local vertex index in the facet.
+         * Get a local internal control node index by local facet index and two local vertex index in the facet.
          * @param[in] lf local facet index, 0,1,...,mesh_.cells.nb_facets
          * @param[in] lv0 local vertex index in the facet (fv0 -> fv1), 0,1,...,order-2
          * @param[in] lv1 local vertex index in the facet (fv0 -> fv3), 0,1,...,order-2
-         * @return local control point index, 0,1,...,CONTROL_POINTS_NB_PER_CELL
+         * @return local control node index, 0,1,...,CONTROL_POINTS_NB_PER_CELL
          */
-        [[nodiscard]] GEO::index_t cell_facet_inner_lcv(const GEO::index_t lf, const GEO::index_t lv0, const GEO::index_t lv1) const {
+        [[nodiscard]] GEO::index_t cell_facet_inner_lnd(const GEO::index_t lf, const GEO::index_t lv0, const GEO::index_t lv1) const {
             assert(lf < mesh_.cells.nb_facets(0));
             assert(lv0 < INTERNAL_CONTROL_POINTS_NB_PER_EDGE_);
             assert(lv1 < INTERNAL_CONTROL_POINTS_NB_PER_EDGE_);
@@ -84,13 +84,13 @@ namespace geolio
         }
 
         /**
-         * Get a local control point index by three local vertex indexes in the cell
+         * Get a local control node index by three local vertex indexes in the cell
          * @param[in] lv0 local vertex index in the facet (cv0 -> cv1), 0,1,...,order
          * @param[in] lv1 local vertex index in the facet (cv0 -> cv2), 0,1,...,order
          * @param[in] lv2 local vertex index in the facet (cv0 -> cv4), 0,1,...,order
-         * @return local control point index, 0,1,...,CONTROL_POINTS_NB_PER_CELL
+         * @return local control node index, 0,1,...,CONTROL_POINTS_NB_PER_CELL
          */
-        [[nodiscard]] GEO::index_t cell_lcv(const GEO::index_t lv0, const GEO::index_t lv1, const GEO::index_t lv2) const {
+        [[nodiscard]] GEO::index_t cell_lnd(const GEO::index_t lv0, const GEO::index_t lv1, const GEO::index_t lv2) const {
             assert(lv0 < CONTROL_POINTS_NB_PER_EDGE_);
             assert(lv1 < CONTROL_POINTS_NB_PER_EDGE_);
             assert(lv2 < CONTROL_POINTS_NB_PER_EDGE_);
@@ -98,13 +98,13 @@ namespace geolio
         }
 
         /**
-         * Get a local internal control point index by three local vertex indexes in the cell
+         * Get a local internal control node index by three local vertex indexes in the cell
          * @param[in] lv0 local vertex index in the facet (cv0 -> cv1), 0,1,...,order-2
          * @param[in] lv1 local vertex index in the facet (cv0 -> cv2), 0,1,...,order-2
          * @param[in] lv2 local vertex index in the facet (cv0 -> cv4), 0,1,...,order-2
-         * @return local control point index, 0,1,...,CONTROL_POINTS_NB_PER_CELL
+         * @return local control node index, 0,1,...,CONTROL_POINTS_NB_PER_CELL
          */
-        [[nodiscard]] GEO::index_t cell_inner_lcv(const GEO::index_t lv0, const GEO::index_t lv1, const GEO::index_t lv2) const {
+        [[nodiscard]] GEO::index_t cell_inner_lnd(const GEO::index_t lv0, const GEO::index_t lv1, const GEO::index_t lv2) const {
             assert(lv0 < INTERNAL_CONTROL_POINTS_NB_PER_EDGE_);
             assert(lv1 < INTERNAL_CONTROL_POINTS_NB_PER_EDGE_);
             assert(lv2 < INTERNAL_CONTROL_POINTS_NB_PER_EDGE_);
@@ -112,102 +112,102 @@ namespace geolio
         }
 
         /**
-         * Get a control point index by local vertex index in the cell.
+         * Get a control node index by local vertex index in the cell.
          * @param[in] c cell index, 0,1,...,hex_mesh.cells.nb()-1
          * @param[in] lv local vertex index in the cell, 0,1,...,7
-         * @return control point index
+         * @return control node index
          */
-        [[nodiscard]] GEO::index_t cell_vertex_cv(const GEO::index_t c, const GEO::index_t lv) const {
+        [[nodiscard]] GEO::index_t cell_vertex_nd(const GEO::index_t c, const GEO::index_t lv) const {
             assert(c < mesh_.cells.nb());
-            return element_control_nodes_[c*CONTROL_POINTS_NB_PER_CELL_ + cell_vertex_lcv(lv)];
+            return element_control_nodes_[c*CONTROL_POINTS_NB_PER_CELL_ + cell_vertex_lnd(lv)];
         }
 
         /**
-         * Get a control point index by local edge index and local vertex index in the edge.
+         * Get a control node index by local edge index and local vertex index in the edge.
          * @param[in] c cell index, 0,1,...,hex_mesh.cells.nb()-1
          * @param[in] le local edge index, 0,1,...,11
          * @param[in] lv local vertex index in the edge (ev0 -> ev1), 0,1,...,order
-         * @return control point index
+         * @return control node index
          */
-        [[nodiscard]] GEO::index_t cell_edge_cv(const GEO::index_t c, const GEO::index_t le, const GEO::index_t lv) const {
+        [[nodiscard]] GEO::index_t cell_edge_nd(const GEO::index_t c, const GEO::index_t le, const GEO::index_t lv) const {
             assert(c < mesh_.cells.nb());
-            return element_control_nodes_[c*CONTROL_POINTS_NB_PER_CELL_ + cell_edge_lcv(le, lv)];
+            return element_control_nodes_[c*CONTROL_POINTS_NB_PER_CELL_ + cell_edge_lnd(le, lv)];
         }
 
         /**
-         * Get an internal control point index by local edge index and local vertex index in the edge.
+         * Get an internal control node index by local edge index and local vertex index in the edge.
          * @param[in] c cell index, 0,1,...,hex_mesh.cells.nb()-1
          * @param[in] le local edge index, 0,1,...,11
          * @param[in] lv local vertex index in the edge (ev0 -> ev1), 0,1,...,order-2
-         * @return control point index
+         * @return control node index
          */
-        [[nodiscard]] GEO::index_t cell_edge_inner_cv(const GEO::index_t c, const GEO::index_t le, const GEO::index_t lv) const {
+        [[nodiscard]] GEO::index_t cell_edge_inner_nd(const GEO::index_t c, const GEO::index_t le, const GEO::index_t lv) const {
             assert(c < mesh_.cells.nb());
-            return element_control_nodes_[c*CONTROL_POINTS_NB_PER_CELL_ + cell_edge_inner_lcv(le, lv)];
+            return element_control_nodes_[c*CONTROL_POINTS_NB_PER_CELL_ + cell_edge_inner_lnd(le, lv)];
         }
 
         /**
-         * Get a control point index by local facet index and two local vertex index in the facet.
+         * Get a control node index by local facet index and two local vertex index in the facet.
          * @param[in] c cell index, 0,1,...,hex_mesh.cells.nb()-1
          * @param[in] lf local facet index, 0,1,...,5
          * @param[in] lv0 local vertex index in the facet (fv0 -> fv1), 0,1,...,order
          * @param[in] lv1 local vertex index in the facet (fv0 -> fv3), 0,1,...,order
-         * @return control point index
+         * @return control node index
          */
-        [[nodiscard]] GEO::index_t cell_facet_cv(const GEO::index_t c, const GEO::index_t lf, const GEO::index_t lv0, const GEO::index_t lv1) const {
+        [[nodiscard]] GEO::index_t cell_facet_nd(const GEO::index_t c, const GEO::index_t lf, const GEO::index_t lv0, const GEO::index_t lv1) const {
             assert(c < mesh_.cells.nb());
-            return element_control_nodes_[c*CONTROL_POINTS_NB_PER_CELL_ + cell_facet_lcv(lf, lv0, lv1)];
+            return element_control_nodes_[c*CONTROL_POINTS_NB_PER_CELL_ + cell_facet_lnd(lf, lv0, lv1)];
         }
 
         /**
-         * Get an internal control point index by local facet index and two local vertex indexes in the facet.
+         * Get an internal control node index by local facet index and two local vertex indexes in the facet.
          * @param[in] c cell index, 0,1,...,hex_mesh.cells.nb()-1
          * @param[in] lf local facet index, 0,1,...,5
          * @param[in] lv0 local vertex index in the facet (fv0 -> fv1), 0,1,...,order-2
          * @param[in] lv1 local vertex index in the facet (fv0 -> fv3), 0,1,...,order-2
-         * @return control point index
+         * @return control node index
          */
-        [[nodiscard]] GEO::index_t cell_facet_inner_cv(const GEO::index_t c, const GEO::index_t lf, const GEO::index_t lv0, const GEO::index_t lv1) const {
+        [[nodiscard]] GEO::index_t cell_facet_inner_nd(const GEO::index_t c, const GEO::index_t lf, const GEO::index_t lv0, const GEO::index_t lv1) const {
             assert(c < mesh_.cells.nb());
-            return element_control_nodes_[c*CONTROL_POINTS_NB_PER_CELL_ + cell_facet_inner_lcv(lf, lv0, lv1)];
+            return element_control_nodes_[c*CONTROL_POINTS_NB_PER_CELL_ + cell_facet_inner_lnd(lf, lv0, lv1)];
         }
 
         /**
-         * Get a control point index by flattened local control-point index in one cell.
+         * Get a control node index by flattened local control-point index in one cell.
          * @param[in] c cell index, 0,1,...,hex_mesh.cells.nb()-1
          * @param[in] lv flattened local control-point index, 0,1,...,CONTROL_POINTS_NB_PER_CELL-1
-         * @return control point index
+         * @return control node index
          */
-        [[nodiscard]] GEO::index_t cell_cv(const GEO::index_t c, const GEO::index_t lv) const {
+        [[nodiscard]] GEO::index_t cell_nd(const GEO::index_t c, const GEO::index_t lv) const {
             assert(c < mesh_.cells.nb());
             assert(lv < CONTROL_POINTS_NB_PER_CELL_);
             return element_control_nodes_[c*CONTROL_POINTS_NB_PER_CELL_ + lv];
         }
 
         /**
-         * Get a control point index by three local vertex indexes in the cell
+         * Get a control node index by three local vertex indexes in the cell
          * @param[in] c cell index, 0,1,...,hex_mesh.cells.nb()-1
          * @param[in] lv0 local vertex index in the facet (cv0 -> cv1), 0,1,...,order
          * @param[in] lv1 local vertex index in the facet (cv0 -> cv2), 0,1,...,order
          * @param[in] lv2 local vertex index in the facet (cv0 -> cv4), 0,1,...,order
-         * @return control point index
+         * @return control node index
          */
-        [[nodiscard]] GEO::index_t cell_cv(const GEO::index_t c, const GEO::index_t lv0, const GEO::index_t lv1, const GEO::index_t lv2) const {
+        [[nodiscard]] GEO::index_t cell_nd(const GEO::index_t c, const GEO::index_t lv0, const GEO::index_t lv1, const GEO::index_t lv2) const {
             assert(c < mesh_.cells.nb());
-            return element_control_nodes_[c*CONTROL_POINTS_NB_PER_CELL_ + cell_lcv(lv0, lv1, lv2)];
+            return element_control_nodes_[c*CONTROL_POINTS_NB_PER_CELL_ + cell_lnd(lv0, lv1, lv2)];
         }
 
         /**
-         * Get an internal control point index by three local vertex indexes in the cell
+         * Get an internal control node index by three local vertex indexes in the cell
          * @param[in] c cell index, 0,1,...,hex_mesh.cells.nb()-1
          * @param[in] lv0 local vertex index in the facet (cv0 -> cv1), 0,1,...,order-2
          * @param[in] lv1 local vertex index in the facet (cv0 -> cv2), 0,1,...,order-2
          * @param[in] lv2 local vertex index in the facet (cv0 -> cv4), 0,1,...,order-2
-         * @return control point index
+         * @return control node index
          */
-        [[nodiscard]] GEO::index_t cell_inner_cv(const GEO::index_t c, const GEO::index_t lv0, const GEO::index_t lv1, const GEO::index_t lv2) const {
+        [[nodiscard]] GEO::index_t cell_inner_nd(const GEO::index_t c, const GEO::index_t lv0, const GEO::index_t lv1, const GEO::index_t lv2) const {
             assert(c < mesh_.cells.nb());
-            return element_control_nodes_[c*CONTROL_POINTS_NB_PER_CELL_ + cell_inner_lcv(lv0, lv1, lv2)];
+            return element_control_nodes_[c*CONTROL_POINTS_NB_PER_CELL_ + cell_inner_lnd(lv0, lv1, lv2)];
         }
 
         /**

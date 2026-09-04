@@ -26,7 +26,7 @@ namespace geolio
         for (GEO::index_t i = 0; i <= this->order_; ++i) {
             for (GEO::index_t j = 0; j <= this->order_; ++j) {
                 const double lag_basis = Bu[i] * Bv[j];
-                p += lag_basis * this->control_node(facet_cv(f, i, j));
+                p += lag_basis * this->control_node(facet_nd(f, i, j));
             }
         }
 
@@ -52,7 +52,7 @@ namespace geolio
 
         for (GEO::index_t i = 0; i <= this->order_; ++i) {
             for (GEO::index_t j = 0; j <= this->order_; ++j) {
-                const auto& fv = facet_cv(f, i, j);
+                const auto& fv = facet_nd(f, i, j);
                 const double lag_basis = Bu[i] * Bv[j];
                 p += lag_basis * GEO::vecng<DIM, double>(cur_control_nodes_ptr);
             }

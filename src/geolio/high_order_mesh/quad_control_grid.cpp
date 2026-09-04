@@ -147,7 +147,7 @@ namespace geolio
             for (GEO::index_t lv = 0; lv < 4; ++lv)
                 this->element_control_nodes_[
                         FACET_BEGIN_IDX +
-                        this->facet_vertex_lcv(lv)
+                        this->facet_vertex_lnd(lv)
                         ] = this->mesh_.facets.vertex(f, lv);
 
             /* For edges */
@@ -164,14 +164,14 @@ namespace geolio
                     for (GEO::index_t lv = 0; lv < this->INTERNAL_CONTROL_POINTS_NB_PER_EDGE_; ++lv)
                         this->element_control_nodes_[
                             FACET_BEGIN_IDX +
-                            this->facet_edge_inner_lcv(le, lv)
+                            this->facet_edge_inner_lnd(le, lv)
                             ] = edge_control_points[lv];
                 }
                 else { // need to inverse
                     for (GEO::index_t lv = 0; lv < this->INTERNAL_CONTROL_POINTS_NB_PER_EDGE_; ++lv)
                         this->element_control_nodes_[
                             FACET_BEGIN_IDX +
-                            this->facet_edge_inner_lcv(le, lv)
+                            this->facet_edge_inner_lnd(le, lv)
                             ] = edge_control_points[this->INTERNAL_CONTROL_POINTS_NB_PER_EDGE_-1-lv];
                 }
             }
@@ -184,7 +184,7 @@ namespace geolio
                 for (GEO::index_t lv0 = 0; lv0 < this->INTERNAL_CONTROL_POINTS_NB_PER_EDGE_; ++lv0) {
                     this->element_control_nodes_[
                         FACET_BEGIN_IDX +
-                        this->facet_inner_lcv(lv0, lv1)
+                        this->facet_inner_lnd(lv0, lv1)
                         ] = facet_control_points[lv1*this->INTERNAL_CONTROL_POINTS_NB_PER_EDGE_ + lv0];
                 }
             }
