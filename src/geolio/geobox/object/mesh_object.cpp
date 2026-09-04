@@ -261,7 +261,7 @@ namespace geolio::geobox
                 xyzmax[c] = GEO::Numeric::min_float64();
             }
             xyzmin[2] = 0;
-            xyzmax[2] = 1;
+            xyzmax[2] = 0;
             for(const GEO::vec2& p: mesh_.vertices.points<2>()) {
                 for(GEO::coord_index_t c = 0; c < 2; c++) {
                     xyzmin[c] = std::min(xyzmin[c], p[c]);
