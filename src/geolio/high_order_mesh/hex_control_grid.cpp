@@ -201,10 +201,8 @@ namespace geolio
         assert(new_v == 0);
 
         /* == For vertices == */
-        for (const auto& v : mesh_.vertices) {
-            LOG::DEBUG("new_v: {}/{}", new_v, control_nodes_nb());
+        for (const auto& v : mesh_.vertices)
             control_node(new_v++) = mesh_.vertices.point(v);
-        }
 
         /* == For edges == */
         for (auto& [edge, control_vertices] : hex_edges_control_points) {
