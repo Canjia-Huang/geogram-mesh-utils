@@ -1,0 +1,57 @@
+name: Linux CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.build_type }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Release, Debug]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          submodules: 'recursive'
+
+      # == Install Dependency Geogram =================================================================================
+
+      - name: Install Dependency Geogram
+        run: |
+          sudo apt-get install cmake build-essential libx11-dev libxcb1-dev libxau-dev libxdmcp-dev
+          sudo apt-get install libxi-dev libxcursor-dev libxinerama-dev libxrandr-dev
+          sudo apt-get install libtbb-dev
+          git clone --recurse-submodules https://github.com/BrunoLevy/geogram.git
+          cd geogram
+          echo "GEOGRAM_DIR=$(pwd)" >> $GITHUB_ENV
+          ./configure.sh
+          cd build/Linux64-gcc-dynamic-Release
+          make -j
+
+      # == Install Dependency Eigen3 ==================================================================================
+
+      - name: Install Dependency Eigen3
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libeigen3-dev
+
+      # == Configure and make =========================================================================================
+
+      - name: Configure CMake
+        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+
+      - name: Build
+        run: cmake --build build --config ${{ matrix.build_type }} --parallel
+
+      # == Test =======================================================================================================
+
+      - name: Test
+        working-directory: build
+        run: ctest --output-on-failure -C ${{ matrix.build_type }}
