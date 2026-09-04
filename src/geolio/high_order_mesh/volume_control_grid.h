@@ -292,7 +292,8 @@ namespace geolio
          * @param[out] dBv Output buffer that receives the 1D basis derivatives in the v direction.
          * @param[out] dBw Output buffer that receives the 1D basis derivatives in the w direction.
          */
-        void compute_cell_uvw_dudvdw(GEO::index_t c, const GEO::vec3& uvw,
+        void compute_cell_uvw_dudvdw(
+            GEO::index_t c, const GEO::vec3& uvw,
             GEO::vec3& du, GEO::vec3& dv, GEO::vec3& dw,
             std::vector<double>& Bu, std::vector<double>& Bv, std::vector<double>& Bw,
             std::vector<double>& dBu, std::vector<double>& dBv, std::vector<double>& dBw) const;

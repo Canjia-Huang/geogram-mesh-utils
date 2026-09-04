@@ -87,7 +87,7 @@ namespace geolio
         GEO::index_t new_v = this->control_nodes_.vertices.create_vertices(
                             this->mesh_.vertices.nb() + // vertices
                             quad_edges_control_points.size() * this->INTERNAL_CONTROL_POINTS_NB_PER_EDGE_ + // edges
-                            this->mesh_.cells.nb() * this->INTERNAL_CONTROL_POINTS_NB_PER_FACET_ // facets
+                            this->mesh_.facets.nb() * this->INTERNAL_CONTROL_POINTS_NB_PER_FACET_ // facets
                             );
         assert(new_v == 0);
 
