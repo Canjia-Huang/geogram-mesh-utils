@@ -12,7 +12,7 @@ namespace geolio::test
     class HexMotorcycleComplexTest : public ::testing::Test {
     protected:
         void SetUp() override {
-            ASSERT_TRUE(hex_mesh.load(std::string(TEST_DATA_PATH) + "i01c_m1_hex.ovm"));
+            ASSERT_TRUE(hex_mesh.load(std::string(TEST_DATA_PATH) + "i01c_m1_hex.geogram"));
             hex_mesh.edges.clear();
             hex_mesh.facets.clear();
             MC = std::make_unique<HexMotorCycleComplex>(hex_mesh);

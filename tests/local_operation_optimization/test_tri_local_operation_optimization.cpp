@@ -42,7 +42,7 @@ namespace geolio::test
 
     TEST(TriLocalOperationOptimizationTest, bunny) {
         GEO::Mesh mesh;
-        GEO::mesh_load(std::string(TEST_DATA_PATH)+"bunny.obj", mesh);
+        GEO::mesh_load(std::string(TEST_DATA_PATH)+"bunny.geogram", mesh);
 
         {
             TriLocalOperationOptimization<3> TLOO(mesh);
@@ -55,7 +55,7 @@ namespace geolio::test
 
     TEST(TriLocalOperationOptimizationTest, fandisk_sharp) {
         GEO::Mesh mesh;
-        GEO::mesh_load(std::string(TEST_DATA_PATH)+"fandisk.obj", mesh);
+        GEO::mesh_load(std::string(TEST_DATA_PATH)+"fandisk.geogram", mesh);
 
         {
             TriLocalOperationOptimization<3> TLOO(mesh);
@@ -69,7 +69,7 @@ namespace geolio::test
 
     TEST(TriLocalOperationOptimizationTest, beetle_boundary) {
         GEO::Mesh mesh;
-        GEO::mesh_load(std::string(TEST_DATA_PATH)+"beetle.obj", mesh);
+        GEO::mesh_load(std::string(TEST_DATA_PATH)+"beetle.geogram", mesh);
         GEO::mesh_save(mesh, get_current_test_name()+"_0.geogram");
 
         {
