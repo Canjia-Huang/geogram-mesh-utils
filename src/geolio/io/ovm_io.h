@@ -10,7 +10,8 @@
 namespace geolio
 {
     /**
-     * I/O for ".ovm" files exported by OpenVolumeMesh https://www.graphics.rwth-aachen.de/software/openvolumemesh/
+     * @brief IO handler for ".ovm" files exported by OpenVolumeMesh
+     * @see https://www.graphics.rwth-aachen.de/software/openvolumemesh/
      */
     class OVM_IOHandler : public GEO::MeshIOHandler {
     public:
