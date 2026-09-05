@@ -19,7 +19,7 @@ namespace geolio
      * partition of the mesh.
      *
      * @ref Brückler H, Gupta O, Mandad M, et al. The 3D motorcycle complex for structured volume decomposition[C]
-     *      Computer Graphics Forum. 2022, 41(2): 221-235.
+     *      Computer Graphics Forum. 2022, 41(2): 221-235. (Section 5.1)
      */
     class HexMotorCycleComplex {
     public:
@@ -34,6 +34,12 @@ namespace geolio
          */
         explicit HexMotorCycleComplex(const GEO::Mesh& mesh);
 
+        /**
+         * Destroys the motorcycle complex and releases any bound temporary attributes.
+         *
+         * The destructor clears the internally bound cell-facet tag attribute created during
+         * initialization, if it is still active.
+         */
         ~HexMotorCycleComplex();
 
         /**
@@ -57,6 +63,18 @@ namespace geolio
          */
         GEO::index_t compute(HexMotorCycleComplexType complex_type = BASE_COMPLEX);
 
+        /**
+         * Labels every cell in the input mesh with its block index.
+         *
+         * The block indices correspond to the ordering returned by `compute()`. Each block is
+         * assigned a contiguous integer in the range `[0, nb_blocks - 1]`.
+         *
+         * @param[out] mesh_c_block Output attribute to receive the block id for each cell.
+         *                          The attribute must already be bound and sized to the mesh.
+         *
+         * @pre `compute()` has been called and `blocks_` is populated.
+         * @post Each cell entry in `mesh_c_block` contains the block index of the cell.
+         */
         void label_blocks(GEO::Attribute<GEO::index_t>& mesh_c_block) const;
 
         /**

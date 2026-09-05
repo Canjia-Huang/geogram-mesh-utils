@@ -10,121 +10,6 @@
 #include "geolio/mesh/mesh_operations.h"
 #include <geolio/common/pair_hash.h>
 
-namespace
-{
-    /**
-     * Retrieves all hexahedral facets incident to a given edge in ordered sequence.
-     *
-     * This function traverses all hexahedral cells and facets that share the specified edge,
-     * collecting them in a properly ordered list. The ordering forms a ring around the edge,
-     * starting from the specified starting facet.
-     *
-     * The algorithm works as follows:
-     * 1. From the starting facet, traverse to adjacent cells along the edge direction
-     * 2. In each adjacent cell, find the other two facets incident to the edge
-     * 3. Continue until reaching a border (if the edge is on the boundary) or forming a closed loop
-     * 4. If on border, traverse in the opposite direction to complete the ring
-     *
-     * @param[in] M           The hexahedral mesh
-     * @param[in] start_c     Index of the hexahedral cell containing the starting facet
-     * @param[in] start_le    Local edge index (0-11) within cell @p start_c
-     * @param[in] start_lf    Local facet index (0-5) within cell @p start_c that is incident to edge @p start_le
-     *                        (one of the two facets adjacent to the edge)
-     *
-     * @param[out] ordered_c_le_lf Vector of ordered triples (cell_index, local_edge, local_facet),
-     *                             where each triple represents a hexahedral facet incident to the edge.
-     *                             The facets are ordered around the edge in a consistent ring pattern.
-     *                             The vector is cleared and populated by this function.
-     *
-     * @return True if the edge is on the mesh boundary (i.e., one end of the ring was reached);
-     *         False if the edge is completely interior and the ring forms a closed loop.
-     *
-     * @pre The edge (@p start_c, @p start_le) must exist and be connected to facet @p start_lf.
-     *      The relationship is checked by assertion:
-     *      M.cells.edge_adjacent_facet(start_c, start_le, 0) or (1) == start_lf
-     */
-    bool get_edge_incident_hex_facets(
-        const GEO::Mesh& M,
-        const GEO::index_t start_c,
-        const GEO::index_t start_le,
-        const GEO::index_t start_lf,
-        std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>>& ordered_c_le_lf
-        ) {
-        assert(start_c < M.cells.nb());
-        assert(start_le < 12);
-        assert(start_lf < 6);
-        assert(M.cells.edge_adjacent_facet(start_c, start_le, 0) == start_lf ||
-               M.cells.edge_adjacent_facet(start_c, start_le, 1) == start_lf);
-
-        const auto ev0 = M.cells.edge_vertex(start_c, start_le, 0);
-        const auto ev1 = M.cells.edge_vertex(start_c, start_le, 1);
-        bool is_on_border = false;
-
-        std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>> next_ordered_c_le_lf;
-        std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>> prev_ordered_c_le_lf;
-        {
-            GEO::index_t c = start_c;
-            GEO::index_t le = start_le;
-            GEO::index_t lf = start_lf;
-            for (;;) {
-                next_ordered_c_le_lf.emplace_back(c, le, lf);
-
-                const GEO::index_t nc = M.cells.adjacent(c, lf);
-                if (nc == GEO::NO_CELL) {
-                    is_on_border = true;
-                    break;
-                }
-                if (nc == start_c) // a loop
-                    break;
-
-                /* Get next lf */
-                le = geolio::find_hex_edge(M, nc, ev0, ev1);
-                assert(le != GEO::NO_INDEX);
-                lf = M.cells.edge_adjacent_facet(nc, le, 0);
-                if (M.cells.adjacent(nc, lf) == c)
-                    lf = M.cells.edge_adjacent_facet(nc, le, 1);
-                assert(M.cells.adjacent(nc, lf) != c);
-                c = nc;
-            }
-        }
-
-        if (is_on_border) {
-            GEO::index_t c = start_c;
-            GEO::index_t le = start_le;
-            GEO::index_t lf = M.cells.edge_adjacent_facet(start_c, start_le, 0);
-            if (lf == start_lf)
-                lf = M.cells.edge_adjacent_facet(start_c, start_le, 1);
-            assert(lf != start_lf);
-            for (;;) {
-                prev_ordered_c_le_lf.emplace_back(c, le, lf);
-
-                const GEO::index_t nc = M.cells.adjacent(c, lf);
-                if (nc == GEO::NO_CELL)
-                    break;
-
-                /* Get next lf */
-                le = geolio::find_hex_edge(M, nc, ev0, ev1);
-                assert(le != GEO::NO_INDEX);
-                lf = M.cells.edge_adjacent_facet(nc, le, 0);
-                if (M.cells.adjacent(nc, lf) == c)
-                    lf = M.cells.edge_adjacent_facet(nc, le, 1);
-                assert(M.cells.adjacent(nc, lf) != c);
-                c = nc;
-            }
-        }
-
-        /* Output */
-        std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>>().swap(ordered_c_le_lf);
-        ordered_c_le_lf.reserve(next_ordered_c_le_lf.size() + prev_ordered_c_le_lf.size());
-        for (GEO::index_t i = 0, i_end = prev_ordered_c_le_lf.size(); i < i_end; ++i)
-            ordered_c_le_lf.push_back(prev_ordered_c_le_lf[i_end-i-1]);
-        for (const auto& c_le_lf : next_ordered_c_le_lf)
-            ordered_c_le_lf.push_back(c_le_lf);
-
-        return is_on_border;
-    }
-}
-
 namespace geolio
 {
     HexMotorCycleComplex::HexMotorCycleComplex(
@@ -177,7 +62,17 @@ namespace geolio
                 else {
                     /* Find all incident facets */
                     std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>> ordered_c_le_lf;
-                    get_edge_incident_hex_facets(mesh_, F_c, F_le, F_lf, ordered_c_le_lf);
+                    if (get_edge_incident_cells(mesh_, F_c, F_le, ordered_c_le_lf)) { // append the preceding border facet.
+                        const auto& pre_lf = get<2>(ordered_c_le_lf[0]);
+                        const auto& lf0 = HEX_LE_INCIDENT_LF[F_le][0];
+                        const auto& lf1 = HEX_LE_INCIDENT_LF[F_le][1];
+                        if (pre_lf == lf0) // append lf1
+                            ordered_c_le_lf.emplace_back(F_c, F_le, lf1);
+                        else { // append lf0
+                            assert(pre_lf == lf1);
+                            ordered_c_le_lf.emplace_back(F_c, F_le, lf0);
+                        }
+                    }
 
                     GEO::index_t tagged_facets_nb = 0;
                     for (const auto& [c, _, lf] : ordered_c_le_lf) {
@@ -216,10 +111,14 @@ namespace geolio
 
                 /* Find all incident facets */
                 std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>> ordered_c_le_lf;
-                get_edge_incident_hex_facets(mesh_, F_c, F_le1, F_lf, ordered_c_le_lf);
+                const auto on_border = get_edge_incident_cells(mesh_, F_c, F_le1, ordered_c_le_lf);
+                assert(!on_border);
+                assert(get<0>(ordered_c_le_lf[0]) == F_c);
                 assert(ordered_c_le_lf.size() == 4); // regular
 
-                if (const auto& [opp_c, opp_le, opp_lf] = ordered_c_le_lf[2];
+                const GEO::index_t opp_i = mesh_.cells.edge_adjacent_facet(F_c, F_le1, 0) == F_lf ? 2 : 1; // let ordered_c_le_lf[opp_i] the next to burn
+
+                if (const auto& [opp_c, opp_le, opp_lf] = ordered_c_le_lf[opp_i];
                     mesh_cf_tagged_[8*opp_c+opp_lf] == GEO::NO_INDEX
                     ) {
                     assert((mesh_.cells.edge_vertex(F_c, F_le1, 0) == mesh_.cells.edge_vertex(opp_c, opp_le, 0) &&
@@ -235,7 +134,7 @@ namespace geolio
                     new_F.lf = opp_lf;
 
                     queue.push(new_F);
-                    }
+                }
             }
         }
 
