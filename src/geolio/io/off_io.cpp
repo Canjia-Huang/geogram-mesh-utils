@@ -133,7 +133,7 @@ namespace geolio
                             ++new_f;
                             begin_fi += 3;
                         }
-                        assert(new_f == M.facets.nb());
+                        assert(new_f == mesh.facets.nb());
                     }
                     else if (facet_type == FACET_TYPE_QUAD) {
                         GEO::index_t new_f = mesh.facets.create_quads(facets_nb);
@@ -146,7 +146,7 @@ namespace geolio
                             ++new_f;
                             begin_fi += 4;
                         }
-                        assert(new_f == M.facets.nb());
+                        assert(new_f == mesh.facets.nb());
                     }
                     else {
                         assert(facet_type == FACET_TYPE_POLY);

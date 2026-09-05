@@ -171,7 +171,7 @@ namespace geolio
                                 ++new_f;
                                 begin_fi += 3;
                             }
-                            assert(new_f == M.facets.nb());
+                            assert(new_f == mesh.facets.nb());
                         }
                         else if (facet_type == FACET_TYPE_QUAD) {
                             GEO::index_t new_f = mesh.facets.create_quads(facets_nb);
@@ -184,7 +184,7 @@ namespace geolio
                                 ++new_f;
                                 begin_fi += 4;
                             }
-                            assert(new_f == M.facets.nb());
+                            assert(new_f == mesh.facets.nb());
                         }
                         else {
                             assert(facet_type == FACET_TYPE_POLY);
@@ -282,10 +282,10 @@ namespace geolio
                                     const auto f1 = hf1/2;
                                     const auto f3 = hf3/2;
                                     const auto f4 = hf4/2;
-                                    assert(f0 < M.facets.nb());
-                                    assert(f1 < M.facets.nb());
-                                    assert(M.facets.nb_vertices(f0) == 4); // quad
-                                    assert(M.facets.nb_vertices(f1) == 4); // quad
+                                    assert(f0 < mesh.facets.nb());
+                                    assert(f1 < mesh.facets.nb());
+                                    assert(mesh.facets.nb_vertices(f0) == 4); // quad
+                                    assert(mesh.facets.nb_vertices(f1) == 4); // quad
                                     // ref: https://github.com/LIHPC-Computational-Geometry/ovm.io/blob/main/app/ovm.io.cpp
                                     // OVM convention is
                                     //       5-------6
@@ -393,7 +393,7 @@ namespace geolio
                                 }
                                 begin_ci += cf_nb;
                             }
-                            assert(new_c == M.cells.nb());
+                            assert(new_c == mesh.cells.nb());
                         }
 
                         assert(begin_ci == end_ci);
