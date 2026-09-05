@@ -42,7 +42,7 @@ namespace geolio
         in.get_line();
         in.get_fields();
         if(in.nb_fields() != 2 || strcmp(in.field(0),"OVM") != 0 || strcmp(in.field(1),"ASCII") != 0) {
-            LOG::ERROR("Invalid file header `{}` - `{}`!", in.field(0), in.field(1));
+            LOG::ERROR("Unsupported OVM file header `{}` - `{}`!", in.field(0), in.field(1));
             return false;
         }
 
