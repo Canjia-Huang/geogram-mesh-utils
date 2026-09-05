@@ -64,7 +64,7 @@ namespace geolio
         while (!stack.empty()) {
             const auto BC = stack.top();
             stack.pop();
-            cells_.push_back(BC);
+            block_cells_.push_back(BC);
 
             const auto c = BC.c;
             for (GEO::index_t lf = 0; lf < 6; ++lf) {
@@ -183,9 +183,78 @@ namespace geolio
         rebuild_ordered_cells();
     }
 
+    GEO::index_t HexMotorCycleBlock::cell_corner_vertex(
+        const GEO::index_t lv
+        ) const {
+        assert(!block_cells_.empty());
+        assert(lv < 8);
+
+        switch (lv) {
+            case 0: {
+                const auto& BC = block_cells_[0];
+                assert(HEX_LF_LF_LF_COMMON_LV(BC.lfs[0], BC.lfs[2], BC.lfs[4]) != GEO::NO_INDEX);
+                return mesh_.cells.vertex(
+                    BC.c,
+                    HEX_LF_LF_LF_COMMON_LV(BC.lfs[0], BC.lfs[2], BC.lfs[4]));
+            }
+            case 1: {
+                const auto& BC = block_cells_[len_x_-1];
+                assert(HEX_LF_LF_LF_COMMON_LV(BC.lfs[1], BC.lfs[2], BC.lfs[4]) != GEO::NO_INDEX);
+                return mesh_.cells.vertex(
+                    BC.c,
+                    HEX_LF_LF_LF_COMMON_LV(BC.lfs[1], BC.lfs[2], BC.lfs[4]));
+            }
+            case 2: {
+                const auto& BC = block_cells_[len_x_*(len_y_-1)];
+                assert(HEX_LF_LF_LF_COMMON_LV(BC.lfs[0], BC.lfs[3], BC.lfs[4]) != GEO::NO_INDEX);
+                return mesh_.cells.vertex(
+                    BC.c,
+                    HEX_LF_LF_LF_COMMON_LV(BC.lfs[0], BC.lfs[3], BC.lfs[4]));
+            }
+            case 3: {
+                const auto& BC = block_cells_[len_x_*len_y_-1];
+                assert(HEX_LF_LF_LF_COMMON_LV(BC.lfs[1], BC.lfs[3], BC.lfs[4]) != GEO::NO_INDEX);
+                return mesh_.cells.vertex(
+                    BC.c,
+                    HEX_LF_LF_LF_COMMON_LV(BC.lfs[1], BC.lfs[3], BC.lfs[4]));
+            }
+            case 4: {
+                const auto& BC = block_cells_[len_x_*len_y_*(len_z_-1)];
+                assert(HEX_LF_LF_LF_COMMON_LV(BC.lfs[0], BC.lfs[2], BC.lfs[5]) != GEO::NO_INDEX);
+                return mesh_.cells.vertex(
+                    BC.c,
+                    HEX_LF_LF_LF_COMMON_LV(BC.lfs[0], BC.lfs[2], BC.lfs[5]));
+            }
+            case 5: {
+                const auto& BC = block_cells_[len_x_*len_y_*(len_z_-1)+len_x_-1];
+                assert(HEX_LF_LF_LF_COMMON_LV(BC.lfs[1], BC.lfs[2], BC.lfs[5]) != GEO::NO_INDEX);
+                return mesh_.cells.vertex(
+                    BC.c,
+                    HEX_LF_LF_LF_COMMON_LV(BC.lfs[1], BC.lfs[2], BC.lfs[5]));
+            }
+            case 6: {
+                const auto& BC = block_cells_[len_x_*len_y_*(len_z_-1)+len_x_*(len_y_-1)];
+                assert(HEX_LF_LF_LF_COMMON_LV(BC.lfs[0], BC.lfs[3], BC.lfs[5]) != GEO::NO_INDEX);
+                return mesh_.cells.vertex(
+                    BC.c,
+                    HEX_LF_LF_LF_COMMON_LV(BC.lfs[0], BC.lfs[3], BC.lfs[5]));
+            }
+            case 7: {
+                const auto& BC = block_cells_[len_x_*len_y_*(len_z_-1)+len_x_*len_y_-1];
+                assert(HEX_LF_LF_LF_COMMON_LV(BC.lfs[1], BC.lfs[3], BC.lfs[5]) != GEO::NO_INDEX);
+                return mesh_.cells.vertex(
+                    BC.c,
+                    HEX_LF_LF_LF_COMMON_LV(BC.lfs[1], BC.lfs[3], BC.lfs[5]));
+            }
+            default:
+                assert(0);
+                return GEO::NO_INDEX;
+        }
+    }
+
     void HexMotorCycleBlock::rebuild_ordered_cells(
         ) {
-        assert(!cells_.empty());
+        assert(!block_cells_.empty());
 
         int min_x = std::numeric_limits<int>::max();
         int max_x = std::numeric_limits<int>::min();
@@ -193,7 +262,7 @@ namespace geolio
         int max_y = std::numeric_limits<int>::min();
         int min_z = std::numeric_limits<int>::max();
         int max_z = std::numeric_limits<int>::min();
-        for (const auto& BC : cells_) {
+        for (const auto& BC : block_cells_) {
             min_x = std::min(min_x, BC.coord.x);
             max_x = std::max(max_x, BC.coord.x);
             min_y = std::min(min_y, BC.coord.y);
@@ -204,7 +273,7 @@ namespace geolio
         len_x_ = max_x - min_x + 1;
         len_y_ = max_y - min_y + 1;
         len_z_ = max_z - min_z + 1;
-        if (len_x_*len_y_*len_z_ != cells_.size()) {
+        if (len_x_*len_y_*len_z_ != block_cells_.size()) {
             throw std::logic_error("This block is likely toroidal rather than cuboidal! But the split function has not yet been implemented.");
             // TODO: need to split this block
             return;
@@ -212,14 +281,14 @@ namespace geolio
 
         /* Fill orderly */
         std::vector<BlockCell> new_cells(len_x_*len_y_*len_z_);
-        for (auto& BC : cells_) {
+        for (auto& BC : block_cells_) {
             BC.coord.x -= min_x;
             BC.coord.y -= min_y;
             BC.coord.z -= min_z;
             new_cells[BC.coord.x + BC.coord.y*len_x_ + BC.coord.z*len_x_*len_y_] = BC;
         }
-        cells_.swap(new_cells);
-        assert(std::ranges::all_of(cells_, [&](const auto& BC){ return BC.c != GEO::NO_INDEX; }));
+        block_cells_.swap(new_cells);
+        assert(std::ranges::all_of(block_cells_, [&](const auto& BC){ return BC.c != GEO::NO_INDEX; }));
 
         // DEBUG
         {
@@ -243,75 +312,6 @@ namespace geolio
             // M_out.cells.delete_elements(cells_to_delete);
             // GEO::mesh_save(M_out, "debug.geogram");
             // THROW_RUNTIME_ERROR("im here");
-        }
-    }
-
-    GEO::index_t HexMotorCycleBlock::cell_corner_vertex(
-        const GEO::index_t lv
-        ) const {
-        assert(!cells_.empty());
-        assert(lv < 8);
-
-        switch (lv) {
-            case 0: {
-                const auto& BC = cells_[0];
-                assert(HEX_LF_LF_LF_COMMON_LV(BC.lfs[0], BC.lfs[2], BC.lfs[4]) != GEO::NO_INDEX);
-                return mesh_.cells.vertex(
-                    BC.c,
-                    HEX_LF_LF_LF_COMMON_LV(BC.lfs[0], BC.lfs[2], BC.lfs[4]));
-            }
-            case 1: {
-                const auto& BC = cells_[len_x_-1];
-                assert(HEX_LF_LF_LF_COMMON_LV(BC.lfs[1], BC.lfs[2], BC.lfs[4]) != GEO::NO_INDEX);
-                return mesh_.cells.vertex(
-                    BC.c,
-                    HEX_LF_LF_LF_COMMON_LV(BC.lfs[1], BC.lfs[2], BC.lfs[4]));
-            }
-            case 2: {
-                const auto& BC = cells_[len_x_*(len_y_-1)];
-                assert(HEX_LF_LF_LF_COMMON_LV(BC.lfs[0], BC.lfs[3], BC.lfs[4]) != GEO::NO_INDEX);
-                return mesh_.cells.vertex(
-                    BC.c,
-                    HEX_LF_LF_LF_COMMON_LV(BC.lfs[0], BC.lfs[3], BC.lfs[4]));
-            }
-            case 3: {
-                const auto& BC = cells_[len_x_*len_y_-1];
-                assert(HEX_LF_LF_LF_COMMON_LV(BC.lfs[1], BC.lfs[3], BC.lfs[4]) != GEO::NO_INDEX);
-                return mesh_.cells.vertex(
-                    BC.c,
-                    HEX_LF_LF_LF_COMMON_LV(BC.lfs[1], BC.lfs[3], BC.lfs[4]));
-            }
-            case 4: {
-                const auto& BC = cells_[len_x_*len_y_*(len_z_-1)];
-                assert(HEX_LF_LF_LF_COMMON_LV(BC.lfs[0], BC.lfs[2], BC.lfs[5]) != GEO::NO_INDEX);
-                return mesh_.cells.vertex(
-                    BC.c,
-                    HEX_LF_LF_LF_COMMON_LV(BC.lfs[0], BC.lfs[2], BC.lfs[5]));
-            }
-            case 5: {
-                const auto& BC = cells_[len_x_*len_y_*(len_z_-1)+len_x_-1];
-                assert(HEX_LF_LF_LF_COMMON_LV(BC.lfs[1], BC.lfs[2], BC.lfs[5]) != GEO::NO_INDEX);
-                return mesh_.cells.vertex(
-                    BC.c,
-                    HEX_LF_LF_LF_COMMON_LV(BC.lfs[1], BC.lfs[2], BC.lfs[5]));
-            }
-            case 6: {
-                const auto& BC = cells_[len_x_*len_y_*(len_z_-1)+len_x_*(len_y_-1)];
-                assert(HEX_LF_LF_LF_COMMON_LV(BC.lfs[0], BC.lfs[3], BC.lfs[5]) != GEO::NO_INDEX);
-                return mesh_.cells.vertex(
-                    BC.c,
-                    HEX_LF_LF_LF_COMMON_LV(BC.lfs[0], BC.lfs[3], BC.lfs[5]));
-            }
-            case 7: {
-                const auto& BC = cells_[len_x_*len_y_*(len_z_-1)+len_x_*len_y_-1];
-                assert(HEX_LF_LF_LF_COMMON_LV(BC.lfs[1], BC.lfs[3], BC.lfs[5]) != GEO::NO_INDEX);
-                return mesh_.cells.vertex(
-                    BC.c,
-                    HEX_LF_LF_LF_COMMON_LV(BC.lfs[1], BC.lfs[3], BC.lfs[5]));
-            }
-            default:
-                assert(0);
-                return GEO::NO_INDEX;
         }
     }
 }

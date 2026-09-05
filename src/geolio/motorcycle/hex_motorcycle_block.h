@@ -36,7 +36,7 @@ namespace geolio
          *
          * @return Read-only reference to internal ordered cells.
          */
-        [[nodiscard]] const auto& cells() const { return cells_; }
+        [[nodiscard]] const auto& block_cells() const { return block_cells_; }
 
         /**
          * Gets the mesh vertex index of a block corner in the current local cell orientation.
@@ -67,11 +67,11 @@ namespace geolio
              +Z                4-------6
              |                /|      /|
              o --- +Y        5-------7 |
-            /                | 0-----|-2    (x, y, z) -> cells_[x + y*len_x + z*len_x*len_y]
+            /                | 0-----|-2    (x, y, z) -> block_cells_[x + y*len_x + z*len_x*len_y]
           +X                 |/      |/
                              1-------3
          */
-        std::vector<BlockCell> cells_;
+        std::vector<BlockCell> block_cells_;
         GEO::index_t len_x_{GEO::NO_INDEX}, len_y_{GEO::NO_INDEX}, len_z_{GEO::NO_INDEX};
     };
 }

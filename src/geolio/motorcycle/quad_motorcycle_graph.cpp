@@ -6,6 +6,8 @@
 #include <cassert>
 #include <geolio/common/utils.h>
 
+#include "geolio/mesh/mesh_operations.h"
+
 namespace geolio
 {
     QuadMotorCycleGraph::QuadMotorCycleGraph(
@@ -40,6 +42,93 @@ namespace geolio
 
         /* Ignite */
         ignite(queue);
+
+        /* Burning */
+        while (!queue.empty()) {
+            const auto& fire = queue.top();
+            const auto F_d = fire.d;
+            const auto F_f = fire.f;
+            const auto F_lv = fire.lv;
+            queue.pop();
+
+            /* Alive */
+            bool alive = false;
+            if (complex_type == BASE_COMPLEX)
+                alive = true;
+            else {
+                assert(complex_type == MOTORCYCLE_COMPLEX);
+                if (mesh_v_singular_[mesh_.facets.vertex(F_f, F_lv)])
+                    alive = true;
+                else {
+                    /* Find all incident edges */
+                    std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_f_lv;
+                    if (get_vertex_incident_facets(mesh_, F_f, F_lv, ordered_f_lv)) { // append the preceding border edge
+                        const auto& [f, lv] = ordered_f_lv[0];
+                        ordered_f_lv.emplace_back(f, (lv+3)%4);
+                    }
+
+                    GEO::index_t tagged_edges_nb = 0;
+                    for (const auto& [f, lv] : ordered_f_lv) {
+                        if (mesh_fc_tagged_[mesh_.facets.corner(f, lv)] != GEO::NO_INDEX)
+                            ++tagged_edges_nb;
+                    }
+
+                    if (tagged_edges_nb < 3)
+                        alive = true;
+                }
+            }
+            if (!alive)
+                continue;
+
+            /* Mark edge as burnt */
+            mesh_fc_tagged_[mesh_.facets.corner(F_f, F_lv)] = F_d;
+            if (const auto& nf = mesh_.facets.adjacent(F_f, F_lv);
+                nf != GEO::NO_FACET) {
+                const auto& nlv = mesh_.facets.find_vertex(nf, mesh_.facets.vertex(F_f, (F_lv+1)%4));
+                assert(nlv != GEO::NO_INDEX);
+                mesh_fc_tagged_[mesh_.facets.corner(nf, nlv)] = F_d;
+            }
+
+            /* Burning */
+            const GEO::index_t F_lv1 = (F_lv+1)%4;
+            if (const auto& v = mesh_.facets.vertex(F_f, F_lv1);
+                !mesh_v_singular_[v] && !mesh_v_border_[v]
+                ) {
+                /* Find all incident edges */
+                std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_f_lv;
+                const auto on_border = get_vertex_incident_facets(mesh_, F_f, F_lv1, ordered_f_lv);
+                assert(!on_border);
+                assert(ordered_f_lv[0].first == F_f);
+                assert(ordered_f_lv.size() == 4); // regular
+
+                if (const auto& [opp_f, opp_lv] = ordered_f_lv[2];
+                    mesh_fc_tagged_[mesh_.facets.corner(opp_f, opp_lv)] == GEO::NO_INDEX
+                    ) {
+                    assert(mesh_.facets.vertex(F_f, F_lv1) == mesh_.facets.vertex(opp_f, opp_lv));
+                    assert(mesh_.facets.adjacent(F_f, F_lv) != opp_f);
+
+                    Fire new_F{};
+                    new_F.d = F_d+1;
+                    new_F.f = opp_f;
+                    new_F.lv = opp_lv;
+
+                    queue.push(new_F);
+                }
+            }
+        }
+
+        /* Label border edge */
+        for (const auto& f : mesh_.facets) {
+            for (GEO::index_t lv = 0; lv < 4; ++lv) {
+                if (mesh_.facets.adjacent(f, lv) == GEO::NO_FACET)
+                    mesh_fc_tagged_[mesh_.facets.corner(f, lv)] = 0;
+            }
+        }
+
+        /* Decompose */
+        const GEO::index_t blocks_nb = decompose_into_blocks();
+
+        return blocks_nb;
     }
 
     void QuadMotorCycleGraph::find_all_singular_and_border_vertices(
@@ -81,11 +170,52 @@ namespace geolio
         while (!queue.empty())
             queue.pop();
 
-        for (const auto& v : mesh_.vertices) {
-            if (!mesh_v_singular_[v]) // for all singular vertex
+        std::vector<bool> processed_vertices(mesh_.vertices.nb(), false);
+        for (const auto& f : mesh_.facets) {
+            for (GEO::index_t lv = 0; lv < 4; ++lv) {
+                const auto& v = mesh_.facets.vertex(f, lv);
+                if (processed_vertices[v] || !mesh_v_singular_[v]) // for all singular vertex
+                    continue;
+
+                processed_vertices[v] = true;
+
+                /* Find all incident interior edges */
+                std::vector<std::pair<GEO::index_t, GEO::index_t>> ordered_f_lv;
+                get_vertex_incident_facets(mesh_, f, lv, ordered_f_lv);
+                for (const auto& [adj_f, adj_lv] : ordered_f_lv) {
+                    if (mesh_.facets.adjacent(adj_f, adj_lv) == GEO::NO_FACET)
+                        continue;
+
+                    Fire F{};
+                    F.d = 0;
+                    F.f = adj_f;
+                    F.lv = adj_lv;
+
+                    queue.push(F);
+                }
+            }
+        }
+    }
+
+    GEO::index_t QuadMotorCycleGraph::decompose_into_blocks(
+        ) {
+        blocks_.clear();
+
+        std::vector<bool> processed_facets(mesh_.facets.nb(), false);
+        for (const auto& start_f : mesh_.facets) {
+            if (processed_facets[start_f]) // labelled
                 continue;
 
-            /* Find all incident interior edges */
+            /* Build motorcycle block */
+            QuadMotorCycleBlock MC_block(mesh_, mesh_fc_tagged_);
+            MC_block.flood_fill_facets(start_f);
+
+            for (const auto& b_facet : MC_block.block_facets())
+                processed_facets[b_facet.f] = true;
+
+            blocks_.push_back(MC_block);
         }
+
+        return blocks_.size();
     }
 }

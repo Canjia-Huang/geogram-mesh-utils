@@ -44,7 +44,7 @@ namespace geolio
 
         /* Burning */
         while (!queue.empty()) {
-            const auto fire = queue.top();
+            const auto& fire = queue.top();
             const auto F_d = fire.d;
             const auto F_c = fire.c;
             const auto F_le = fire.le;
@@ -53,16 +53,16 @@ namespace geolio
 
             /* Alive */
             bool alive = false;
-            if (complex_type == BASE_COMPLEX) {
+            if (complex_type == BASE_COMPLEX)
                 alive = true;
-            }
-            else if (complex_type == MOTORCYCLE_COMPLEX) {
+            else {
+                assert(complex_type == MOTORCYCLE_COMPLEX);
                 if (mesh_ce_singular_[12*F_c+F_le])
                     alive = true;
                 else {
                     /* Find all incident facets */
                     std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>> ordered_c_le_lf;
-                    if (get_edge_incident_cells(mesh_, F_c, F_le, ordered_c_le_lf)) { // append the preceding border facet.
+                    if (get_edge_incident_cells(mesh_, F_c, F_le, ordered_c_le_lf)) { // append the preceding border facet
                         const auto& pre_lf = get<2>(ordered_c_le_lf[0]);
                         const auto& lf0 = HEX_LE_INCIDENT_LF[F_le][0];
                         const auto& lf1 = HEX_LE_INCIDENT_LF[F_le][1];
@@ -84,9 +84,6 @@ namespace geolio
                         alive = true;
                 }
             }
-            else
-                assert(0);
-
             if (!alive)
                 continue;
 
@@ -162,7 +159,7 @@ namespace geolio
 
         for (GEO::index_t i = 0, i_end = blocks_.size(); i < i_end; ++i) {
             const auto& block = blocks_[i];
-            for (const auto& cells = block.cells();
+            for (const auto& cells = block.block_cells();
                 const auto& cell : cells)
                 mesh_c_block[cell.c] = i;
         }
@@ -189,7 +186,7 @@ namespace geolio
         if (old_cf_to_new_cf != nullptr) {
             old_cf_to_new_cf->assign(8*mesh_.cells.nb(), GEO::NO_INDEX);
             for (GEO::index_t c = 0, c_end = blocks_.size(); c < c_end; ++c) {
-                for (const auto& BC : blocks_[c].cells()) {
+                for (const auto& BC : blocks_[c].block_cells()) {
                     for (GEO::index_t lf = 0; lf < 6; ++lf) {
                         if (const auto old_cf = 8*BC.c + BC.lfs[lf];
                             mesh_cf_tagged_[old_cf] != GEO::NO_INDEX
@@ -297,8 +294,8 @@ namespace geolio
             HexMotorCycleBlock MC_block(mesh_, mesh_cf_tagged_);
             MC_block.flood_fill_cells(start_c);
 
-            for (const auto& c : MC_block.cells())
-                prcessed_cells[c.c] = true;
+            for (const auto& b_cell : MC_block.block_cells())
+                prcessed_cells[b_cell.c] = true;
 
             blocks_.push_back(MC_block);
         }
