@@ -12,11 +12,11 @@ namespace geolio
 {
     bool AEDTPLT_IOHandler::load(
         const std::string& filename,
-        GEO::Mesh& M,
+        GEO::Mesh& mesh,
         const GEO::MeshIOFlags& ioflags
         ) {
-        M.clear();
-        M.vertices.set_dimension(3);
+        mesh.clear();
+        mesh.vertices.set_dimension(3);
 
         LineInput in(filename);
         if (!in.OK()) {
@@ -103,31 +103,31 @@ namespace geolio
                     }
 
                     /* Build mesh elements */
-                    const GEO::index_t new_v = M.vertices.nb();
+                    const GEO::index_t new_v = mesh.vertices.nb();
                     if (!vertices.empty()) {
                         const GEO::index_t vertices_nb = vertices.size()/3;
-                        M.vertices.create_vertices(vertices_nb);
+                        mesh.vertices.create_vertices(vertices_nb);
                         for (GEO::index_t v = 0; v < vertices_nb; ++v) {
-                            M.vertices.point(new_v+v).x = vertices[3*v];
-                            M.vertices.point(new_v+v).y = vertices[3*v+1];
-                            M.vertices.point(new_v+v).z = vertices[3*v+2];
+                            mesh.vertices.point(new_v+v).x = vertices[3*v];
+                            mesh.vertices.point(new_v+v).y = vertices[3*v+1];
+                            mesh.vertices.point(new_v+v).z = vertices[3*v+2];
                         }
                     }
                     if (!triangles.empty()) {
                         const GEO::index_t triangles_nb = triangles.size()/3;
-                        GEO::index_t new_f = M.facets.create_triangles(triangles_nb);
+                        GEO::index_t new_f = mesh.facets.create_triangles(triangles_nb);
                         for (GEO::index_t f = 0; f < triangles_nb; ++f) {
                             for (GEO::index_t lv = 0; lv < 3; ++lv)
-                                M.facets.set_vertex(new_f, lv, new_v+triangles[3*f+lv]);
+                                mesh.facets.set_vertex(new_f, lv, new_v+triangles[3*f+lv]);
                             ++new_f;
                         }
                     }
                     if (!tetrahedra.empty()) {
                         const GEO::index_t tetrahedra_nb = tetrahedra.size()/4;
-                        GEO::index_t new_c = M.cells.create_tets(tetrahedra_nb);
+                        GEO::index_t new_c = mesh.cells.create_tets(tetrahedra_nb);
                         for (GEO::index_t c = 0; c < tetrahedra_nb; ++c) {
                             for (GEO::index_t lv = 0; lv < 4; ++lv)
-                                M.cells.set_vertex(new_c, lv, new_v+tetrahedra[4*c+lv]);
+                                mesh.cells.set_vertex(new_c, lv, new_v+tetrahedra[4*c+lv]);
                             ++new_c;
                         }
                     }

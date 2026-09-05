@@ -10,13 +10,14 @@
 namespace geolio
 {
     /**
-     * I/O for ".ovm" files exported by OpenVolumeMesh https://www.graphics.rwth-aachen.de/software/openvolumemesh/
+     * @brief IO handler for ".ovm" files exported by OpenVolumeMesh
+     * @see https://www.graphics.rwth-aachen.de/software/openvolumemesh/
      */
     class OVM_IOHandler : public GEO::MeshIOHandler {
     public:
         bool load(
             const std::string& filename,
-            GEO::Mesh& M,
+            GEO::Mesh& mesh,
             const GEO::MeshIOFlags& ioflags) override;
 
         [[deprecated("This function is not yet implemented.")]]

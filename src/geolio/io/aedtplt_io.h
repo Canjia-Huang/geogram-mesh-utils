@@ -10,18 +10,18 @@
 namespace geolio
 {
     /**
-     * I/O for ".aedtplt" files exported by Ansys HFSS through the plot mesh.
+     * @brief IO handler for ".aedtplt" files exported by Ansys HFSS through the plot mesh.
      */
     class AEDTPLT_IOHandler : public GEO::MeshIOHandler {
     public:
         bool load(
             const std::string& filename,
-            GEO::Mesh& M,
+            GEO::Mesh& mesh,
             const GEO::MeshIOFlags& ioflags) override;
 
         [[deprecated("This function is not yet implemented.")]]
         bool save(
-            const GEO::Mesh& M,
+            const GEO::Mesh& mesh,
             const std::string& filename,
             const GEO::MeshIOFlags& ioflags
             ) override {
