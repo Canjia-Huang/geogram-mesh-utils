@@ -26,11 +26,11 @@ namespace geolio
 {
     bool OVM_IOHandler::load(
         const std::string& filename,
-        GEO::Mesh& M,
+        GEO::Mesh& mesh,
         const GEO::MeshIOFlags& ioflags
         ) {
-        M.clear();
-        M.vertices.set_dimension(3);
+        mesh.clear();
+        mesh.vertices.set_dimension(3);
 
         LineInput in(filename);
         if (!in.OK()) {
@@ -62,7 +62,7 @@ namespace geolio
                         throw std::runtime_error("Line "+std::to_string(in.line_number())+" :Invalid vertices nb format!");
 
                     const GEO::index_t nb_vertices = in.field_as_uint(0);
-                    M.vertices.create_vertices(nb_vertices);
+                    mesh.vertices.create_vertices(nb_vertices);
 
                     for (GEO::index_t v = 0; v < nb_vertices; ++v) {
                         in.get_line();
@@ -70,7 +70,7 @@ namespace geolio
                         if(in.nb_fields() != 3)
                             throw std::runtime_error("Line "+std::to_string(in.line_number())+" :Invalid vertex, expected 3 coordinates!");
 
-                        auto& p = M.vertices.point(v);
+                        auto& p = mesh.vertices.point(v);
                         p.x = in.field_as_double(0);
                         p.y = in.field_as_double(1);
                         p.z = in.field_as_double(2);
@@ -83,7 +83,7 @@ namespace geolio
                         throw std::runtime_error("Line "+std::to_string(in.line_number())+" :Invalid edges nb format!");
 
                     const GEO::index_t nb_edges = in.field_as_uint(0);
-                    M.edges.create_edges(nb_edges);
+                    mesh.edges.create_edges(nb_edges);
 
                     for (GEO::index_t e = 0; e < nb_edges; ++e) {
                         in.get_line();
@@ -91,8 +91,8 @@ namespace geolio
                         if(in.nb_fields() != 2)
                             throw std::runtime_error("Line "+std::to_string(in.line_number())+" :Invalid edge, expected 2 indices!");
 
-                        M.edges.set_vertex(e, 0, in.field_as_uint(0));
-                        M.edges.set_vertex(e, 1, in.field_as_uint(1));
+                        mesh.edges.set_vertex(e, 0, in.field_as_uint(0));
+                        mesh.edges.set_vertex(e, 1, in.field_as_uint(1));
                     }
                 }
                 else if (kw == "Faces") { // == Facets =================================================================
@@ -121,12 +121,12 @@ namespace geolio
                         for (GEO::index_t lv = 0; lv < fv_nb; ++lv) {
                             const GEO::index_t ie = in.field_as_uint(1+lv);
                             const GEO::index_t e = ie/2;
-                            if(e > M.edges.nb())
+                            if(e > mesh.edges.nb())
                                 throw std::runtime_error("Line "+std::to_string(in.line_number())+" :Invalid edge id in facet!");
                             if (ie%2 == 0)
-                                facet_ptr.push_back(M.edges.vertex(e, 0));
+                                facet_ptr.push_back(mesh.edges.vertex(e, 0));
                             else
-                                facet_ptr.push_back(M.edges.vertex(e, 1));
+                                facet_ptr.push_back(mesh.edges.vertex(e, 1));
                         }
                     }
 
@@ -162,25 +162,25 @@ namespace geolio
                         }
 
                         if (facet_type == FACET_TYPE_TRI) {
-                            GEO::index_t new_f = M.facets.create_triangles(facets_nb);
+                            GEO::index_t new_f = mesh.facets.create_triangles(facets_nb);
                             for (; begin_fi < end_fi; ++begin_fi) {
                                 assert(facet_ptr[begin_fi] == 3);
-                                M.facets.set_vertex(new_f, 0, facet_ptr[begin_fi+1]);
-                                M.facets.set_vertex(new_f, 1, facet_ptr[begin_fi+2]);
-                                M.facets.set_vertex(new_f, 2, facet_ptr[begin_fi+3]);
+                                mesh.facets.set_vertex(new_f, 0, facet_ptr[begin_fi+1]);
+                                mesh.facets.set_vertex(new_f, 1, facet_ptr[begin_fi+2]);
+                                mesh.facets.set_vertex(new_f, 2, facet_ptr[begin_fi+3]);
                                 ++new_f;
                                 begin_fi += 3;
                             }
                             assert(new_f == M.facets.nb());
                         }
                         else if (facet_type == FACET_TYPE_QUAD) {
-                            GEO::index_t new_f = M.facets.create_quads(facets_nb);
+                            GEO::index_t new_f = mesh.facets.create_quads(facets_nb);
                             for (; begin_fi < end_fi; ++begin_fi) {
                                 assert(facet_ptr[begin_fi] == 4);
-                                M.facets.set_vertex(new_f, 0, facet_ptr[begin_fi+1]);
-                                M.facets.set_vertex(new_f, 1, facet_ptr[begin_fi+2]);
-                                M.facets.set_vertex(new_f, 2, facet_ptr[begin_fi+3]);
-                                M.facets.set_vertex(new_f, 3, facet_ptr[begin_fi+4]);
+                                mesh.facets.set_vertex(new_f, 0, facet_ptr[begin_fi+1]);
+                                mesh.facets.set_vertex(new_f, 1, facet_ptr[begin_fi+2]);
+                                mesh.facets.set_vertex(new_f, 2, facet_ptr[begin_fi+3]);
+                                mesh.facets.set_vertex(new_f, 3, facet_ptr[begin_fi+4]);
                                 ++new_f;
                                 begin_fi += 4;
                             }
@@ -188,13 +188,13 @@ namespace geolio
                         }
                         else {
                             assert(facet_type == FACET_TYPE_POLY);
-                            M.facets.reserve(facets_nb);
+                            mesh.facets.reserve(facets_nb);
                             for (; begin_fi < end_fi; ++begin_fi) {
                                 const GEO::index_t fv_nb = facet_ptr[begin_fi];
                                 if (fv_nb > 4) {
-                                    const GEO::index_t new_f = M.facets.create_polygon(fv_nb);
+                                    const GEO::index_t new_f = mesh.facets.create_polygon(fv_nb);
                                     for (GEO::index_t lv = 0; lv < fv_nb; ++lv)
-                                        M.facets.set_vertex(new_f, lv, facet_ptr[begin_fi+lv+1]);
+                                        mesh.facets.set_vertex(new_f, lv, facet_ptr[begin_fi+lv+1]);
                                 }
                                 begin_fi += fv_nb;
                             }
@@ -203,7 +203,7 @@ namespace geolio
                         assert(begin_fi == end_fi);
                     }
 
-                    M.facets.connect();
+                    mesh.facets.connect();
                 }
                 else if (kw == "Polyhedra") { // == Polyhedra =========================================================
                     in.get_line();
@@ -231,7 +231,7 @@ namespace geolio
                         for (GEO::index_t lf = 0; lf < cf_nb; ++lf) {
                             const GEO::index_t hf = in.field_as_uint(1+lf);
                             if(const GEO::index_t f = hf/2;
-                                f > M.facets.nb())
+                                f > mesh.facets.nb())
                                 throw std::runtime_error("Line "+std::to_string(in.line_number())+" :Invalid facet id in cell!");
                             cell_ptr.push_back(hf);
                         }
@@ -270,7 +270,7 @@ namespace geolio
                             throw std::runtime_error("Not support tets yet!");
                         }
                         else if (cell_type == CELL_TYPE_HEX) {
-                            GEO::index_t new_c = M.cells.create_hexes(cells_nb);
+                            GEO::index_t new_c = mesh.cells.create_hexes(cells_nb);
                             for (; begin_ci < end_ci; ++begin_ci) {
                                 const GEO::index_t cf_nb = cell_ptr[begin_ci];
                                 if (cf_nb == 6) {
@@ -310,13 +310,13 @@ namespace geolio
                                     GEO::index_t v0 = GEO::NO_VERTEX;
                                     {
                                         for (GEO::index_t lv0 = 0; lv0 < 4; ++lv0) {
-                                            const auto& f0v = M.facets.vertex(f0, lv0);
+                                            const auto& f0v = mesh.facets.vertex(f0, lv0);
                                             for (GEO::index_t lv3 = 0; lv3 < 4; ++lv3) {
-                                                if (const auto& f3v = M.facets.vertex(f3, lv3);
+                                                if (const auto& f3v = mesh.facets.vertex(f3, lv3);
                                                     f3v != f0v)
                                                     continue;
                                                 for (GEO::index_t lv4 = 0; lv4 < 4; ++lv4) {
-                                                    if (const auto& f4v = M.facets.vertex(f4, lv4);
+                                                    if (const auto& f4v = mesh.facets.vertex(f4, lv4);
                                                         f4v != f0v)
                                                         continue;
                                                     v0 = f0v;
@@ -335,13 +335,13 @@ namespace geolio
                                     GEO::index_t v4 = GEO::NO_VERTEX;
                                     {
                                         for (GEO::index_t lv1 = 0; lv1 < 4; ++lv1) {
-                                            const auto& f1v = M.facets.vertex(f1, lv1);
+                                            const auto& f1v = mesh.facets.vertex(f1, lv1);
                                             for (GEO::index_t lv3 = 0; lv3 < 4; ++lv3) {
-                                                if (const auto& f3v = M.facets.vertex(f3, lv3);
+                                                if (const auto& f3v = mesh.facets.vertex(f3, lv3);
                                                     f3v != f1v)
                                                     continue;
                                                 for (GEO::index_t lv4 = 0; lv4 < 4; ++lv4) {
-                                                    if (const auto& f4v = M.facets.vertex(f4, lv4);
+                                                    if (const auto& f4v = mesh.facets.vertex(f4, lv4);
                                                         f4v != f1v)
                                                         continue;
                                                     v4 = f1v;
@@ -357,36 +357,36 @@ namespace geolio
                                     }
 
                                     for (GEO::index_t lv = 0; lv < 4; ++lv) {
-                                        if (M.facets.vertex(f0, lv) != v0)
+                                        if (mesh.facets.vertex(f0, lv) != v0)
                                             continue;
                                         if (hf0%2 == 0) {
-                                            M.cells.set_vertex(new_c, 0, M.facets.vertex(f0, (lv+3)%4));
-                                            M.cells.set_vertex(new_c, 1, M.facets.vertex(f0, lv));
-                                            M.cells.set_vertex(new_c, 2, M.facets.vertex(f0, (lv+2)%4));
-                                            M.cells.set_vertex(new_c, 3, M.facets.vertex(f0, (lv+1)%4));
+                                            mesh.cells.set_vertex(new_c, 0, mesh.facets.vertex(f0, (lv+3)%4));
+                                            mesh.cells.set_vertex(new_c, 1, mesh.facets.vertex(f0, lv));
+                                            mesh.cells.set_vertex(new_c, 2, mesh.facets.vertex(f0, (lv+2)%4));
+                                            mesh.cells.set_vertex(new_c, 3, mesh.facets.vertex(f0, (lv+1)%4));
                                         }
                                         else { // inverse
-                                            M.cells.set_vertex(new_c, 0, M.facets.vertex(f0, (lv+1)%4));
-                                            M.cells.set_vertex(new_c, 1, M.facets.vertex(f0, lv));
-                                            M.cells.set_vertex(new_c, 2, M.facets.vertex(f0, (lv+2)%4));
-                                            M.cells.set_vertex(new_c, 3, M.facets.vertex(f0, (lv+3)%4));
+                                            mesh.cells.set_vertex(new_c, 0, mesh.facets.vertex(f0, (lv+1)%4));
+                                            mesh.cells.set_vertex(new_c, 1, mesh.facets.vertex(f0, lv));
+                                            mesh.cells.set_vertex(new_c, 2, mesh.facets.vertex(f0, (lv+2)%4));
+                                            mesh.cells.set_vertex(new_c, 3, mesh.facets.vertex(f0, (lv+3)%4));
                                         }
                                     }
 
                                     for (GEO::index_t lv = 0; lv < 4; ++lv) {
-                                        if (M.facets.vertex(f1, lv) != v4)
+                                        if (mesh.facets.vertex(f1, lv) != v4)
                                             continue;
                                         if (hf1%2 == 0) {
-                                            M.cells.set_vertex(new_c, 4, M.facets.vertex(f1, (lv+1)%4));
-                                            M.cells.set_vertex(new_c, 5, M.facets.vertex(f1, lv));
-                                            M.cells.set_vertex(new_c, 6, M.facets.vertex(f1, (lv+2)%4));
-                                            M.cells.set_vertex(new_c, 7, M.facets.vertex(f1, (lv+3)%4));
+                                            mesh.cells.set_vertex(new_c, 4, mesh.facets.vertex(f1, (lv+1)%4));
+                                            mesh.cells.set_vertex(new_c, 5, mesh.facets.vertex(f1, lv));
+                                            mesh.cells.set_vertex(new_c, 6, mesh.facets.vertex(f1, (lv+2)%4));
+                                            mesh.cells.set_vertex(new_c, 7, mesh.facets.vertex(f1, (lv+3)%4));
                                         }
                                         else { // inverse
-                                            M.cells.set_vertex(new_c, 4, M.facets.vertex(f1, (lv+3)%4));
-                                            M.cells.set_vertex(new_c, 5, M.facets.vertex(f1, lv));
-                                            M.cells.set_vertex(new_c, 6, M.facets.vertex(f1, (lv+2)%4));
-                                            M.cells.set_vertex(new_c, 7, M.facets.vertex(f1, (lv+1)%4));
+                                            mesh.cells.set_vertex(new_c, 4, mesh.facets.vertex(f1, (lv+3)%4));
+                                            mesh.cells.set_vertex(new_c, 5, mesh.facets.vertex(f1, lv));
+                                            mesh.cells.set_vertex(new_c, 6, mesh.facets.vertex(f1, (lv+2)%4));
+                                            mesh.cells.set_vertex(new_c, 7, mesh.facets.vertex(f1, (lv+1)%4));
                                         }
                                     }
                                     ++new_c;
@@ -399,33 +399,33 @@ namespace geolio
                         assert(begin_ci == end_ci);
                     }
 
-                    M.cells.connect();
+                    mesh.cells.connect();
                 }
                 else if (kw == "Vertex_Property" || kw == "VProp") {
-                    parse_property(in, M.vertices.attributes());
+                    parse_property(in, mesh.vertices.attributes());
                 }
                 else if (kw == "Edge_Property" || kw == "EProp") {
-                    parse_property(in, M.edges.attributes());
+                    parse_property(in, mesh.edges.attributes());
                 }
                 else if (kw == "HalfEdge_Property") {
                     LOG::WARN("Halfedge data structure and related properties `{}` are not supported; skip it.", kw);
-                    for (const auto& e : M.edges) {
+                    for (const auto& e : mesh.edges) {
                         in.get_line();
                         in.get_line();
                     }
                 }
                 else if (kw == "Face_Property" || kw == "FProp") {
-                    parse_property(in, M.facets.attributes());
+                    parse_property(in, mesh.facets.attributes());
                 }
                 else if (kw == "HalfFace_Property") {
                     LOG::WARN("Halfedge data structure and related properties `{}` are not supported; skip it.", kw);
-                    for (const auto& f : M.facets) {
+                    for (const auto& f : mesh.facets) {
                         in.get_line();
                         in.get_line();
                     }
                 }
                 else if (kw == "Polyhedron_Property") {
-                    parse_property(in, M.cells.attributes());
+                    parse_property(in, mesh.cells.attributes());
                 }
                 else
                     throw std::runtime_error("Line "+std::to_string(in.line_number())+" :Unknown kw `"+kw+"`!");

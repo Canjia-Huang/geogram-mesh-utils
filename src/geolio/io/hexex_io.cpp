@@ -13,11 +13,11 @@ namespace geolio
 {
     bool HEXEX_IOHandler::load(
         const std::string& filename,
-        GEO::Mesh& M,
+        GEO::Mesh& mesh,
         const GEO::MeshIOFlags& ioflags
         ) {
-        M.clear();
-        M.vertices.set_dimension(3);
+        mesh.clear();
+        mesh.vertices.set_dimension(3);
 
         LineInput in(filename);
         if (!in.OK()) {
@@ -34,7 +34,7 @@ namespace geolio
                     throw std::runtime_error("Line "+std::to_string(in.line_number())+" :Expect vertices nb!");
 
                 const GEO::index_t nb_vertices = in.field_as_uint(0);
-                M.vertices.create_vertices(nb_vertices);
+                mesh.vertices.create_vertices(nb_vertices);
 
                 for (GEO::index_t v = 0; v < nb_vertices; ++v) {
                     in.get_line();
@@ -42,9 +42,9 @@ namespace geolio
                     if (in.nb_fields() != 3)
                         throw std::runtime_error("Line "+std::to_string(in.line_number())+" :Invalid vertex, expected 3 coordinates!");
 
-                    M.vertices.point(v).x = in.field_as_double(0);
-                    M.vertices.point(v).y = in.field_as_double(1);
-                    M.vertices.point(v).z = in.field_as_double(2);
+                    mesh.vertices.point(v).x = in.field_as_double(0);
+                    mesh.vertices.point(v).y = in.field_as_double(1);
+                    mesh.vertices.point(v).z = in.field_as_double(2);
                 }
             }
 
@@ -57,8 +57,8 @@ namespace geolio
                     throw std::runtime_error("Line "+std::to_string(in.line_number())+" :Expect tetrahedra nb!");
 
                 const GEO::index_t nb_cells = in.field_as_uint(0);
-                M.cells.create_tets(nb_cells);
-                GEO::Attribute<GEO::vec3> cc_uvw(M.cell_corners.attributes(), "uvw");
+                mesh.cells.create_tets(nb_cells);
+                GEO::Attribute<GEO::vec3> cc_uvw(mesh.cell_corners.attributes(), "uvw");
 
                 for (GEO::index_t c = 0; c < nb_cells; ++c) {
                     in.get_line();
@@ -67,11 +67,11 @@ namespace geolio
                         throw std::runtime_error("Line "+std::to_string(in.line_number())+" :Invalid parameterized cell, expected 4 int + 12 double!");
 
                     for (GEO::index_t lv = 0; lv < 4; ++lv)
-                        M.cells.set_vertex(c, lv, in.field_as_uint(lv));
+                        mesh.cells.set_vertex(c, lv, in.field_as_uint(lv));
                     for (GEO::index_t lv = 0; lv < 4; ++lv) {
-                        cc_uvw[M.cells.corner(c, lv)].x = in.field_as_appro_double(4+3*lv);
-                        cc_uvw[M.cells.corner(c, lv)].y = in.field_as_appro_double(4+3*lv+1);
-                        cc_uvw[M.cells.corner(c, lv)].z = in.field_as_appro_double(4+3*lv+2);
+                        cc_uvw[mesh.cells.corner(c, lv)].x = in.field_as_appro_double(4+3*lv);
+                        cc_uvw[mesh.cells.corner(c, lv)].y = in.field_as_appro_double(4+3*lv+1);
+                        cc_uvw[mesh.cells.corner(c, lv)].z = in.field_as_appro_double(4+3*lv+2);
                     }
                 }
             }
@@ -83,8 +83,8 @@ namespace geolio
 
                     if (in.nb_fields() == 1) { /* Load wall triangles */
                         const GEO::index_t nb_wall_triangles = in.field_as_uint(0);
-                        M.facets.create_triangles(nb_wall_triangles);
-                        GEO::Attribute<double> f_dist_to_origin(M.facets.attributes(), "dist_to_origin");
+                        mesh.facets.create_triangles(nb_wall_triangles);
+                        GEO::Attribute<double> f_dist_to_origin(mesh.facets.attributes(), "dist_to_origin");
                         f_dist_to_origin.fill(0);
 
                         for (GEO::index_t f = 0; f < nb_wall_triangles; ++f) {
@@ -93,9 +93,9 @@ namespace geolio
                             if (in.nb_fields() != 4)
                                 throw std::runtime_error("Line "+std::to_string(in.line_number())+" :Invalid wall triangles, expected 3 coordinates + 1 double!");
 
-                            M.facets.set_vertex(f, 0, in.field_as_uint(0));
-                            M.facets.set_vertex(f, 1, in.field_as_uint(1));
-                            M.facets.set_vertex(f, 2, in.field_as_uint(2));
+                            mesh.facets.set_vertex(f, 0, in.field_as_uint(0));
+                            mesh.facets.set_vertex(f, 1, in.field_as_uint(1));
+                            mesh.facets.set_vertex(f, 2, in.field_as_uint(2));
                             f_dist_to_origin[f] = in.field_as_double(3);
                         }
                     }
@@ -106,7 +106,7 @@ namespace geolio
 
                         /* Load feature vertices */
                         if (nb_feature_vertices > 0) {
-                            GEO::Attribute<bool> v_feature(M.vertices.attributes(), "feature");
+                            GEO::Attribute<bool> v_feature(mesh.vertices.attributes(), "feature");
                             v_feature.fill(false);
 
                             for (GEO::index_t i = 0; i < nb_feature_vertices; ++i) {
@@ -121,8 +121,8 @@ namespace geolio
 
                         /* Load feature edges */
                         if (nb_feature_edges > 0) {
-                            M.edges.create_edges(nb_feature_edges);
-                            GEO::Attribute<bool> e_feature(M.edges.attributes(), "feature");
+                            mesh.edges.create_edges(nb_feature_edges);
+                            GEO::Attribute<bool> e_feature(mesh.edges.attributes(), "feature");
                             e_feature.fill(false);
 
                             for (GEO::index_t e = 0; e < nb_feature_edges; ++e) {
@@ -131,8 +131,8 @@ namespace geolio
                                 if (in.nb_fields() != 2)
                                     throw std::runtime_error("Line "+std::to_string(in.line_number())+" :Invalid features edge vertices!");
 
-                                M.edges.set_vertex(e, 0, in.field_as_uint(0));
-                                M.edges.set_vertex(e, 1, in.field_as_uint(1));
+                                mesh.edges.set_vertex(e, 0, in.field_as_uint(0));
+                                mesh.edges.set_vertex(e, 1, in.field_as_uint(1));
 
                                 e_feature[e] = true;
                             }
@@ -156,7 +156,7 @@ namespace geolio
                             }
 
                             /* Label feature facets */
-                            GEO::Attribute<bool> f_feature(M.facets.attributes(), "feature");
+                            GEO::Attribute<bool> f_feature(mesh.facets.attributes(), "feature");
                             f_feature.fill(false);
 
                             std::unordered_map<std::array<GEO::index_t, 3>, GEO::index_t, ArrayHash<GEO::index_t, 3>> feature_facets_set; // (v0, v1, v2) -> f
@@ -170,9 +170,9 @@ namespace geolio
                             }
                             {
                                 std::vector<bool> feature_facets_found(nb_feature_facets, false);
-                                for (const auto& f : M.facets) {
+                                for (const auto& f : mesh.facets) {
                                     std::array<GEO::index_t, 3> fvs{
-                                        M.facets.vertex(f, 0), M.facets.vertex(f, 1), M.facets.vertex(f, 2)
+                                        mesh.facets.vertex(f, 0), mesh.facets.vertex(f, 1), mesh.facets.vertex(f, 2)
                                     };
                                     std::ranges::sort(fvs);
                                     if (auto it = feature_facets_set.find(fvs);
@@ -188,12 +188,12 @@ namespace geolio
                                         ++remain_facets_nb;
                                 }
 
-                                GEO::index_t new_f = M.facets.create_triangles(remain_facets_nb);
+                                GEO::index_t new_f = mesh.facets.create_triangles(remain_facets_nb);
                                 for (GEO::index_t f = 0; f < nb_feature_facets; ++f) {
                                     if (!feature_facets_found[f]) {
-                                        M.facets.set_vertex(new_f, 0, feature_facets[3*f]);
-                                        M.facets.set_vertex(new_f, 1, feature_facets[3*f+1]);
-                                        M.facets.set_vertex(new_f, 2, feature_facets[3*f+2]);
+                                        mesh.facets.set_vertex(new_f, 0, feature_facets[3*f]);
+                                        mesh.facets.set_vertex(new_f, 1, feature_facets[3*f+1]);
+                                        mesh.facets.set_vertex(new_f, 2, feature_facets[3*f+2]);
                                         f_feature[new_f] = true;
                                         ++new_f;
                                     }
@@ -219,8 +219,8 @@ namespace geolio
             return false;
         }
 
-        M.facets.connect();
-        M.cells.connect();
+        mesh.facets.connect();
+        mesh.cells.connect();
 
         return true;
     }

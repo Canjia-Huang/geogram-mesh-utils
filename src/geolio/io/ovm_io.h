@@ -16,7 +16,7 @@ namespace geolio
     public:
         bool load(
             const std::string& filename,
-            GEO::Mesh& M,
+            GEO::Mesh& mesh,
             const GEO::MeshIOFlags& ioflags) override;
 
         [[deprecated("This function is not yet implemented.")]]
