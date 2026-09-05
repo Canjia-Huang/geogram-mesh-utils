@@ -249,22 +249,39 @@ namespace geolio
         return blocks_nb;
     }
 
+    void HexMotorCycleComplex::label_blocks(
+        GEO::Attribute<GEO::index_t>& mesh_c_block
+        ) const {
+        assert(mesh_c_block.is_bound());
+        assert(mesh_c_block.size() == mesh_.cells.nb());
+        if (blocks_.empty())
+            throw std::logic_error("Need to call compute() first!");
+
+        for (GEO::index_t i = 0, i_end = blocks_.size(); i < i_end; ++i) {
+            const auto& block = blocks_[i];
+            for (const auto& cells = block.cells();
+                const auto& cell : cells)
+                mesh_c_block[cell.c] = i;
+        }
+    }
+
     void HexMotorCycleComplex::create_coarse_mesh(
-        GEO::Mesh& M_out,
+        GEO::Mesh& mesh_out,
         std::vector<GEO::index_t>* old_cf_to_new_cf
         ) const {
-        assert(!blocks_.empty());
+        if (blocks_.empty())
+            throw std::logic_error("Need to call compute() first!");
 
-        M_out.clear(false);
-        M_out.copy(mesh_, false, GEO::MESH_VERTICES);
+        mesh_out.clear(false);
+        mesh_out.copy(mesh_, false, GEO::MESH_VERTICES);
 
-        GEO::index_t new_c = M_out.cells.create_hexes(blocks_.size());
+        GEO::index_t new_c = mesh_out.cells.create_hexes(blocks_.size());
         for (const auto& block : blocks_) {
             for (GEO::index_t lv = 0; lv < 8; ++lv)
-                M_out.cells.set_vertex(new_c, lv, block.cell_corner_vertex(lv));
+                mesh_out.cells.set_vertex(new_c, lv, block.cell_corner_vertex(lv));
             ++new_c;
         }
-        M_out.cells.connect();
+        mesh_out.cells.connect();
 
         if (old_cf_to_new_cf != nullptr) {
             old_cf_to_new_cf->assign(8*mesh_.cells.nb(), GEO::NO_INDEX);

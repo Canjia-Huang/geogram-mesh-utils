@@ -57,13 +57,15 @@ namespace geolio
          */
         GEO::index_t compute(HexMotorCycleComplexType complex_type = BASE_COMPLEX);
 
+        void label_blocks(GEO::Attribute<GEO::index_t>& mesh_c_block) const;
+
         /**
          * Builds a coarse hexahedral mesh from the computed block decomposition.
          *
          * Each coarse hex corresponds to one block in `blocks_`. Geometry and connectivity are
          * assembled from the block corner vertices inferred during decomposition.
          *
-         * @param[out] M_out Output coarse hexahedral mesh. Existing content may be overwritten.
+         * @param[out] mesh_out Output coarse hexahedral mesh. Existing content may be overwritten.
          * @param[out] old_cf_to_new_cf Optional map from original cell-facet ids (`8*c + lf`) to
          *                              coarse mesh facet ids. Pass `nullptr` to skip this mapping.
          *
@@ -71,7 +73,7 @@ namespace geolio
          * @post `M_out` contains the generated coarse mesh.
          */
         void create_coarse_mesh(
-            GEO::Mesh& M_out,
+            GEO::Mesh& mesh_out,
             std::vector<GEO::index_t>* old_cf_to_new_cf = nullptr) const;
 
     private:

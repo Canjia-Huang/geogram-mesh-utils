@@ -41,8 +41,6 @@ namespace geolio
     void HexMotorCycleBlock::flood_fill_cells(
         const GEO::index_t start_c
         ) {
-        // LOG::TRACE("{}({})", __FUNCTION__, start_c);
-
         std::vector<bool> processed_cells(mesh_.cells.nb(), false);
 
         std::stack<BlockCell> stack;
@@ -187,7 +185,6 @@ namespace geolio
 
     void HexMotorCycleBlock::rebuild_ordered_cells(
         ) {
-        // LOG::TRACE(__FUNCTION__);
         assert(!cells_.empty());
 
         int min_x = std::numeric_limits<int>::max();

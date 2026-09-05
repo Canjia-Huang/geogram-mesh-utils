@@ -60,7 +60,7 @@ namespace geolio
             GEO::vec3i coord;
             std::array<GEO::index_t, 6> lfs{
                 GEO::NO_INDEX, GEO::NO_INDEX, GEO::NO_INDEX, GEO::NO_INDEX, GEO::NO_INDEX, GEO::NO_INDEX
-                }; // same as the start_c
+                }; // same as the start_c's lf
         };
 
         /*
