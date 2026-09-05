@@ -129,7 +129,7 @@ namespace geolio
 {
     HexMotorCycleComplex::HexMotorCycleComplex(
         const GEO::Mesh& mesh
-        ) : attribute_id_(geolio::generate_random_string(22)),
+        ) : attribute_id_(generate_random_string(22)),
             mesh_(mesh)
     {
         assert(std::all_of(
@@ -159,7 +159,11 @@ namespace geolio
 
         /* Burning */
         while (!queue.empty()) {
-            const auto [F_d, F_c, F_le, F_lf] = queue.top();
+            const auto fire = queue.top();
+            const auto F_d = fire.d;
+            const auto F_c = fire.c;
+            const auto F_le = fire.le;
+            const auto F_lf = fire.lf;
             queue.pop();
 
             /* Alive */
@@ -195,7 +199,7 @@ namespace geolio
             mesh_cf_tagged_[8*F_c+F_lf] = F_d;
             if (const auto& nc = mesh_.cells.adjacent(F_c, F_lf);
                 nc != GEO::NO_CELL) {
-                const auto& nlf = geolio::find_hex_facet(
+                const auto& nlf = find_hex_facet(
                     mesh_,
                     nc,
                     mesh_.cells.facet_vertex(F_c, F_lf, 2),
@@ -203,10 +207,10 @@ namespace geolio
                     mesh_.cells.facet_vertex(F_c, F_lf, 0));
                 assert(nlf != GEO::NO_INDEX);
                 mesh_cf_tagged_[8*nc+nlf] = F_d;
-                }
+            }
 
             /* Burning */
-            for (const auto& F_le1 : geolio::HEX_LF_INCIDENT_LE[F_lf]) {
+            for (const auto& F_le1 : HEX_LF_INCIDENT_LE[F_lf]) {
                 if (F_le1 == F_le || mesh_ce_singular_[12*F_c+F_le1] || mesh_ce_border_[12*F_c+F_le1]) // need to be regular and interior
                     continue;
 
@@ -362,7 +366,7 @@ namespace geolio
 
                 /* Find all incident interior facets */
                 std::vector<std::tuple<GEO::index_t, GEO::index_t, GEO::index_t>> ordered_c_le_lf;
-                geolio::get_edge_incident_cells(mesh_, c, le, ordered_c_le_lf);
+                get_edge_incident_cells(mesh_, c, le, ordered_c_le_lf);
                 for (const auto& [adj_c, adj_le, adj_lf] : ordered_c_le_lf) {
                     processed_edges[12*adj_c+adj_le] = true;
 

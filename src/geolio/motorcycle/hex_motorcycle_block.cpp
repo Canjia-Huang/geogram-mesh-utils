@@ -77,7 +77,7 @@ namespace geolio
                 const auto nc = mesh_.cells.adjacent(c, c_lf);
                 if (nc == GEO::NO_CELL) // on border
                     continue;
-                const auto nlf = geolio::find_hex_facet(
+                const auto nlf = find_hex_facet(
                     mesh_,
                     nc,
                     mesh_.cells.facet_vertex(c, c_lf, 2),
@@ -104,10 +104,10 @@ namespace geolio
                 GEO::index_t c_lv0 = GEO::NO_INDEX; // c's c_lv0 is matched to nc's v0
                 for (GEO::index_t i = 0; i < 4; ++i) {
                     if (mesh_.cells.facet_vertex(c, c_lf, i) == nc_v0) {
-                        const auto& f_lv0 = geolio::HEX_LF_INCIDENT_LV[c_lf][i];
-                        const auto& f_lv1 = geolio::HEX_LF_INCIDENT_LV[c_lf][(i+1)%4];
-                        const auto& f_lv3 = geolio::HEX_LF_INCIDENT_LV[c_lf][(i+3)%4];
-                        for (const auto& adj_v : geolio::HEX_LV_ADJACENT_LV[f_lv0]) {
+                        const auto& f_lv0 = HEX_LF_INCIDENT_LV[c_lf][i];
+                        const auto& f_lv1 = HEX_LF_INCIDENT_LV[c_lf][(i+1)%4];
+                        const auto& f_lv3 = HEX_LF_INCIDENT_LV[c_lf][(i+3)%4];
+                        for (const auto& adj_v : HEX_LV_ADJACENT_LV[f_lv0]) {
                             if (adj_v != f_lv1 && adj_v != f_lv3) {
                                 c_lv0 = adj_v;
                                 break;
@@ -118,8 +118,8 @@ namespace geolio
                 }
                 assert(c_lv0 != GEO::NO_INDEX);
 
-                const auto& c_lfs = geolio::HEX_LV_INCIDENT_LF[c_lv0];
-                const auto oppo_lf = geolio::HEX_LF_OPPOSITE_LF[c_lf];
+                const auto& c_lfs = HEX_LV_INCIDENT_LF[c_lv0];
+                const auto oppo_lf = HEX_LF_OPPOSITE_LF[c_lf];
                 GEO::index_t c_lfs_i = GEO::NO_INDEX;
                 for (GEO::index_t i = 0; i < 3; ++i) {
                     if (c_lfs[i] == oppo_lf) {
@@ -129,7 +129,7 @@ namespace geolio
                 }
                 assert(c_lfs_i != GEO::NO_INDEX);
 
-                const auto& nc_lfs = geolio::HEX_LV_INCIDENT_LF[geolio::HEX_LF_INCIDENT_LV[nlf][0]];
+                const auto& nc_lfs = HEX_LV_INCIDENT_LF[HEX_LF_INCIDENT_LV[nlf][0]];
                 GEO::index_t nc_lfs_i = GEO::NO_INDEX;
                 for (GEO::index_t i = 0; i < 3; ++i) {
                     if (nc_lfs[i] == nlf) {
@@ -149,10 +149,10 @@ namespace geolio
                     const auto c_lfs_lf = c_lfs[(c_lfs_i+i)%3];
                     const auto nc_lfs_lf = nc_lfs[(nc_lfs_i+i)%3];
                     nBC.lfs[clf_to_lf[c_lfs_lf]] = nc_lfs_lf;
-                    nBC.lfs[clf_to_lf[geolio::HEX_LF_OPPOSITE_LF[c_lfs_lf]]] = geolio::HEX_LF_OPPOSITE_LF[nc_lfs_lf];
+                    nBC.lfs[clf_to_lf[HEX_LF_OPPOSITE_LF[c_lfs_lf]]] = HEX_LF_OPPOSITE_LF[nc_lfs_lf];
                 }
                 assert(std::ranges::all_of(nBC.lfs, [&](const GEO::index_t i) { return nBC.lfs[i] != GEO::NO_INDEX; }));
-                assert(nBC.lfs[geolio::HEX_LF_OPPOSITE_LF[lf]] == nlf);
+                assert(nBC.lfs[HEX_LF_OPPOSITE_LF[lf]] == nlf);
 
                 stack.push(nBC);
                 processed_cells[nc] = true;
@@ -255,59 +255,59 @@ namespace geolio
         switch (lv) {
             case 0: {
                 const auto& BC = cells_[0];
-                assert(geolio::HEX_LF_LF_LF_COMMON_LV(BC.lfs[0], BC.lfs[2], BC.lfs[4]) != GEO::NO_INDEX);
+                assert(HEX_LF_LF_LF_COMMON_LV(BC.lfs[0], BC.lfs[2], BC.lfs[4]) != GEO::NO_INDEX);
                 return mesh_.cells.vertex(
                     BC.c,
-                    geolio::HEX_LF_LF_LF_COMMON_LV(BC.lfs[0], BC.lfs[2], BC.lfs[4]));
+                    HEX_LF_LF_LF_COMMON_LV(BC.lfs[0], BC.lfs[2], BC.lfs[4]));
             }
             case 1: {
                 const auto& BC = cells_[len_x_-1];
-                assert(geolio::HEX_LF_LF_LF_COMMON_LV(BC.lfs[1], BC.lfs[2], BC.lfs[4]) != GEO::NO_INDEX);
+                assert(HEX_LF_LF_LF_COMMON_LV(BC.lfs[1], BC.lfs[2], BC.lfs[4]) != GEO::NO_INDEX);
                 return mesh_.cells.vertex(
                     BC.c,
-                    geolio::HEX_LF_LF_LF_COMMON_LV(BC.lfs[1], BC.lfs[2], BC.lfs[4]));
+                    HEX_LF_LF_LF_COMMON_LV(BC.lfs[1], BC.lfs[2], BC.lfs[4]));
             }
             case 2: {
                 const auto& BC = cells_[len_x_*(len_y_-1)];
-                assert(geolio::HEX_LF_LF_LF_COMMON_LV(BC.lfs[0], BC.lfs[3], BC.lfs[4]) != GEO::NO_INDEX);
+                assert(HEX_LF_LF_LF_COMMON_LV(BC.lfs[0], BC.lfs[3], BC.lfs[4]) != GEO::NO_INDEX);
                 return mesh_.cells.vertex(
                     BC.c,
-                    geolio::HEX_LF_LF_LF_COMMON_LV(BC.lfs[0], BC.lfs[3], BC.lfs[4]));
+                    HEX_LF_LF_LF_COMMON_LV(BC.lfs[0], BC.lfs[3], BC.lfs[4]));
             }
             case 3: {
                 const auto& BC = cells_[len_x_*len_y_-1];
-                assert(geolio::HEX_LF_LF_LF_COMMON_LV(BC.lfs[1], BC.lfs[3], BC.lfs[4]) != GEO::NO_INDEX);
+                assert(HEX_LF_LF_LF_COMMON_LV(BC.lfs[1], BC.lfs[3], BC.lfs[4]) != GEO::NO_INDEX);
                 return mesh_.cells.vertex(
                     BC.c,
-                    geolio::HEX_LF_LF_LF_COMMON_LV(BC.lfs[1], BC.lfs[3], BC.lfs[4]));
+                    HEX_LF_LF_LF_COMMON_LV(BC.lfs[1], BC.lfs[3], BC.lfs[4]));
             }
             case 4: {
                 const auto& BC = cells_[len_x_*len_y_*(len_z_-1)];
-                assert(geolio::HEX_LF_LF_LF_COMMON_LV(BC.lfs[0], BC.lfs[2], BC.lfs[5]) != GEO::NO_INDEX);
+                assert(HEX_LF_LF_LF_COMMON_LV(BC.lfs[0], BC.lfs[2], BC.lfs[5]) != GEO::NO_INDEX);
                 return mesh_.cells.vertex(
                     BC.c,
-                    geolio::HEX_LF_LF_LF_COMMON_LV(BC.lfs[0], BC.lfs[2], BC.lfs[5]));
+                    HEX_LF_LF_LF_COMMON_LV(BC.lfs[0], BC.lfs[2], BC.lfs[5]));
             }
             case 5: {
                 const auto& BC = cells_[len_x_*len_y_*(len_z_-1)+len_x_-1];
-                assert(geolio::HEX_LF_LF_LF_COMMON_LV(BC.lfs[1], BC.lfs[2], BC.lfs[5]) != GEO::NO_INDEX);
+                assert(HEX_LF_LF_LF_COMMON_LV(BC.lfs[1], BC.lfs[2], BC.lfs[5]) != GEO::NO_INDEX);
                 return mesh_.cells.vertex(
                     BC.c,
-                    geolio::HEX_LF_LF_LF_COMMON_LV(BC.lfs[1], BC.lfs[2], BC.lfs[5]));
+                    HEX_LF_LF_LF_COMMON_LV(BC.lfs[1], BC.lfs[2], BC.lfs[5]));
             }
             case 6: {
                 const auto& BC = cells_[len_x_*len_y_*(len_z_-1)+len_x_*(len_y_-1)];
-                assert(geolio::HEX_LF_LF_LF_COMMON_LV(BC.lfs[0], BC.lfs[3], BC.lfs[5]) != GEO::NO_INDEX);
+                assert(HEX_LF_LF_LF_COMMON_LV(BC.lfs[0], BC.lfs[3], BC.lfs[5]) != GEO::NO_INDEX);
                 return mesh_.cells.vertex(
                     BC.c,
-                    geolio::HEX_LF_LF_LF_COMMON_LV(BC.lfs[0], BC.lfs[3], BC.lfs[5]));
+                    HEX_LF_LF_LF_COMMON_LV(BC.lfs[0], BC.lfs[3], BC.lfs[5]));
             }
             case 7: {
                 const auto& BC = cells_[len_x_*len_y_*(len_z_-1)+len_x_*len_y_-1];
-                assert(geolio::HEX_LF_LF_LF_COMMON_LV(BC.lfs[1], BC.lfs[3], BC.lfs[5]) != GEO::NO_INDEX);
+                assert(HEX_LF_LF_LF_COMMON_LV(BC.lfs[1], BC.lfs[3], BC.lfs[5]) != GEO::NO_INDEX);
                 return mesh_.cells.vertex(
                     BC.c,
-                    geolio::HEX_LF_LF_LF_COMMON_LV(BC.lfs[1], BC.lfs[3], BC.lfs[5]));
+                    HEX_LF_LF_LF_COMMON_LV(BC.lfs[1], BC.lfs[3], BC.lfs[5]));
             }
             default:
                 assert(0);
