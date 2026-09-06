@@ -35,7 +35,7 @@ namespace geolio
     }
 
     GEO::index_t HexMotorCycleComplex::compute(
-        const HexMotorCycleComplexType complex_type
+        const MotorCycleType complex_type
         ) {
         std::priority_queue<Fire> queue;
 

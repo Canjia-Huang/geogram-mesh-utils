@@ -46,7 +46,7 @@ namespace geolio
         /**
          * Motorcycle complex variants.
          */
-        enum QuadMotorCycleGraphComplexType {
+        enum MotorCycleType {
            BASE_COMPLEX,        ///< Compute the base complex.
            MOTORCYCLE_COMPLEX   ///< Compute the motorcycle complex.
         };
@@ -62,7 +62,7 @@ namespace geolio
          * @post Every face receives a block index. The block indices form a contiguous sequence
          *       from 0 to return value - 1.
          */
-        GEO::index_t compute(QuadMotorCycleGraphComplexType complex_type = BASE_COMPLEX);
+        GEO::index_t compute(MotorCycleType complex_type = BASE_COMPLEX);
 
         /**
          * Labels every face in the input mesh with its block index.

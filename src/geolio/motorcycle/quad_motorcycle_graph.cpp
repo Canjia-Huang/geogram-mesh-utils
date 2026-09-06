@@ -40,7 +40,7 @@ namespace geolio
     }
 
     GEO::index_t QuadMotorCycleGraph::compute(
-        const QuadMotorCycleGraphComplexType complex_type
+        const MotorCycleType complex_type
         ) {
         std::priority_queue<Fire> queue;
 
