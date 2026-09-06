@@ -43,9 +43,9 @@ namespace geolio
         ) {
         std::vector<bool> processed_cells(mesh_.cells.nb(), false);
 
-        std::stack<BlockCell> stack;
+        std::vector<BlockCell> stack;
 
-        /* Start */
+        /* Initialize */
         {
             BlockCell BC;
             BC.c = start_c;
@@ -57,13 +57,14 @@ namespace geolio
             BC.lfs[4] = 4;
             BC.lfs[5] = 5; // use the lf order of cell start_c as the reference
 
-            stack.push(BC);
+            stack.push_back(BC);
             processed_cells[start_c] = true;
         }
 
+        /* Start */
         while (!stack.empty()) {
-            const auto BC = stack.top();
-            stack.pop();
+            const auto BC = stack.back();
+            stack.pop_back();
             block_cells_.push_back(BC);
 
             const auto c = BC.c;
@@ -77,13 +78,6 @@ namespace geolio
                 const auto nc = mesh_.cells.adjacent(c, c_lf);
                 if (nc == GEO::NO_CELL) // on border
                     continue;
-                const auto nlf = find_hex_facet(
-                    mesh_,
-                    nc,
-                    mesh_.cells.facet_vertex(c, c_lf, 2),
-                    mesh_.cells.facet_vertex(c, c_lf, 1),
-                    mesh_.cells.facet_vertex(c, c_lf, 0));
-                assert(nlf != GEO::NO_INDEX);
 
                 if (processed_cells[nc])
                     continue;
@@ -100,6 +94,13 @@ namespace geolio
                  *     |/      |/                     |/      |/
                  *     x-------x                      1-------3
                  */
+                const auto nlf = find_hex_facet(
+                    mesh_,
+                    nc,
+                    mesh_.cells.facet_vertex(c, c_lf, 2),
+                    mesh_.cells.facet_vertex(c, c_lf, 1),
+                    mesh_.cells.facet_vertex(c, c_lf, 0));
+                assert(nlf != GEO::NO_INDEX);
                 const auto nc_v0 = mesh_.cells.facet_vertex(nc, nlf, 0);
                 GEO::index_t c_lv0 = GEO::NO_INDEX; // c's c_lv0 is matched to nc's v0
                 for (GEO::index_t i = 0; i < 4; ++i) {
@@ -154,30 +155,30 @@ namespace geolio
                 assert(std::ranges::all_of(nBC.lfs, [&](const GEO::index_t i) { return nBC.lfs[i] != GEO::NO_INDEX; }));
                 assert(nBC.lfs[HEX_LF_OPPOSITE_LF[lf]] == nlf);
 
-                stack.push(nBC);
+                stack.push_back(nBC);
                 processed_cells[nc] = true;
             }
         }
 
         // DEBUG
-        {
-            // GEO::Mesh M_out;
-            // M_out.copy(M_);
-            // M_out.facets.clear();
-            // M_out.edges.clear();
-            // GEO::Attribute<int> M_out_c_coord_x(M_out.cells.attributes(), "coord_x");
-            // GEO::Attribute<int> M_out_c_coord_y(M_out.cells.attributes(), "coord_y");
-            // GEO::Attribute<int> M_out_c_coord_z(M_out.cells.attributes(), "coord_z");
-            // GEO::vector<GEO::index_t> cells_to_delete(M_out.cells.nb(), 1);
-            // for (const auto& BC : cells_) {
-            //     cells_to_delete[BC.c] = 0;
-            //     M_out_c_coord_x[BC.c] = BC.coord.x;
-            //     M_out_c_coord_y[BC.c] = BC.coord.y;
-            //     M_out_c_coord_z[BC.c] = BC.coord.z;
-            // }
-            // M_out.cells.delete_elements(cells_to_delete);
-            // GEO::mesh_save(M_out, "debug.geogram");
-            // THROW_RUNTIME_ERROR("im here");
+        if constexpr (false) {
+            GEO::Mesh mesh_out;
+            mesh_out.copy(mesh_);
+            mesh_out.facets.clear();
+            mesh_out.edges.clear();
+            GEO::Attribute<int> mesh_out_c_coord_x(mesh_out.cells.attributes(), "coord_x");
+            GEO::Attribute<int> mesh_out_c_coord_y(mesh_out.cells.attributes(), "coord_y");
+            GEO::Attribute<int> mesh_out_c_coord_z(mesh_out.cells.attributes(), "coord_z");
+            GEO::vector<GEO::index_t> cells_to_delete(mesh_out.cells.nb(), 1);
+            for (const auto& BC : block_cells_) {
+                cells_to_delete[BC.c] = 0;
+                mesh_out_c_coord_x[BC.c] = BC.coord.x;
+                mesh_out_c_coord_y[BC.c] = BC.coord.y;
+                mesh_out_c_coord_z[BC.c] = BC.coord.z;
+            }
+            mesh_out.cells.delete_elements(cells_to_delete);
+            GEO::mesh_save(mesh_out, "debug.geogram");
+            throw std::logic_error("im here");
         }
 
         rebuild_ordered_cells();
