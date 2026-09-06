@@ -21,6 +21,16 @@ namespace geolio::test
             GEO::Attribute<GEO::index_t> quad_f_block(quad_mesh.facets.attributes(), "block");
             MC->label_blocks(quad_f_block);
 
+            GEO::Attribute<GEO::index_t> quad_f_block_x(quad_mesh.facets.attributes(), "block_x");
+            GEO::Attribute<GEO::index_t> quad_f_block_y(quad_mesh.facets.attributes(), "block_y");
+            for (const auto& blocks = MC->blocks();
+                const auto& block : blocks) {
+                for (const auto& bf : block.block_facets()) {
+                    quad_f_block_x[bf.f] = bf.coord.x;
+                    quad_f_block_y[bf.f] = bf.coord.y;
+                }
+            }
+
             std::unordered_set<std::pair<GEO::index_t, GEO::index_t>, PairHash> edge_to_create;
             for (const auto& f : quad_mesh.facets) {
                 for (GEO::index_t lv = 0; lv < 4; ++lv) {

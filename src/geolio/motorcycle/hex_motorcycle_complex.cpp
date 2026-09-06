@@ -159,9 +159,9 @@ namespace geolio
 
         for (GEO::index_t i = 0, i_end = blocks_.size(); i < i_end; ++i) {
             const auto& block = blocks_[i];
-            for (const auto& cells = block.block_cells();
-                const auto& cell : cells)
-                mesh_c_block[cell.c] = i;
+            for (const auto& bcs = block.block_cells();
+                const auto& bc : bcs)
+                mesh_c_block[bc.c] = i;
         }
     }
 

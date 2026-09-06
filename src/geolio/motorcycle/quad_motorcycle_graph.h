@@ -97,6 +97,8 @@ namespace geolio
            GEO::Mesh& mesh_out,
            std::vector<GEO::index_t>* old_fc_to_new_fc = nullptr) const;
 
+        [[nodiscard]] const auto& blocks() const { return blocks_; }
+
     private:
         /**
          * Identifies singular and boundary vertices in the mesh.

@@ -14,6 +14,7 @@ int main(const int argc, char** argv) {
     GEO::initialize(GEO::GEOGRAM_INSTALL_ALL);
     GEO::CmdLine::import_arg_group("standard");
     GEO::CmdLine::import_arg_group("algo");
+    GEO::geo_register_attribute_type<GEO::vec2i>("vec2i");
     GEO::CmdLine::declare_arg("gui:font_size", 14, "default font size");
 
     geolio::register_additional_MeshIOHandlers();
