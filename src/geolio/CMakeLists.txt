@@ -25,6 +25,7 @@ add_subdirectory(high_order_mesh)
 add_subdirectory(io)
 add_subdirectory(local_operation_optimization)
 add_subdirectory(mesh)
+add_subdirectory(motorcycle)
 
 target_link_libraries(${CURRENT_LIB_NAME}
         PUBLIC
@@ -34,6 +35,7 @@ target_link_libraries(${CURRENT_LIB_NAME}
         ${PROJECT_NAME}::io
         ${PROJECT_NAME}::local_operation_optimization
         ${PROJECT_NAME}::mesh
+        ${PROJECT_NAME}::motorcycle
         ${PROJECT_NAME}::third_party
 )
 

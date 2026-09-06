@@ -170,12 +170,11 @@ namespace geolio
                         return false;
                     break;
                 case GEO::MeshCellType::MESH_PRISM:
-                    return false; // TODO: support
-                    break;
+                    [[fallthrough]];
                 case GEO::MeshCellType::MESH_PYRAMID:
-                    return false; // TODO: support
-                    break;
-                default: break;
+                    throw std::logic_error("Not support yet!");
+                default:
+                    return false;
             }
             return true;
         }());
@@ -298,6 +297,7 @@ namespace geolio
             }
             assert(0);
         }
+        assert(0);
         return false;
     }
 }
