@@ -5,6 +5,7 @@
 #include "quad_motorcycle_block.h"
 #include <cassert>
 #include <geogram/mesh/mesh_io.h>
+#include <array>
 
 namespace
 {
