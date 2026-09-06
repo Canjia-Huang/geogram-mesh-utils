@@ -47,6 +47,21 @@ namespace geolio
          */
         [[nodiscard]] GEO::index_t cell_corner_vertex(GEO::index_t lv) const;
 
+        /**
+         * Gets the block width in faces along the local +X direction.
+         */
+        [[nodiscard]] auto len_x() const { return len_x_; }
+
+        /**
+         * Gets the block height in faces along the local +Y direction.
+         */
+        [[nodiscard]] auto len_y() const { return len_y_; }
+
+        /**
+         * Gets the block height in faces along the local +Z direction.
+         */
+        [[nodiscard]] auto len_z() const { return len_z_; }
+
     private:
         /**
          * Reorders collected cells into a dense `(x, y, z)` layout and updates block dimensions.

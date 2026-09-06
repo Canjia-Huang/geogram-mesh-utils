@@ -42,6 +42,16 @@ namespace geolio
         [[nodiscard]] const auto& block_facets() const { return block_facets_; }
 
         /**
+         * Gets the block width in faces along the local +X direction.
+         */
+        [[nodiscard]] auto len_x() const { return len_x_; }
+
+        /**
+         * Gets the block height in faces along the local +Y direction.
+         */
+        [[nodiscard]] auto len_y() const { return len_y_; }
+
+        /**
          * Gets the mesh vertex index of a block corner in the current local face orientation.
          *
          * @param[in] lv Local corner id in `[0, 3]`.
