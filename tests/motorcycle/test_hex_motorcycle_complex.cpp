@@ -24,6 +24,18 @@ namespace geolio::test
             GEO::Attribute<GEO::index_t> hex_c_block(hex_mesh.cells.attributes(), "block");
             MC->label_blocks(hex_c_block);
 
+            GEO::Attribute<GEO::index_t> hex_c_block_x(hex_mesh.cells.attributes(), "block_x");
+            GEO::Attribute<GEO::index_t> hex_c_block_y(hex_mesh.cells.attributes(), "block_y");
+            GEO::Attribute<GEO::index_t> hex_c_block_z(hex_mesh.cells.attributes(), "block_z");
+            for (const auto& blocks = MC->blocks();
+                const auto& block : blocks) {
+                for (const auto& bc : block.block_cells()) {
+                    hex_c_block_x[bc.c] = bc.coord.x;
+                    hex_c_block_y[bc.c] = bc.coord.y;
+                    hex_c_block_z[bc.c] = bc.coord.z;
+                }
+            }
+
             std::vector<std::pair<GEO::index_t, GEO::index_t>> cf_to_create;
             std::vector<bool> processed_cf(8*hex_mesh.cells.nb(), false);
             for (const auto& c : hex_mesh.cells) {

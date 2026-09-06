@@ -94,6 +94,8 @@ namespace geolio
             GEO::Mesh& mesh_out,
             std::vector<GEO::index_t>* old_cf_to_new_cf = nullptr) const;
 
+        [[nodiscard]] const auto& blocks() const { return blocks_; }
+
     private:
         /**
          * Identifies singular edges and boundary edges in the mesh.
