@@ -97,6 +97,9 @@ namespace geolio
            GEO::Mesh& mesh_out,
            std::vector<GEO::index_t>* old_fc_to_new_fc = nullptr) const;
 
+        /**
+         * Returns the computed block decomposition.
+         */
         [[nodiscard]] const auto& blocks() const { return blocks_; }
 
     private:
