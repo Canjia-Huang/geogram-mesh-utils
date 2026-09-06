@@ -63,6 +63,7 @@
 #include <CGAL/IO/polygon_soup_io.h>
 #include <iostream>
 #include <vector>
+#include <geogram/basic/algorithm.h>
 
 using Kernel = CGAL::Exact_predicates_inexact_constructions_kernel;
 using FT = Kernel::FT;
@@ -99,15 +100,15 @@ public:
     }
 };
 
-TEST(OffsetRVDTest, test) {
+TEST(mc, test) {
     // 1. 读取输入网格
     Mesh mesh;
-    if (!CGAL::Polygon_mesh_processing::IO::read_polygon_mesh("/Users/canjia/Downloads/47089.obj", mesh)) {
+    if (!CGAL::Polygon_mesh_processing::IO::read_polygon_mesh("/Users/canjia/Downloads/siggraph_open_fold_input_mesh.obj", mesh)) {
         std::cerr << "无法读取模型文件" << std::endl;
         return;
     }
 
-    const FT offset_distance = 5; // 偏置距离（正数表示向外膨胀，负数表示向内收缩）
+    const FT offset_distance = 4; // 偏置距离（正数表示向外膨胀，负数表示向内收缩）
 
     // 2. 初始化距离 Oracle
     MeshOffsetOracle oracle(mesh);
@@ -152,4 +153,69 @@ TEST(OffsetRVDTest, test) {
     CGAL::IO::write_polygon_soup("offset_mc.obj", out_points, out_triangles);
     std::cout << "完成！输出顶点数: " << out_points.size()
               << ", 三角面数: " << out_triangles.size() << std::endl;
+}
+
+#include <geogram/mesh/mesh.h>
+TEST(direct, test) {
+    GEO::Mesh mesh;
+    mesh.load("/Users/canjia/Downloads/siggraph_open_fold_input_mesh.obj");
+
+    GEO::Attribute<GEO::vec3> mesh_v_normal(mesh.vertices.attributes(), "normal");
+    mesh_v_normal.fill(GEO::vec3(0, 0, 0));
+    for (const auto& f : mesh.facets) {
+        const auto normal = GEO::normalize(GEO::Geom::triangle_normal(mesh.facets.point(f, 0), mesh.facets.point(f, 1), mesh.facets.point(f, 2)));
+        for (GEO::index_t lv = 0; lv < 3; ++lv)
+            mesh_v_normal[mesh.facets.vertex(f, lv)] += normal;
+    }
+    for (const auto& v : mesh.vertices)
+        mesh_v_normal[v] = GEO::normalize(mesh_v_normal[v]);
+
+    constexpr double d = -4;
+    GEO::Mesh mesh_out;
+    GEO::index_t new_v = mesh_out.vertices.create_vertices(3*mesh.facets.nb());
+    GEO::index_t new_f = mesh_out.facets.create_triangles(mesh.facets.nb());
+    for (const auto& f : mesh.facets) {
+        const auto normal = GEO::normalize(GEO::Geom::triangle_normal(mesh.facets.point(f, 0), mesh.facets.point(f, 1), mesh.facets.point(f, 2)));
+        mesh_out.vertices.point(new_v) = mesh.facets.point(f, 0) + normal * d;
+        mesh_out.vertices.point(new_v+1) = mesh.facets.point(f, 1) + normal * d;
+        mesh_out.vertices.point(new_v+2) = mesh.facets.point(f, 2) + normal * d;
+        mesh_out.facets.set_vertex(new_f, 0, new_v);
+        mesh_out.facets.set_vertex(new_f, 1, new_v+1);
+        mesh_out.facets.set_vertex(new_f, 2, new_v+2);
+        new_v += 3;
+        ++new_f;
+    }
+    // mesh_out.copy(mesh);
+    // for (const auto& v : mesh.vertices)
+        // mesh_out.vertices.point(v) += mesh_v_normal[v]*d;
+
+    // mesh_out.save("debug.geogram");
+
+    /* Random map */
+    std::vector<GEO::index_t> region_to_new_region(mesh_out.facets.nb());
+    GEO::index_t cnt = 0;
+    std::ranges::generate(region_to_new_region,
+                          [&cnt]() { return cnt++; });
+    GEO::random_shuffle(region_to_new_region.begin(), region_to_new_region.end());
+
+    /* Output */
+    {
+        std::ofstream out(R"(direct_offset.obj)");
+        for (const auto& p : mesh_out.vertices.points())
+            out << "v " << p.x << " " << p.y << " " << p.z << std::endl;
+
+        GEO::index_t vt_nb = 0;
+        for (const auto& f : mesh_out.facets) {
+            const double r = static_cast<double>(region_to_new_region[f]) / mesh_out.facets.nb();
+            for (GEO::index_t lv = 0; lv < mesh_out.facets.nb_vertices(f); ++lv)
+                out << "vt " << r << " " << 0 << std::endl;
+            out << "f";
+            for (GEO::index_t lv = 0; lv < mesh_out.facets.nb_vertices(f); ++lv)
+                out << " " << mesh_out.facets.vertex(f, lv)+1 << "/" << vt_nb+lv+1;
+            out << std::endl;
+
+            vt_nb += mesh_out.facets.nb_vertices(f);
+        }
+        out.close();
+    }
 }
