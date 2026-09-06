@@ -27,6 +27,10 @@ namespace geolio
 
         void label_blocks(GEO::Attribute<GEO::index_t>& mesh_f_block) const;
 
+        void create_coarse_mesh(
+            GEO::Mesh& mesh_out,
+            std::vector<GEO::index_t>* old_fc_to_new_fc = nullptr) const;
+
     private:
         void find_all_singular_and_border_vertices();
 

@@ -156,6 +156,40 @@ namespace geolio
         }
     }
 
+    void QuadMotorCycleGraph::create_coarse_mesh(
+        GEO::Mesh& mesh_out,
+        std::vector<GEO::index_t>* old_fc_to_new_fc
+        ) const {
+        if (blocks_.empty())
+            throw std::logic_error("Need to call compute() first!");
+
+        mesh_out.clear(false);
+        mesh_out.copy(mesh_, false, GEO::MESH_VERTICES);
+
+        GEO::index_t new_f = mesh_out.facets.create_quads(blocks_.size());
+        for (const auto& block : blocks_) {
+            for (GEO::index_t lv = 0; lv < 4; ++lv)
+                mesh_out.facets.set_vertex(new_f, lv, block.facet_corner_vertex(lv));
+            ++new_f;
+        }
+        mesh_out.facets.connect();
+
+        if (old_fc_to_new_fc != nullptr) {
+            old_fc_to_new_fc->assign(mesh_.facet_corners.nb(), GEO::NO_INDEX);
+            assert(mesh_out.facets.nb() == blocks_.size());
+            for (const auto& f : mesh_out.facets) {
+                for (const auto& BF : blocks_[f].block_facets()) {
+                    for (GEO::index_t lv = 0; lv < 4; ++lv) {
+                        if (const auto old_cf = mesh_.facets.corner(BF.f, (BF.lv+lv)%4);
+                            mesh_fc_tagged_[old_cf] != GEO::NO_INDEX
+                            )
+                            (*old_fc_to_new_fc)[old_cf] = mesh_out.facets.corner(f, lv);
+                    }
+                }
+            }
+        }
+    }
+
     void QuadMotorCycleGraph::find_all_singular_and_border_vertices(
         ) {
         if (!mesh_v_singular_.is_bound())

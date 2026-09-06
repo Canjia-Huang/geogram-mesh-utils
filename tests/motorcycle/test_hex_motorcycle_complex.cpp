@@ -2,10 +2,12 @@
 // Created by huangcanjia <huangcanjia0214@gmail.com> on 2026/9/5.
 // Copyright (c) 2026 Graphics@XMU (https://graphics.xmu.edu.cn). All rights reserved.
 //
+#include <unordered_set>
 #include <gtest/gtest.h>
 #include <geolio/motorcycle/hex_motorcycle_complex.h>
 #include "../utils.h"
-#include "geolio/mesh/hex_operations.h"
+#include <geolio/common/pair_hash.h>
+#include <geolio/mesh/hex_operations.h>
 
 namespace geolio::test
 {

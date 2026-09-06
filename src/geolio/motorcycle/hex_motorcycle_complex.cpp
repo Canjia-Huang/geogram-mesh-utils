@@ -185,7 +185,8 @@ namespace geolio
 
         if (old_cf_to_new_cf != nullptr) {
             old_cf_to_new_cf->assign(8*mesh_.cells.nb(), GEO::NO_INDEX);
-            for (GEO::index_t c = 0, c_end = blocks_.size(); c < c_end; ++c) {
+            assert(mesh_out.cells.nb() == blocks_.size());
+            for (const auto& c : mesh_out.cells) {
                 for (const auto& BC : blocks_[c].block_cells()) {
                     for (GEO::index_t lf = 0; lf < 6; ++lf) {
                         if (const auto old_cf = 8*BC.c + BC.lfs[lf];
