@@ -5,6 +5,7 @@
 #ifndef GEOLIO_HEX_MOTORCYCLE_BLOCK_H
 #define GEOLIO_HEX_MOTORCYCLE_BLOCK_H
 #include <geogram/mesh/mesh.h>
+#include <array>
 
 namespace geolio
 {
