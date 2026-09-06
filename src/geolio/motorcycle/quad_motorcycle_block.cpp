@@ -48,10 +48,7 @@ namespace geolio
             BlockFacet BF;
             BF.f = start_f;
             BF.coord = GEO::vec2i(0, 0);
-            BF.lvs[0] = 0;
-            BF.lvs[1] = 1;
-            BF.lvs[2] = 2;
-            BF.lvs[3] = 3; // use the lv order of facet start_f as the reference
+            BF.lv = 0; // use the lv order of facet start_f as the reference
 
             stack.push_back(BF);
             prcessed_facets[start_f] = true;
@@ -65,7 +62,7 @@ namespace geolio
 
             const auto f = BF.f;
             for (GEO::index_t lv = 0; lv < 4; ++lv) {
-                const auto& f_lv = BF.lvs[lv];
+                const auto& f_lv = (BF.lv+lv)%4;
                 assert(f_lv < 4);
 
                 if (mesh_fc_tagged_[mesh_.facets.corner(f, f_lv)] != GEO::NO_INDEX) // a wall
@@ -83,17 +80,21 @@ namespace geolio
                 nBF.coord = BF.coord + QUAD_LV_EXT_COORD[lv];
 
                 /* Match lv order
-                 *      x--------x    0--------3
-                 *      |   nf   |    |   f    |
-                 *      |        |    |        |
-                 *      x-------nlv   1--------2
+                 * x-------x 0-------3  x-------x 1-------0  x-------x 2-------1  x-------x 3-------2
+                 * |  nf   | |   f   |  |  nf   | |   f   |  |  nf   | |   f   |  |  nf   | |   f   |
+                 * |       | |       |  |       | |       |  |       | |       |  |       | |       |
+                 * x-----nlv 1-------2  x-----nlv 2-------3  x-----nlv 3-------0  x-----nlv 0-------1
                  */
                 const auto nlv = mesh_.facets.find_vertex(nf, mesh_.facets.vertex(f, (f_lv+1)%4));
                 assert(nlv != GEO::NO_INDEX);
-                nBF.lvs[nlv] = (f_lv+2)%4;
-                nBF.lvs[(nlv+1)%4] = (f_lv+3)%4;
-                nBF.lvs[(nlv+2)%4] = f_lv;
-                nBF.lvs[(nlv+3)%4] = (f_lv+1)%4;
+                nBF.lv = (nlv+6-lv)%4;
+                // switch (lv) {
+                //     case 0: nBF.lv = (nlv+2)%4; break;
+                //     case 1: nBF.lv = (nlv+1)%4; break;
+                //     case 2: nBF.lv = nlv; break;
+                //     case 3: nBF.lv = (nlv+3)%4; break;
+                //     default: assert(0);
+                // }
 
                 stack.push_back(nBF);
                 prcessed_facets[nf] = true;
@@ -129,19 +130,19 @@ namespace geolio
         switch (lv) {
             case 0: {
                 const auto& BF = block_facets_[0];
-                return mesh_.facets.vertex(BF.f, BF.lvs[0]);
+                return mesh_.facets.vertex(BF.f, BF.lv);
             }
             case 1: {
                 const auto& BF = block_facets_[len_x_-1];
-                return mesh_.facets.vertex(BF.f, BF.lvs[1]);
+                return mesh_.facets.vertex(BF.f, (BF.lv+1)%4);
             }
             case 2: {
                 const auto& BF = block_facets_[len_x_*len_y_-1];
-                return mesh_.facets.vertex(BF.f, BF.lvs[2]);
+                return mesh_.facets.vertex(BF.f, (BF.lv+2)%4);
             }
             case 3: {
                 const auto& BF = block_facets_[len_x_*(len_y_-1)];
-                return mesh_.facets.vertex(BF.f, BF.lvs[3]);
+                return mesh_.facets.vertex(BF.f, (BF.lv+3)%4);
             }
             default:
                 assert(0);
@@ -180,5 +181,22 @@ namespace geolio
         }
         block_facets_.swap(new_block_facets);
         assert(std::ranges::all_of(block_facets_, [&](const auto& BF){ return BF.f != GEO::NO_FACET; }));
+
+        // DEBUG
+        if constexpr (false) {
+            GEO::Mesh mesh_out;
+            mesh_out.copy(mesh_);
+            GEO::Attribute<int> mesh_out_f_coord_x(mesh_out.facets.attributes(), "coord_x");
+            GEO::Attribute<int> mesh_out_f_coord_y(mesh_out.facets.attributes(), "coord_y");
+            GEO::vector<GEO::index_t> facets_to_delete(mesh_out.facets.nb(), 1);
+            for (const auto& BF : block_facets_) {
+                facets_to_delete[BF.f] = 0;
+                mesh_out_f_coord_x[BF.f] = BF.coord.x;
+                mesh_out_f_coord_y[BF.f] = BF.coord.y;
+            }
+            mesh_out.facets.delete_elements(facets_to_delete);
+            GEO::mesh_save(mesh_out, "debug.geogram");
+            throw std::logic_error("im here");
+        }
     }
 }

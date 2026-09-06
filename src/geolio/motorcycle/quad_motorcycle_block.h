@@ -29,9 +29,7 @@ namespace geolio
         struct BlockFacet {
             GEO::index_t f{GEO::NO_INDEX};
             GEO::vec2i coord;
-            std::array<GEO::index_t, 4> lvs{
-                GEO::NO_INDEX, GEO::NO_INDEX, GEO::NO_INDEX, GEO::NO_INDEX
-                }; // same as the start_f's lv
+            GEO::index_t lv{GEO::NO_INDEX}; // same as the start_f's lv
         };
 
         /**

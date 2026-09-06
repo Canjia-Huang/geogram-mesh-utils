@@ -25,6 +25,8 @@ namespace geolio
 
         GEO::index_t compute(QuadMotorCycleGraphComplexType complex_type = BASE_COMPLEX);
 
+        void label_blocks(GEO::Attribute<GEO::index_t>& mesh_f_block) const;
+
     private:
         void find_all_singular_and_border_vertices();
 

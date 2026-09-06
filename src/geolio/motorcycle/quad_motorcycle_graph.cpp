@@ -140,6 +140,22 @@ namespace geolio
         return blocks_nb;
     }
 
+    void QuadMotorCycleGraph::label_blocks(
+        GEO::Attribute<GEO::index_t>& mesh_f_block
+        ) const {
+        assert(mesh_f_block.is_bound());
+        assert(mesh_f_block.size() == mesh_.facets.nb());
+        if (blocks_.empty())
+            throw std::logic_error("Need to call compute() first!");
+
+        for (GEO::index_t i = 0, i_end = blocks_.size(); i < i_end; ++i) {
+            const auto& block = blocks_[i];
+            for (const auto& facets = block.block_facets();
+                const auto& facet : facets)
+                mesh_f_block[facet.f] = i;
+        }
+    }
+
     void QuadMotorCycleGraph::find_all_singular_and_border_vertices(
         ) {
         if (!mesh_v_singular_.is_bound())

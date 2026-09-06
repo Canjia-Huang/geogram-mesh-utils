@@ -15,11 +15,24 @@ namespace geolio::test
             MC = std::make_unique<QuadMotorCycleGraph>(quad_mesh);
         }
 
+        void save_results() {
+            GEO::Attribute<GEO::index_t> quad_f_block(quad_mesh.facets.attributes(), "block");
+            MC->label_blocks(quad_f_block);
+
+            quad_mesh.save(get_current_test_name()+"_block.geogram");
+        }
+
         GEO::Mesh quad_mesh;
         std::unique_ptr<QuadMotorCycleGraph> MC;
     };
 
     TEST_F(QuadMotorCycleGraphTest, base_complex) {
         MC->compute(QuadMotorCycleGraph::BASE_COMPLEX);
+        save_results();
+    }
+
+    TEST_F(QuadMotorCycleGraphTest, motorcycle_complex) {
+        MC->compute(QuadMotorCycleGraph::MOTORCYCLE_COMPLEX);
+        save_results();
     }
 }
