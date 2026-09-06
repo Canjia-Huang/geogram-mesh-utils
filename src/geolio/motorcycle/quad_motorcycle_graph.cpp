@@ -33,6 +33,10 @@ namespace geolio
         ) {
         if (mesh_fc_tagged_.is_bound())
             mesh_fc_tagged_.destroy();
+        if (mesh_v_singular_.is_bound())
+            mesh_v_singular_.destroy();
+        if (mesh_v_border_.is_bound())
+            mesh_v_border_.destroy();
     }
 
     GEO::index_t QuadMotorCycleGraph::compute(
@@ -101,7 +105,7 @@ namespace geolio
                 assert(ordered_f_lv[0].first == F_f);
                 assert(ordered_f_lv.size() == 4); // regular
 
-                if (const auto& [opp_f, opp_lv] = ordered_f_lv[2];
+                if (const auto& [opp_f, opp_lv] = ordered_f_lv[1];
                     mesh_fc_tagged_[mesh_.facets.corner(opp_f, opp_lv)] == GEO::NO_INDEX
                     ) {
                     assert(mesh_.facets.vertex(F_f, F_lv1) == mesh_.facets.vertex(opp_f, opp_lv));
@@ -124,6 +128,11 @@ namespace geolio
                     mesh_fc_tagged_[mesh_.facets.corner(f, lv)] = 0;
             }
         }
+        // DEBUG
+        if constexpr (false) {
+            mesh_.save("debug.geogram");
+            throw std::logic_error("im here");
+        }
 
         /* Decompose */
         const GEO::index_t blocks_nb = decompose_into_blocks();
@@ -133,8 +142,12 @@ namespace geolio
 
     void QuadMotorCycleGraph::find_all_singular_and_border_vertices(
         ) {
-        mesh_v_singular_.assign(mesh_.vertices.nb(), false);
-        mesh_v_border_.assign(mesh_.vertices.nb(), false);
+        if (!mesh_v_singular_.is_bound())
+            mesh_v_singular_.bind(mesh_.vertices.attributes(), attribute_id_+":singular");
+        mesh_v_singular_.fill(false);
+        if (!mesh_v_border_.is_bound())
+            mesh_v_border_.bind(mesh_.vertices.attributes(), attribute_id_+":border");
+        mesh_v_border_.fill(false);
 
         std::vector<GEO::index_t> v_incident_facets_nb(mesh_.vertices.nb(), 0);
         for (const auto& f : mesh_.facets) {

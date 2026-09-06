@@ -281,38 +281,38 @@ namespace geolio
         }
 
         /* Fill orderly */
-        std::vector<BlockCell> new_cells(len_x_*len_y_*len_z_);
+        std::vector<BlockCell> new_block_cells(len_x_*len_y_*len_z_);
         for (auto& BC : block_cells_) {
             BC.coord.x -= min_x;
             BC.coord.y -= min_y;
             BC.coord.z -= min_z;
-            new_cells[BC.coord.x + BC.coord.y*len_x_ + BC.coord.z*len_x_*len_y_] = BC;
+            new_block_cells[BC.coord.x + BC.coord.y*len_x_ + BC.coord.z*len_x_*len_y_] = BC;
         }
-        block_cells_.swap(new_cells);
-        assert(std::ranges::all_of(block_cells_, [&](const auto& BC){ return BC.c != GEO::NO_INDEX; }));
+        block_cells_.swap(new_block_cells);
+        assert(std::ranges::all_of(block_cells_, [&](const auto& BC){ return BC.c != GEO::NO_CELL; }));
 
         // DEBUG
-        {
-            // GEO::Mesh M_out;
-            // M_out.copy(M_);
-            // M_out.edges.clear();
-            // M_out.facets.clear();
-            // GEO::Attribute<int> M_out_c_coord_x(M_out.cells.attributes(), "coord_x");
-            // GEO::Attribute<int> M_out_c_coord_y(M_out.cells.attributes(), "coord_y");
-            // GEO::Attribute<int> M_out_c_coord_z(M_out.cells.attributes(), "coord_z");
-            // GEO::Attribute<GEO::index_t> M_out_c_idx(M_out.cells.attributes(), "idx");
-            // GEO::vector<GEO::index_t> cells_to_delete(M_out.cells.nb(), 1);
-            // for (GEO::index_t i = 0; i < cells_.size(); ++i) {
-            //     const auto& BC = cells_[i];
-            //     M_out_c_coord_x[BC.c] = BC.coord.x;
-            //     M_out_c_coord_y[BC.c] = BC.coord.y;
-            //     M_out_c_coord_z[BC.c] = BC.coord.z;
-            //     M_out_c_idx[BC.c] = i;
-            //     cells_to_delete[BC.c] = 0;
-            // }
-            // M_out.cells.delete_elements(cells_to_delete);
-            // GEO::mesh_save(M_out, "debug.geogram");
-            // THROW_RUNTIME_ERROR("im here");
+        if constexpr (false){
+            GEO::Mesh mesh_out;
+            mesh_out.copy(mesh_);
+            mesh_out.edges.clear();
+            mesh_out.facets.clear();
+            GEO::Attribute<int> mesh_out_c_coord_x(mesh_out.cells.attributes(), "coord_x");
+            GEO::Attribute<int> mesh_out_c_coord_y(mesh_out.cells.attributes(), "coord_y");
+            GEO::Attribute<int> mesh_out_c_coord_z(mesh_out.cells.attributes(), "coord_z");
+            GEO::Attribute<GEO::index_t> M_out_c_idx(mesh_out.cells.attributes(), "idx");
+            GEO::vector<GEO::index_t> cells_to_delete(mesh_out.cells.nb(), 1);
+            for (GEO::index_t i = 0; i < block_cells_.size(); ++i) {
+                const auto& BC = block_cells_[i];
+                mesh_out_c_coord_x[BC.c] = BC.coord.x;
+                mesh_out_c_coord_y[BC.c] = BC.coord.y;
+                mesh_out_c_coord_z[BC.c] = BC.coord.z;
+                M_out_c_idx[BC.c] = i;
+                cells_to_delete[BC.c] = 0;
+            }
+            mesh_out.cells.delete_elements(cells_to_delete);
+            GEO::mesh_save(mesh_out, "debug.geogram");
+            throw std::logic_error("im here");
         }
     }
 }

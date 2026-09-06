@@ -49,9 +49,9 @@ namespace geolio
             BF.f = start_f;
             BF.coord = GEO::vec2i(0, 0);
             BF.lvs[0] = 0;
-            BF.lvs[0] = 1;
-            BF.lvs[0] = 2;
-            BF.lvs[0] = 3; // use the lv order of facet start_f as the reference
+            BF.lvs[1] = 1;
+            BF.lvs[2] = 2;
+            BF.lvs[3] = 3; // use the lv order of facet start_f as the reference
 
             stack.push_back(BF);
             prcessed_facets[start_f] = true;
@@ -86,14 +86,14 @@ namespace geolio
                  *      x--------x    0--------3
                  *      |   nf   |    |   f    |
                  *      |        |    |        |
-                 *      x-------v0    1--------2
+                 *      x-------nlv   1--------2
                  */
                 const auto nlv = mesh_.facets.find_vertex(nf, mesh_.facets.vertex(f, (f_lv+1)%4));
                 assert(nlv != GEO::NO_INDEX);
-                nBF.lvs[nlv] = 2;
-                nBF.lvs[(nlv+1)%4] = 3;
-                nBF.lvs[(nlv+2)%4] = 0;
-                nBF.lvs[(nlv+3)%4] = 1;
+                nBF.lvs[nlv] = (f_lv+2)%4;
+                nBF.lvs[(nlv+1)%4] = (f_lv+3)%4;
+                nBF.lvs[(nlv+2)%4] = f_lv;
+                nBF.lvs[(nlv+3)%4] = (f_lv+1)%4;
 
                 stack.push_back(nBF);
                 prcessed_facets[nf] = true;
@@ -101,7 +101,7 @@ namespace geolio
         }
 
         // DEBUG
-        if constexpr (true) {
+        if constexpr (false) {
             GEO::Mesh mesh_out;
             mesh_out.copy(mesh_);
             GEO::Attribute<int> mesh_out_f_coord_x(mesh_out.facets.attributes(), "coord_x");
@@ -120,14 +120,65 @@ namespace geolio
         rebuild_ordered_facets();
     }
 
-   GEO::index_t QuadMotorCycleBlock::facet_corner_vertex(
-       const GEO::index_t lv
-       ) const {
-        // TODO
+    GEO::index_t QuadMotorCycleBlock::facet_corner_vertex(
+        const GEO::index_t lv
+        ) const {
+        assert(!block_facets_.empty());
+        assert(lv < 4);
+
+        switch (lv) {
+            case 0: {
+                const auto& BF = block_facets_[0];
+                return mesh_.facets.vertex(BF.f, BF.lvs[0]);
+            }
+            case 1: {
+                const auto& BF = block_facets_[len_x_-1];
+                return mesh_.facets.vertex(BF.f, BF.lvs[1]);
+            }
+            case 2: {
+                const auto& BF = block_facets_[len_x_*len_y_-1];
+                return mesh_.facets.vertex(BF.f, BF.lvs[2]);
+            }
+            case 3: {
+                const auto& BF = block_facets_[len_x_*(len_y_-1)];
+                return mesh_.facets.vertex(BF.f, BF.lvs[3]);
+            }
+            default:
+                assert(0);
+                return GEO::NO_INDEX;
+        }
     }
 
     void QuadMotorCycleBlock::rebuild_ordered_facets(
         ) {
-        // TODO
+        assert(!block_facets_.empty());
+
+        int min_x = std::numeric_limits<int>::max();
+        int max_x = std::numeric_limits<int>::min();
+        int min_y = std::numeric_limits<int>::max();
+        int max_y = std::numeric_limits<int>::min();
+        for (const auto& BF : block_facets_) {
+            min_x = std::min(min_x, BF.coord.x);
+            max_x = std::max(max_x, BF.coord.x);
+            min_y = std::min(min_y, BF.coord.y);
+            max_y = std::max(max_y, BF.coord.y);
+        }
+        len_x_ = max_x - min_x + 1;
+        len_y_ = max_y - min_y + 1;
+        if (len_x_*len_y_ != block_facets_.size()) {
+            throw std::logic_error("This block is likely toroidal rather than cuboidal! But the split function has not yet been implemented.");
+            // TODO: need to split this block
+            return;
+        }
+
+        /* Fill orderly */
+        std::vector<BlockFacet> new_block_facets(len_x_*len_y_);
+        for (auto& BF : block_facets_) {
+            BF.coord.x -= min_x;
+            BF.coord.y -= min_y;
+            new_block_facets[BF.coord.x + BF.coord.y*len_x_] = BF;
+        }
+        block_facets_.swap(new_block_facets);
+        assert(std::ranges::all_of(block_facets_, [&](const auto& BF){ return BF.f != GEO::NO_FACET; }));
     }
 }
