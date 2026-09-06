@@ -173,7 +173,8 @@ namespace geolio
                     [[fallthrough]];
                 case GEO::MeshCellType::MESH_PYRAMID:
                     throw std::logic_error("Not support yet!");
-                default: break;
+                default:
+                    return false;
             }
             return true;
         }());
