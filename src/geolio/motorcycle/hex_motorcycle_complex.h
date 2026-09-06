@@ -110,6 +110,9 @@ namespace geolio
          */
         void find_all_singular_and_border_edges();
 
+        /**
+         * Active fire front used during propagation.
+         */
         struct Fire {
             GEO::index_t d;
             GEO::index_t c;
