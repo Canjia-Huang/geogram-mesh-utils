@@ -128,6 +128,64 @@ namespace geolio
         }
     }
 
+    template<GEO::index_t DIM>
+    double SurfaceControlGrid<DIM>::compute_facet_uv_quantity(
+        const GEO::index_t f,
+        const GEO::vec2& uv,
+        const GEO::index_t d
+        ) const {
+        assert(f < this->mesh_.facets.nb());
+        assert(uv.x >= 0 && uv.x <= 1);
+        assert(uv.y >= 0 && uv.y <= 1);
+        assert(this->control_nodes_quantities_.is_bound());
+        const auto dim = this->control_node_quantities_dimension();
+        assert(d < dim);
+
+        double q = 0;
+
+        std::vector<double> Bu(this->order_+1);
+        std::vector<double> Bv(this->order_+1);
+        geolio::Lagrange_basis_1D(uv.x, this->node_positions_1D_, Bu);
+        geolio::Lagrange_basis_1D(uv.y, this->node_positions_1D_, Bv);
+
+        for (GEO::index_t i = 0; i <= this->order_; ++i) {
+            for (GEO::index_t j = 0; j <= this->order_; ++j) {
+                const double lag_basis = Bu[i] * Bv[j];
+                q += lag_basis * this->control_nodes_quantities_[dim*this->facet_nd(f, i, j)+d];
+            }
+        }
+
+        return q;
+    }
+
+    template<GEO::index_t DIM>
+    void SurfaceControlGrid<DIM>::compute_facet_uv_quantities(
+        const GEO::index_t f,
+        const GEO::vec2& uv,
+        double* q
+        ) const {
+        assert(f < this->mesh_.facets.nb());
+        assert(uv.x >= 0 && uv.x <= 1);
+        assert(uv.y >= 0 && uv.y <= 1);
+        assert(this->control_nodes_quantities_.is_bound());
+        const auto dim = this->control_node_quantities_dimension();
+
+        std::fill_n(q, dim, 0.0);
+
+        std::vector<double> Bu(this->order_+1);
+        std::vector<double> Bv(this->order_+1);
+        geolio::Lagrange_basis_1D(uv.x, this->node_positions_1D_, Bu);
+        geolio::Lagrange_basis_1D(uv.y, this->node_positions_1D_, Bv);
+
+        for (GEO::index_t i = 0; i <= this->order_; ++i) {
+            for (GEO::index_t j = 0; j <= this->order_; ++j) {
+                const double lag_basis = Bu[i] * Bv[j];
+                for (GEO::index_t d = 0; d < dim; ++d)
+                    q[d] += lag_basis * this->control_nodes_quantities_[dim*this->facet_nd(f, i, j)+d];
+            }
+        }
+    }
+
     template class SurfaceControlGrid<2>;
     template class SurfaceControlGrid<3>;
 }

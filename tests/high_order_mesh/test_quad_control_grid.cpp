@@ -23,6 +23,18 @@ namespace geolio::test
                 mesh_out_v_idx[v] = v;
             }
 
+            if (const auto& v_quantities = control_grid->control_nodes_quantities();
+                v_quantities.is_bound()
+                ) {
+                const auto dim = v_quantities.dimension();
+                GEO::Attribute<double> mesh_out_v_quantities;
+                mesh_out_v_quantities.create_vector_attribute(mesh_out.vertices.attributes(), "quantities", dim);
+                for (GEO::index_t v = 0, v_end = control_grid->control_nodes_nb(); v < v_end; ++v) {
+                    for (GEO::index_t d = 0; d < dim; ++d)
+                        mesh_out_v_quantities[dim*v+d] = v_quantities[dim*v+d];
+                }
+            }
+
             EXPECT_TRUE(mesh_out.save(filepath));
         }
 
@@ -40,6 +52,20 @@ namespace geolio::test
                 &mesh_out_v_facet,
                 &mesh_out_v_uv,
                 &mesh_out_f_facet);
+
+            if (const auto& v_quantities = control_grid->control_nodes_quantities();
+                v_quantities.is_bound()
+                ) {
+                const auto dim = v_quantities.dimension();
+                GEO::Attribute<double> mesh_out_v_quantities;
+                mesh_out_v_quantities.create_vector_attribute(mesh_out.vertices.attributes(), "quantities", dim);
+                for (const auto& v : mesh_out.vertices) {
+                    control_grid->compute_facet_uv_quantities(
+                        mesh_out_v_facet[v],
+                        mesh_out_v_uv[v],
+                        &mesh_out_v_quantities[dim*v]);
+                }
+            }
 
             EXPECT_TRUE(mesh_out.save(filepath));
         }
@@ -105,6 +131,35 @@ namespace geolio::test
                 p[d] += 0.1*GEO::Numeric::random_float32();
             if (DIM == 3)
                 p[2] += -0.2;
+        }
+        this->save_control_nodes(get_current_test_name()+"_nodes.geogram");
+        this->save_high_order_mesh_facets(get_current_test_name()+"_facets.geogram");
+    }
+
+    TYPED_TEST(SingleQuadControlGridTest, quantities) {
+        constexpr GEO::index_t DIM = TypeParam::value;
+        {
+            auto& p = this->control_grid->control_node(this->control_grid->facet_edge_nd(0, 1, 1));
+            for (GEO::index_t d = 0; d < DIM; ++d)
+                p[d] += 0.1*GEO::Numeric::random_float32();
+            if (DIM == 3)
+                p[2] += 0.2;
+        }
+        {
+            auto& p = this->control_grid->control_node(this->control_grid->facet_nd(0, 1, 3));
+            for (GEO::index_t d = 0; d < DIM; ++d)
+                p[d] += 0.1*GEO::Numeric::random_float32();
+            if (DIM == 3)
+                p[2] += -0.2;
+        }
+
+        constexpr GEO::index_t dim = 4;
+        this->control_grid->create_control_node_quantities(dim);
+        auto& v_quantities = this->control_grid->control_nodes_quantities();
+        ASSERT_TRUE(v_quantities.is_bound());
+        for (GEO::index_t v = 0, v_end = this->control_grid->control_nodes_nb(); v < v_end; ++v) {
+            for (GEO::index_t d = 0; d < dim; ++d)
+                v_quantities[dim*v+d] = (d+1)*GEO::Numeric::random_float32();
         }
         this->save_control_nodes(get_current_test_name()+"_nodes.geogram");
         this->save_high_order_mesh_facets(get_current_test_name()+"_facets.geogram");

@@ -297,6 +297,23 @@ namespace geolio
             GEO::vec3& du, GEO::vec3& dv, GEO::vec3& dw,
             std::vector<double>& Bu, std::vector<double>& Bv, std::vector<double>& Bw,
             std::vector<double>& dBu, std::vector<double>& dBv, std::vector<double>& dBw) const;
+
+        /**
+         * Evaluate one scalar physical quantity at a parameter point in a cell.
+         * @param[in] c cell index, 0,1,...,hex_mesh.cells.nb()-1
+         * @param[in] uvw parameter point in the cell parameter domain [0, 1]^3
+         * @param[in] d physical quantity component index, 0,1,...,PHYS_DIM_-1
+         * @return interpolated physical quantity value of component \p d
+         */
+        [[nodiscard]] double compute_cell_uvw_quantity(GEO::index_t c, const GEO::vec3& uvw, GEO::index_t d) const;
+
+        /**
+         * Evaluate all physical quantity components at a parameter point in a cell.
+         * @param[in] c cell index, 0,1,...,hex_mesh.cells.nb()-1
+         * @param[in] uvw parameter point in the cell parameter domain [0, 1]^3
+         * @param[out] q output buffer with length at least PHYS_DIM_; receives interpolated values
+         */
+        void compute_cell_uvw_quantities(GEO::index_t c, const GEO::vec3& uvw, double* q) const;
     };
 }
 

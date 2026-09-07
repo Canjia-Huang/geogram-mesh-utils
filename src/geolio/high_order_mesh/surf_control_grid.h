@@ -232,6 +232,23 @@ namespace geolio
             GEO::vecng<DIM, double>& du, GEO::vecng<DIM, double>& dv,
             std::vector<double>& Bu, std::vector<double>& Bv,
             std::vector<double>& dBu, std::vector<double>& dBv) const;
+
+        /**
+         * Evaluate one scalar physical quantity at a parameter point in a facet.
+         * @param[in] f facet index, 0,1,...,quad_mesh.facets.nb()-1
+         * @param[in] uv parameter point in the facet parameter domain [0, 1]^2
+         * @param[in] d physical quantity component index, 0,1,...,PHYS_DIM_-1
+         * @return interpolated physical quantity value of component \p d
+         */
+        [[nodiscard]] double compute_facet_uv_quantity(GEO::index_t f, const GEO::vec2& uv, GEO::index_t d) const;
+
+        /**
+         * Evaluate all physical quantity components at a parameter point in a facet.
+         * @param[in] f cell index, 0,1,...,quad_mesh.facets.nb()-1
+         * @param[in] uv parameter point in the facet parameter domain [0, 1]^2
+         * @param[out] q output buffer with length at least PHYS_DIM_; receives interpolated values
+         */
+        void compute_facet_uv_quantities(GEO::index_t f, const GEO::vec2& uv, double* q) const;
     };
 
     extern template class SurfaceControlGrid<2>;

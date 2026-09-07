@@ -178,6 +178,18 @@ namespace geolio::test
                 mesh_out_v_idx[v] = v;
             }
 
+            if (const auto& v_quantities = control_grid->control_nodes_quantities();
+                v_quantities.is_bound()
+                ) {
+                const auto dim = v_quantities.dimension();
+                GEO::Attribute<double> mesh_out_v_quantities;
+                mesh_out_v_quantities.create_vector_attribute(mesh_out.vertices.attributes(), "quantities", dim);
+                for (GEO::index_t v = 0, v_end = control_grid->control_nodes_nb(); v < v_end; ++v) {
+                    for (GEO::index_t d = 0; d < dim; ++d)
+                        mesh_out_v_quantities[dim*v+d] = v_quantities[dim*v+d];
+                }
+            }
+
             EXPECT_TRUE(mesh_out.save(filepath));
         }
 
@@ -198,6 +210,20 @@ namespace geolio::test
 
             eval_vertices_quality(mesh_out, mesh_out_v_cell, mesh_out_v_uvw);
 
+            if (const auto& v_quantities = control_grid->control_nodes_quantities();
+                v_quantities.is_bound()
+                ) {
+                const auto dim = v_quantities.dimension();
+                GEO::Attribute<double> mesh_out_v_quantities;
+                mesh_out_v_quantities.create_vector_attribute(mesh_out.vertices.attributes(), "quantities", dim);
+                for (const auto& v : mesh_out.vertices) {
+                    control_grid->compute_cell_uvw_quantities(
+                        mesh_out_v_cell[v],
+                        mesh_out_v_uvw[v],
+                        &mesh_out_v_quantities[dim*v]);
+                }
+            }
+
             EXPECT_TRUE(mesh_out.save(filepath));
         }
 
@@ -217,6 +243,20 @@ namespace geolio::test
                 &mesh_out_c_cell);
 
             eval_vertices_quality(mesh_out, mesh_out_v_cell, mesh_out_v_uvw);
+
+            if (const auto& v_quantities = control_grid->control_nodes_quantities();
+                v_quantities.is_bound()
+                ) {
+                const auto dim = v_quantities.dimension();
+                GEO::Attribute<double> mesh_out_v_quantities;
+                mesh_out_v_quantities.create_vector_attribute(mesh_out.vertices.attributes(), "quantities", dim);
+                for (const auto& v : mesh_out.vertices) {
+                    control_grid->compute_cell_uvw_quantities(
+                        mesh_out_v_cell[v],
+                        mesh_out_v_uvw[v],
+                        &mesh_out_v_quantities[dim*v]);
+                }
+            }
 
             EXPECT_TRUE(mesh_out.save(filepath));
         }
@@ -281,6 +321,28 @@ namespace geolio::test
             GEO::vec3(GEO::Numeric::random_float32(), GEO::Numeric::random_float32(), GEO::Numeric::random_float32());
         control_grid->control_node(control_grid->cell_nd(0, 1, 2, 3)) += 0.1 *
             GEO::vec3(GEO::Numeric::random_float32(), GEO::Numeric::random_float32(), GEO::Numeric::random_float32());
+        save_control_nodes(get_current_test_name()+"_nodes.geogram");
+        save_high_order_mesh_border(get_current_test_name()+"_border.geogram");
+        save_high_order_mesh_cells(get_current_test_name()+"_cells.geogram");
+    }
+
+    TEST_F(SingleHexControlGridTest, quantities) {
+        control_grid->control_node(control_grid->cell_edge_nd(0, 1, 2)) += 0.1 *
+            GEO::vec3(GEO::Numeric::random_float32(), GEO::Numeric::random_float32(), GEO::Numeric::random_float32());
+        control_grid->control_node(control_grid->cell_facet_nd(0, 2, 2, 3)) += 0.1 *
+            GEO::vec3(GEO::Numeric::random_float32(), GEO::Numeric::random_float32(), GEO::Numeric::random_float32());
+        control_grid->control_node(control_grid->cell_nd(0, 1, 2, 3)) += 0.1 *
+            GEO::vec3(GEO::Numeric::random_float32(), GEO::Numeric::random_float32(), GEO::Numeric::random_float32());
+
+        constexpr GEO::index_t dim = 6;
+        this->control_grid->create_control_node_quantities(dim);
+        auto& v_quantities = this->control_grid->control_nodes_quantities();
+        ASSERT_TRUE(v_quantities.is_bound());
+        for (GEO::index_t v = 0, v_end = this->control_grid->control_nodes_nb(); v < v_end; ++v) {
+            for (GEO::index_t d = 0; d < dim; ++d)
+                v_quantities[dim*v+d] = (d+1)*GEO::Numeric::random_float32();
+        }
+
         save_control_nodes(get_current_test_name()+"_nodes.geogram");
         save_high_order_mesh_border(get_current_test_name()+"_border.geogram");
         save_high_order_mesh_cells(get_current_test_name()+"_cells.geogram");
