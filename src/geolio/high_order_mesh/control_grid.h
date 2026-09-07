@@ -126,7 +126,7 @@ namespace geolio
          * @brief Get the basis-function family used by this control grid.
          * @return Current basis-function type.
          */
-        [[nodiscard]] const auto& basis_function_type() const { return basis_function_type_; }
+        [[nodiscard]] BasisFunctionType basis_function_type() const { return basis_function_type_; }
 
         enum class NodesType {
             EQUALLY_SPACED_NODES,
@@ -139,7 +139,7 @@ namespace geolio
          * @brief Get the 1D node distribution type.
          * @return Current control-node distribution policy.
          */
-        [[nodiscard]] auto nodes_type() const { return nodes_type_; }
+        [[nodiscard]] NodesType nodes_type() const { return nodes_type_; }
 
         /**
          * @brief Set the 1D node distribution type and refresh dependent data.
