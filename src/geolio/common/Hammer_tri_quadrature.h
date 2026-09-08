@@ -417,7 +417,7 @@ namespace geolio
                 points_and_weights = GAUSS8X8_ORDER_64;
                 break;
             default:
-                LOG::WARN("Hammer triangle quadrature degree {} is not supported! Use the highest available degree.", degree);
+                LOG::WARN("Hammer triangle quadrature degree {} is not supported! Use the highest available degree (15).", degree);
                 points_and_weights = GAUSS8X8_ORDER_64;
                 break;
         }
